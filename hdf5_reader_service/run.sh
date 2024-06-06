@@ -7,4 +7,5 @@ cmake -S . -B build
 cmake --build build
 
 # Run the program
-./build/hdf5_file_reader
+./build/HDF5Reader
+

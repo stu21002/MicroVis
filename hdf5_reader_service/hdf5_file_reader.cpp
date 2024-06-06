@@ -20,7 +20,8 @@ int main() {
         // Open the root group
         H5::Group _group = _imgfile.openGroup("0");
         H5::DataSet _dataset = _group.openDataSet("DATA");
-        std::cout << "We have progress";
+
+        std::cout << "We have progress" << std::endl;
 
     } catch (H5::Exception& error) {
         error.printErrorStack();
