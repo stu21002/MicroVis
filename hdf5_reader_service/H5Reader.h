@@ -13,7 +13,7 @@ class H5Reader {
     bool Closefile();
     void getFileInfo();
     void getImageData();
-    void getRegion();
+    void getRegion(std::vector<hsize_t> start, std::vector<hsize_t> end);
     void getSpectralProfile();
 
     protected:
@@ -22,6 +22,7 @@ class H5Reader {
     H5::DataSet _dataset;
     H5::Group _group;
     H5::DataSpace _dspace;
+    int _N;
      
  
 };

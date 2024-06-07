@@ -14,6 +14,8 @@
         	_file = H5::H5File(_fileName,H5F_ACC_RDONLY);
         	_group = _file.openGroup("0");
         	_dataset = _group.openDataSet("DATA");
+			H5::DataSpace dataspace = _dataset.getSpace();
+			_N = dataspace.getSimpleExtentNdims();
         	return true;
         }
         catch(const H5::Exception& e)
@@ -64,11 +66,14 @@ void H5Reader::getImageData() {
 	}
 	std::cout << std::endl;
 
-	std::vector<int> data(dims[0] * dims[1]);
-	_dataset.read(data.data(), H5::PredType::NATIVE_INT, dataspace);
+	std::vector<float> data(dims[0] * dims[1]);
+	_dataset.read(data.data(), H5::PredType::NATIVE_FLOAT, dataspace);
 
 	std::cout << "First 10 elements of DATA:\n";
-	for (size_t i = 0; i < std::min(static_cast<size_t>(10), data.size()); i++) {
+	// for (size_t i = 0; i < std::min(static_cast<size_t>(10), data.size()); i++) {
+	//     std::cout << data[i] << " ";
+	// }
+	for (size_t i = 0; i < data.size(); i++) {
 	    std::cout << data[i] << " ";
 	}
 	std::cout << std::endl;
@@ -78,7 +83,38 @@ void H5Reader::getImageData() {
 }
 
 
-	void H5Reader::getRegion() {}
+//code from carta Utilities...
+ void  H5Reader::getRegion(std::vector<hsize_t> start, std::vector<hsize_t> end) {
+	std::vector<float> result;
+    std::vector<hsize_t> h5_start;
+    std::vector<hsize_t> h5_count;
+    hsize_t result_size = 1;
+
+	std::cout << _N << "\n";
+    for (int d = 0; d < _N; d++) {
+        // Calculate the expected result size
+        h5_start.insert(h5_start.begin(), d < start.size() ? start[d] : 0);
+        h5_count.insert(h5_count.begin(), d < start.size() ? end[d] - start[d] : 1);
+        result_size *= end[d] - start[d];
+		// std::cout << result_size << "\n";
+		// std::cout << end[d] << "\n";
+		// std::cout << start[d] << "\n";
+    }
+	
+    result.resize(result_size);
+    H5::DataSpace mem_space(1, &result_size);
+
+    auto file_space = _dataset.getSpace();
+    file_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+    _dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, file_space);
+	
+	
+    for (size_t i = 0; i < result.size(); i++) {
+	    std::cout << result[i] << "\n";
+	}
+}
+
+
 	void H5Reader::getSpectralProfile() {}
 
 int main() {
@@ -90,6 +126,10 @@ int main() {
 
 	reader.getFileInfo();
 	reader.getImageData();
+
+	std::vector<hsize_t> start = {0, 0}; // Starting indices for x and y dimensions
+	std::vector<hsize_t> end = {2, 2};   // Ending indices for x and y dimensions
+	reader.getRegion(start, end);
 
 	reader.Closefile();
     } else {
