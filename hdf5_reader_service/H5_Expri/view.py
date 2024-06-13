@@ -21,7 +21,7 @@ def read_hdf5_detailed(file_path):
     return structure
 
 # Specify the path to your HDF5 file
-file_path = './files/example.hdf5'
+file_path = './files/h5.hdf5'
 
 # Read the HDF5 file and get the detailed data
 hdf5_detailed_data = read_hdf5_detailed(file_path)

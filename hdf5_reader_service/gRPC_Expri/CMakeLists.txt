@@ -9,7 +9,10 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 include_directories(${HDF5_INCLUDE_DIRS})
 
+
 add_library(protolib proto/hello.proto)
+
+
 target_link_libraries(protolib gRPC::grpc++)
 
 
@@ -23,6 +26,9 @@ protobuf_generate(TARGET protolib LANGUAGE grpc
 GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
 PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}")
 
+
 add_executable(server src/server.cpp)
 target_link_libraries(server protolib)
+
+
 target_link_libraries(server ${HDF5_LIBRARIES})
