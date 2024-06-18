@@ -21,6 +21,7 @@ class H5Service : public H5ReaderService::Service
 
     ::grpc::Status CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response)
     {
+        std::cout << "Checking Status" << std::endl;
         response->set_status(true);
         response->set_statusmessage("OK");
         return grpc::Status::OK;
@@ -32,6 +33,7 @@ class H5Service : public H5ReaderService::Service
 
         try
         {
+            std::cout << "Opening file" << std::endl;
             _file = H5::H5File("./files/" + request->filename(), H5F_ACC_RDONLY);
             // _group = _file.openGroup("0");
             // _dataset = _group.openDataSet("DATA");
@@ -46,6 +48,7 @@ class H5Service : public H5ReaderService::Service
             // _depth = _N >= 3 ? _dims[2] : 1;
             // _height = _dims[1];
             // _width = _dims[0];
+            response->set_statusmessage(request->filename() + " has been opened.");
             response->set_status(true);
         }
         catch (const H5::Exception &e)
@@ -59,9 +62,12 @@ class H5Service : public H5ReaderService::Service
 
     ::grpc::Status CloseFile(::grpc::ServerContext *context, const ::FileCloseRequest *request, ::StatusResponse *response)
     {
+
         try
         {
+            std::cout << "Closing file" << std::endl;
             _file.close();
+            response->set_statusmessage("File has been closed.");
             response->set_status(true);
         }
         catch (const H5::Exception &e)
@@ -75,7 +81,8 @@ class H5Service : public H5ReaderService::Service
     {
         try
         {
-
+            //Relook at this
+            std::cout << "Getting file info" << std::endl;
             H5::H5File qckFile = H5::H5File("./files/" + request->filename(), H5F_ACC_RDONLY);
             int fileSize = qckFile.getFileSize();
             H5::Group qckGroup = qckFile.openGroup("0");
@@ -107,12 +114,10 @@ class H5Service : public H5ReaderService::Service
 
     ::grpc::Status ReadRegion(::grpc::ServerContext *context, const ::ReadRegionRequest *request, ::ReadRegionResponse *response)
     {
+        std::cout << "Reading Region" << std::endl;
         std::vector<float> result;
 
-        // Starting points in each dimension
         std::vector<hsize_t> h5_start;
-
-        // Number of pixels selected per dimension
         std::vector<hsize_t> h5_count;
 
         hsize_t result_size = 1;
@@ -169,92 +174,74 @@ class H5Service : public H5ReaderService::Service
     const hsize_t width =request->width();
     const hsize_t height = request->height();
     const hsize_t num_pixels = request->numpixels();
+    const hsize_t total_pixels = width*height*num_pixels;
+   
+    _group = _file.openGroup("0");
+    H5::Group _secondaryGroup = _group.openGroup("PermutedData");
+    _dataset = _secondaryGroup.openDataSet("ZYXW");
+    H5::DataSpace data_space = _dataset.getSpace();
 
-    // Fancy Response stuff
-    // const auto num_bytes = num_pixels * sizeof(float);
-    // response->mutable_data()->resize(num_bytes);
+
     if (width == 1 && height == 1) {
-
-        std::vector<hsize_t> h5_start = {0, static_cast<hsize_t>(request->z()), static_cast<hsize_t>(request->y()), static_cast<hsize_t>(request->x())};
-        std::vector<hsize_t> h5_count = {1, num_pixels, 1, 1};
-
         
-        //Read H5 
-        std::cout << "Opening them files" << std::endl;
+        std::cout << "Performing Single Point Spectral Profile" << std::endl;
+        //Takes in from order of least change...
+        std::vector<hsize_t> h5_start = {0,static_cast<hsize_t>(request->x()) , static_cast<hsize_t>(request->y()), static_cast<hsize_t>(request->z())};
+        std::vector<hsize_t> h5_count = {1, 1, 1, num_pixels};
 
-        _group = _file.openGroup("0");
-        _dataset = _group.openDataSet("DATA");
-        auto data_space = _dataset.getSpace();
-        hsize_t newSize = num_pixels * width * height;
-        result.resize(newSize);
-        H5::DataSpace mem_space(1, &newSize);
-        
-
-        for (int value : h5_count )
-        {
-            std::cout << value << " ";
-        }
-
-        std::cout << std::endl;
+        result.resize(total_pixels);
+        H5::DataSpace mem_space(1, &total_pixels);
         data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
         _dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
         
-        std::cout << "Closing them files" << std::endl;
-
-        data_space.close();
-        _dataset.close();
-        _group.close();
+ 
 
         for (float value : result)
         {
             response->add_data(value);
         }
-
+        
+        mem_space.close();
     } else {
-        // const auto required_buffer_size = _dims[0] * (height-1) + width;
-        // std::vector<float> required_buffer(required_buffer_size);
+        std::cout << "Performing Multi Point Spectral Profile" << std::endl;
 
-    //    const auto slice_size_pixels = width * height;
-    //    std::vector<float> channel_buffer(slice_size_pixels);
-        // float* data_ptr = reinterpret_cast<float*>(response->mutable_data()->data());
-        std::cout << "Werid stuff here" << std::endl;
-        for (auto i = 0; i < request->numpixels(); i++) {
-        const auto channel = request->z() + i;
+        std::vector<hsize_t> h5_start = {0, static_cast<hsize_t>(request->x()), static_cast<hsize_t>(request->y()), static_cast<hsize_t>(request->z())};
+        std::vector<hsize_t> h5_count = {1, width, height, num_pixels};
 
-        // std::vector<long> start_pix = {request->x(), request->y(), channel, 1};
-        // std::vector<long> last_pix = {request->x() + width - 1, request->y() + height - 1, channel, 1};
-        // std::vector<long> increment = {1, 1, 1, 1};
+        
+        result.resize(total_pixels);
+        H5::DataSpace mem_space(1, &total_pixels);
+        data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+        _dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+        std::vector<float> spectralProfile(num_pixels);
+        int offset = num_pixels*height;
+        for (int z = 0; z < num_pixels; ++z) {
+            int count = 0;
+            float sum = 0; 
+            for (int x = 0; x < width; ++x) {
+                int index = z + x * offset;
+                for (int y = 0; y < height; ++y) {
 
-        // Read H5
+                    const auto value = result[index];
+                    if (std::isfinite(value)) {
+                        sum += value;
+                        count++;
+                    }
+                    index += num_pixels;
+                }
+            }
+            const float channel_mean = count > 0 ? sum / count : NAN;
+            // spectralProfile.at(z) = channel_mean;
+            response->add_data(channel_mean);
 
-        int count = 0;
-        float sum = 0;
-    //      for (const auto& value : channel_buffer) {
-    //        if (std::isfinite(value)) {
-    //          sum += value;
-    //          count++;
-    //        }
-    //      }
-
-        //Fancy stuff sending to response directly
-        // long offset = 0;
-        // for (int row = 0; row < height; row++) {
-        //     for (int col = 0; col < width; col++) {
-        //     const auto value = required_buffer[offset + col];
-        //     if (std::isfinite(value)) {
-        //         sum += value;
-        //         count++;
-        //     }
-        //     }
-        //     offset += dims[0];
-        // }
-
-
-        const float channel_mean = count > 0 ? sum / count : NAN;
-        result[i] = channel_mean;
-        }
+        }   
+        mem_space.close();
     }
-
+    
+    data_space.close();
+    _dataset.close();
+    _secondaryGroup.close();
+    _group.close();
     return grpc::Status::OK;
 };
 };
