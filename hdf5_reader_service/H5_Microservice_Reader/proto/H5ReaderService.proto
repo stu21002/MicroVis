@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+
+message Empty {}
+
+message StatusResponse {
+  bool status = 1;
+  string statusMessage = 2;
+}
+
+message FileOpenRequest {
+  string filename = 1;
+//   string hdu = 2;
+//   string uuid = 3;
+}
+
+message FileCloseRequest {
+  string uuid = 1;
+}
+
+message FileInfoRequest {
+  string filename = 1;
+}
+
+message FileInfoResponse {
+    bool success = 1;
+    int64 size = 2; 
+    repeated int64 dimensions = 3;
+}
+
+message FileInfo {
+    string name = 1;
+    sfixed64 size = 2;
+    int64 width = 3;
+
+}
+message ReadRegionRequest{
+    repeated int32 start = 1;
+    repeated int32 end = 2;
+}
+
+message ReadRegionResponse{
+    repeated float region = 1;
+}
+
+message ImageDataRequest {
+  string uuid = 1;
+  repeated int32 start = 2;
+  int64 numPixels = 3;
+}
+
+message ImageDataResponse {
+  bytes data = 1;
+}
+
+message SpectralProfileRequest {
+  string uuid = 1;
+  int64 x = 2;
+  int64 y = 3;
+  int64 z = 4;
+  int64 numPixels = 5;
+  int64 width = 6;
+  int64 height = 7;
+}
+
+message SpectralProfileResponse {
+  repeated float data = 1;
+}
+
+service H5ReaderService{
+  rpc CheckStatus(Empty) returns  (StatusResponse) {}
+  rpc OpenFile(FileOpenRequest) returns (StatusResponse) {}
+  rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
+  rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
+  rpc ReadRegion (ReadRegionRequest) returns (ReadRegionResponse) {}
+  rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
+
+}
