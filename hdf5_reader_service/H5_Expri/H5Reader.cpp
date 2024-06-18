@@ -105,7 +105,7 @@ void H5Reader::getImageData() {
     H5::DataSpace mem_space(1, &result_size);
 
     auto file_space = _dataset.getSpace();
-    file_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+    file_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());//question
     _dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, file_space);
 	
 	
@@ -127,8 +127,8 @@ int main() {
 	reader.getFileInfo();
 	reader.getImageData();
 
-	std::vector<hsize_t> start = {0, 0}; // Starting indices for x and y dimensions
-	std::vector<hsize_t> end = {2, 2};   // Ending indices for x and y dimensions
+	std::vector<hsize_t> start = {0, 0, 0}; // Starting indices for x and y dimensions
+	std::vector<hsize_t> end = {2, 2, 2};   // Ending indices for x and y dimensions
 	reader.getRegion(start, end);
 
 	reader.Closefile();
