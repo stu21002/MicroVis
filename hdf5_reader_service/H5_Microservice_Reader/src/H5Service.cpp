@@ -78,20 +78,20 @@
             H5::H5File qckFile = H5::H5File("./files/" + request->filename(), H5F_ACC_RDONLY);
             int fileSize = qckFile.getFileSize();
             H5::Group qckGroup = qckFile.openGroup("0");
-            H5::DataSet qckdataset = qckGroup.openDataSet("DATA");
-
-            auto qckDataSpace = qckdataset.getSpace();
-            int qckN = qckDataSpace.getSimpleExtentNdims();
-            std::vector<hsize_t> qckDims;
-            qckDims.resize(qckN);
-            qckDataSpace.getSimpleExtentDims(qckDims.data(), nullptr);
-            std::reverse(qckDims.begin(), qckDims.end());
-
-            response->set_size(fileSize);
-            for (int i = 0; i < qckN; i++)
-            {
-                // std::cout << qckDims[i] << " ";
-                response->add_dimensions(qckDims[i]);
+            int numAttrs = qckGroup.getNumAttrs();
+            // // Iterate through each attribute
+            for (int i = 0; i < 32; i++) {
+                std::cout<< i << std::endl;
+                std::cout<<std::endl;   
+                // Open the attribute
+                H5::Attribute attr = qckGroup.openAttribute(i);
+                
+                // Get the name of the attribute
+                std::string attrName = attr.getName();
+                std::cout<<attrName<<std::endl;        
+ 
+ 
+                // Handle other types as needed
             }
             response->set_success(true);
         }

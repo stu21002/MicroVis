@@ -19,21 +19,38 @@ message FileCloseRequest {
 }
 
 message FileInfoRequest {
-  string filename = 1;
+  string uuid = 1;
+  string filename = 2;
 }
 
 message FileInfoResponse {
     bool success = 1;
-    int64 size = 2; 
-    repeated int64 dimensions = 3;
+    FileInfo fileInfo = 2;
+    FileDimensions fileDimensions = 3;
 }
 
 message FileInfo {
-    string name = 1;
-    sfixed64 size = 2;
-    int64 width = 3;
+  string name = 1;
+  // FileType type = 2;
+  sfixed64 size = 3;
+  // repeated string HDU_list = 4;
+  sfixed64 date = 5;
+}
+
+message FileDimensions {
+  // Number of dimensions of the image file
+  sfixed32 dimensions = 1;
+  // Width of the XY plane
+  sfixed32 width = 2;
+  // Height of the XY plane
+  sfixed32 height = 3;
+  // Number of channels
+  sfixed32 depth = 4;
+  // Number of Stokes parameters
+  sfixed32 stokes = 5;
 
 }
+
 message ReadRegionRequest{
     repeated int32 start = 1;
     repeated int32 end = 2;
@@ -41,16 +58,6 @@ message ReadRegionRequest{
 
 message ReadRegionResponse{
     repeated float region = 1;
-}
-
-message ImageDataRequest {
-  string uuid = 1;
-  repeated int32 start = 2;
-  int64 numPixels = 3;
-}
-
-message ImageDataResponse {
-  bytes data = 1;
 }
 
 message SpectralProfileRequest {
