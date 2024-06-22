@@ -1,6 +1,8 @@
 syntax = "proto3";
 
 
+
+///////
 message Empty {}
 
 message StatusResponse {
@@ -17,6 +19,8 @@ message FileOpenRequest {
 message FileCloseRequest {
   string uuid = 1;
 }
+
+//////////////
 
 message FileInfoRequest {
   string uuid = 1;
@@ -50,26 +54,41 @@ message FileDimensions {
   sfixed32 stokes = 5;
 
 }
+//////////////////
+
+enum RegionType {
+  POINT = 0;
+  LINE = 1;
+  RECTANGLE = 2;
+  CIRCLE = 3;
+}
 
 message ReadRegionRequest{
     repeated int32 start = 1;
-    repeated int32 end = 2;
+    repeated int32 count = 2;
+    RegionType regionType = 3;
 }
 
+
+//Change To Bytes
 message ReadRegionResponse{
     repeated float region = 1;
 }
 
+
+
 message SpectralProfileRequest {
   string uuid = 1;
-  int64 x = 2;
-  int64 y = 3;
-  int64 z = 4;
-  int64 numPixels = 5;
-  int64 width = 6;
-  int64 height = 7;
+  RegionType regionType = 2;
+  int32 x = 3;
+  int32 y = 4;
+  int32 z = 5;
+  int32 numPixels = 6;
+  int32 width = 7;
+  int32 height = 8;
 }
 
+//Change TO Bytes
 message SpectralProfileResponse {
   repeated float data = 1;
   //bytes data = 1;

@@ -8,6 +8,7 @@
 #include <H5Cpp.h>
 #include <vector>
 #include <cstdlib>
+#include <cmath>
 
 
 
@@ -25,8 +26,8 @@
 
         try
         {
-            std::cout << "Opening file" << std::endl;
-            _file= H5::H5File("./files/" + request->filename(), H5F_ACC_RDONLY);
+            std::cout << ">>Opening file" << std::endl;
+            _file= H5::H5File("/media/stuart/Elements/" + request->filename(), H5F_ACC_RDONLY);
             // _group = _file.openGroup("0");
             // _dataset = _group.openDataSet("DATA");
 
@@ -40,6 +41,7 @@
             // _depth = _N >= 3 ? _dims[2] : 1;
             // _height = _dims[1];
             // _width = _dims[0];
+            // std::cout << "Width:Height:Depth:Stokes"<< _width << ":"<< _height << ":"<< _depth << ":"<< _stokes << std::endl;
             response->set_statusmessage(request->filename() + " has been opened.");
             response->set_status(true);
         }
@@ -48,7 +50,7 @@
             std::cerr << e.getCDetailMsg() << '\n';
             response->set_status(false);
         }
-
+        std::cout<<"<<File has been opened"<<std::endl;
         return grpc::Status::OK;
     }
 
@@ -75,7 +77,7 @@
         {
             //Relook at this
             std::cout << "Getting file info" << std::endl;
-            H5::H5File qckFile = H5::H5File("./files/" + request->filename(), H5F_ACC_RDONLY);
+            H5::H5File qckFile = H5::H5File("/media/stuart/Elements/" + request->filename(), H5F_ACC_RDONLY);
             int fileSize = qckFile.getFileSize();
             H5::Group qckGroup = qckFile.openGroup("0");
             int numAttrs = qckGroup.getNumAttrs();
@@ -115,11 +117,11 @@
         hsize_t result_size = 1;
 
         std::vector<hsize_t> start(request->start().begin(), request->start().end());
-        std::vector<hsize_t> end(request->end().begin(), request->end().end());
+        std::vector<hsize_t> end(request->count().begin(), request->count().end());
 
 
         _group = _file.openGroup("0");
-        _dataset = _group.openDataSet("DATA");
+        _dataset = _group.openDataSet("DATA");    
         auto data_space = _dataset.getSpace();
         _N = data_space.getSimpleExtentNdims();
 
@@ -127,18 +129,11 @@
         {
 
             h5_start.insert(h5_start.begin(), d < start.size() ? start[d] : 0);
-            h5_count.insert(h5_count.begin(), d < start.size() ? end[d] - start[d] : 1);
+            h5_count.insert(h5_count.begin(), d < start.size() ? count[d] : 1);
 
-            result_size *= d < start.size() ? end[d] - start[d] : 1;
+            result_size *= d < start.size() ? count[d]: 1;
             // result_size *= end[d] - start[d];
         }
-
-        for (int value : h5_count )
-        {
-            std::cout << value << " ";
-        }
-        std::cout << std::endl;
-
         result.resize(result_size);
         H5::DataSpace mem_space(1, &result_size);
         
@@ -162,57 +157,48 @@
 grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileRequest* request, ::SpectralProfileResponse* response){
  
     std::vector<float> result;
-
-    const hsize_t width =request->width();
-    const hsize_t height = request->height();
+    const hsize_t x = request->x();
+    const hsize_t y = request->y();
+    const hsize_t z = request->z();
     const hsize_t num_pixels = request->numpixels();
-    const hsize_t total_pixels = width*height*num_pixels;
-   
+
+
     _group = _file.openGroup("0");
     H5::Group _secondaryGroup = _group.openGroup("PermutedData");
     _dataset = _secondaryGroup.openDataSet("ZYXW");
-    H5::DataSpace data_space = _dataset.getSpace();
+    // H5::DataSpace data_space = _dataset.getSpace();
+    
+    //For ZYXW {W,X,Y,Z} For XYZW {W,Z,Y,X}
+    RegionType regionType = request->regiontype();
+    if (regionType == RegionType::POINT){
+        std::cout << ">> Performing Single Point Spectral Profile" << std::endl;
 
-
-    if (width == 1 && height == 1) {
-        
-        std::cout << "Performing Single Point Spectral Profile" << std::endl;
-        //Takes in from order of least change...
-        std::vector<hsize_t> h5_start = {0,static_cast<hsize_t>(request->x()) , static_cast<hsize_t>(request->y()), static_cast<hsize_t>(request->z())};
-        std::vector<hsize_t> h5_count = {1, 1, 1, num_pixels};
-
-        result.resize(total_pixels);
-        H5::DataSpace mem_space(1, &total_pixels);
-        data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
-        _dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
-        
- 
-
+        std::vector<hsize_t> start = {0,x,y,z};
+        std::vector<hsize_t> dimCounts = {1,1,1,num_pixels};
+        result = H5Service::readRegion(_dataset,dimCounts,start,num_pixels);
         for (float value : result)
         {
             response->add_data(value);
         }
-        
-        mem_space.close();
-    } else {
-        std::cout << "Performing Multi Point Spectral Profile" << std::endl;
 
-        std::vector<hsize_t> h5_start = {0, static_cast<hsize_t>(request->x()), static_cast<hsize_t>(request->y()), static_cast<hsize_t>(request->z())};
-        std::vector<hsize_t> h5_count = {1, width, height, num_pixels};
-
+    }
+    else if (regionType == RegionType::LINE || regionType == RegionType::RECTANGLE){
+        std::cout << ">> Performing Multi Point Rectangle Spectral Profile " << std::endl;
+        const hsize_t width = request->width();
+        const hsize_t height = request->height();
         
-        result.resize(total_pixels);
-        H5::DataSpace mem_space(1, &total_pixels);
-        data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
-        _dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+        std::vector<hsize_t> start = {0,x,y,z};
+        std::vector<hsize_t> dimCounts = {1,width,height,num_pixels};
+        result = H5Service::readRegion(_dataset,dimCounts,start,num_pixels*width*height);
+
         std::vector<float> spectralProfile(num_pixels);
         int offset = num_pixels*height;
-        for (int z = 0; z < num_pixels; ++z) {
+        for (int z = 0; z < num_pixels; z++) {
             int count = 0;
             float sum = 0; 
-            for (int x = 0; x < width; ++x) {
+            for (int x = 0; x < width; x++) {
                 int index = z + x * offset;
-                for (int y = 0; y < height; ++y) {
+                for (int y = 0; y < height; y++) {
 
                     const auto value = result[index];
                     if (std::isfinite(value)) {
@@ -225,15 +211,81 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
             const float channel_mean = count > 0 ? sum / count : NAN;
             // spectralProfile.at(z) = channel_mean;
             response->add_data(channel_mean);
-
         }   
-        mem_space.close();
     }
-    
-    data_space.close();
-    _dataset.close();
-    _secondaryGroup.close();
-    _group.close();
+    else if (regionType == RegionType::CIRCLE){
+        std::cout << ">> Performing Multi Point Circle Spectral Profile" << std::endl;
+        const hsize_t width = request->width();
+        const hsize_t height = request->height();
+        //Assuming width and height == for perfect circle
+
+        std::vector<hsize_t> start = {0,x,y,z};
+        std::vector<hsize_t> dimCounts = {1,width,height,num_pixels};
+        result = H5Service::readRegion(_dataset,dimCounts,start,num_pixels*width*height);
+
+        std::vector<float> spectralProfile(num_pixels);
+        std::vector<std::vector<bool>> mask = getMask(regionType,width);
+        int offset = num_pixels*height;
+        for (int z = 0; z < num_pixels; z++) {
+            int count = 0;
+            float sum = 0; 
+            for (int x = 0; x < width; x++) {
+                int index = z + x * offset;    
+                for (int y = 0; y < height; y++) {
+                    //if point is inside the circle
+                    if (mask[x][y]){
+                        const auto value = result[index];
+                        if (std::isfinite(value)) {
+                            sum += value;
+                            count++;
+                        }
+
+                    }
+                    index += num_pixels;
+                }
+            }
+            const float channel_mean = count > 0 ? sum / count : NAN;
+            // spectralProfile.at(z) = channel_mean;
+            response->add_data(channel_mean);
+        }   
+    }
+    std::cout << "<< Spectral Profile Complete" << std::endl;
     return grpc::Status::OK;
+};
+
+std::vector<std::vector<bool>> H5Service::getMask(RegionType regionType,int width){
+    std::vector<std::vector<bool>> mask;
+    switch (regionType)
+    {
+    case RegionType::CIRCLE:{
+        mask.resize(width, std::vector<bool>(width, false));
+        double pow_radius = pow(width/2.0,2);
+        float centerX = (width-1)/2.0;
+        float centerY = (width-1)/2.0;
+        for (int x = 0; x < width; x++) {
+            //part of circle calculation
+            double pow_x = pow(x-centerX,2);
+            for (int y = 0; y < width; y++) {
+                //if point is inside the circle
+                if (pow_x + pow(y-centerY,2) <= pow_radius){
+                    mask[x][y] = true;
+                }
+            }
+        }
+        break;
+    }
+    default:
+        break;
+    }
+    return mask;
+}
+
+std::vector<float> H5Service::readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &dimCount,std::vector<hsize_t> &start,hsize_t totalPixels){
+    std::vector<float> result(totalPixels);
+    H5::DataSpace data_space = dataset.getSpace();
+    H5::DataSpace mem_space(1,&totalPixels);
+    data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
+    dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
+    return result;
 };
 

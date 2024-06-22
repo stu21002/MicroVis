@@ -1,7 +1,7 @@
 #ifndef H5SERVICE_H
 #define H5SERVICE_H
 
-// #include <grpcpp/grpcpp.h>
+#include <grpcpp/grpcpp.h> 
 #include "proto/H5ReaderService.grpc.pb.h"
 #include "proto/H5ReaderService.pb.h"
 
@@ -17,7 +17,7 @@ class H5Service final : public H5ReaderService::Service
         H5::H5File _file;
         H5::Group _group;
         H5::DataSet _dataset;
-
+        
         std::vector<hsize_t> _dims;
         hsize_t _stokes, _depth, _height, _width;
         bool open = false;
@@ -29,7 +29,8 @@ class H5Service final : public H5ReaderService::Service
         virtual ::grpc::Status CloseFile(::grpc::ServerContext *context, const ::FileCloseRequest *request, ::StatusResponse *response);
         virtual ::grpc::Status GetFileInfo(::grpc::ServerContext *context, const ::FileInfoRequest *request, ::FileInfoResponse *response);
         virtual ::grpc::Status ReadRegion(::grpc::ServerContext *context, const ::ReadRegionRequest *request, ::ReadRegionResponse *response);
-        virtual ::grpc::Status GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileRequest* request, ::SpectralProfileResponse* response);
+        virtual ::grpc::Status GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileRequest* request, ::SpectralProfileResponse* response);    
+        std::vector<float> readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &start,std::vector<hsize_t> &dimCount,hsize_t totalPixels);
+        std::vector<std::vector<bool>> getMask(RegionType regionType,int width);
 };
-
 #endif  // H5SERVICE_H
