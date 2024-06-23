@@ -1,0 +1,2 @@
+#CRTFv0 CASA Region Text Format version 0
+centerbox [[4.5pix, 4.5pix], [10pix, 10pix]] coord=ICRS, linewidth=2, linestyle=-, color=2ee6d6

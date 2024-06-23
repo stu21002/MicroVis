@@ -2,15 +2,15 @@
 #define H5SERVICE_H
 
 #include <grpcpp/grpcpp.h> 
-#include "proto/H5ReaderService.grpc.pb.h"
-#include "proto/H5ReaderService.pb.h"
+#include "proto/H5ReaderServices.grpc.pb.h"
+#include "proto/H5ReaderServices.pb.h"
 
 #include <H5Cpp.h>
 #include <vector>
 
 
 
-class H5Service final : public H5ReaderService::Service
+class H5Service final : public H5ReaderServices::Service
 {
     protected:
         //Can change to a list of file pointers

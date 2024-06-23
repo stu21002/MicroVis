@@ -11,7 +11,15 @@ find_package(fmt)
 include_directories(${HDF5_INCLUDE_DIRS})
 
 
-add_library(protolib proto/H5ReaderService.proto)
+set(PROTO_FILES
+        proto/submessage.proto
+        proto/H5ReaderServices.proto
+)
+add_library(protolib  ${PROTO_FILES})
+
+# add_library(protolib proto/H5ReaderService.proto)
+# add_library(protolib proto/submessage.proto)
+
 
 
 target_link_libraries(protolib gRPC::grpc++)
@@ -23,9 +31,11 @@ protobuf_generate(TARGET protolib LANGUAGE cpp)
 
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
 
-protobuf_generate(TARGET protolib LANGUAGE grpc
-GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
-PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}")
+protobuf_generate(
+        TARGET protolib 
+        LANGUAGE grpc
+        GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
+        PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}")
 
 
 add_executable(H5Service 

@@ -117,7 +117,7 @@
         hsize_t result_size = 1;
 
         std::vector<hsize_t> start(request->start().begin(), request->start().end());
-        std::vector<hsize_t> end(request->count().begin(), request->count().end());
+        std::vector<hsize_t> count(request->count().begin(), request->count().end());
 
 
         _group = _file.openGroup("0");
@@ -217,8 +217,8 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         std::cout << ">> Performing Multi Point Circle Spectral Profile" << std::endl;
         const hsize_t width = request->width();
         const hsize_t height = request->height();
-        //Assuming width and height == for perfect circle
 
+        //Assuming width and height == for perfect circle
         std::vector<hsize_t> start = {0,x,y,z};
         std::vector<hsize_t> dimCounts = {1,width,height,num_pixels};
         result = H5Service::readRegion(_dataset,dimCounts,start,num_pixels*width*height);

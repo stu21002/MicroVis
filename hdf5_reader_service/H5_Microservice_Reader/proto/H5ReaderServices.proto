@@ -1,5 +1,5 @@
 syntax = "proto3";
-
+import "./submessage.proto";
 
 
 ///////
@@ -94,7 +94,7 @@ message SpectralProfileResponse {
   //bytes data = 1;
 }
 
-service H5ReaderService{
+service H5ReaderServices{
   rpc CheckStatus(Empty) returns  (StatusResponse) {}
   rpc OpenFile(FileOpenRequest) returns (StatusResponse) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
