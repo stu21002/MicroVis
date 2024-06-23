@@ -32,5 +32,6 @@ class H5Service final : public H5ReaderServices::Service
         virtual ::grpc::Status GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileRequest* request, ::SpectralProfileResponse* response);    
         std::vector<float> readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &start,std::vector<hsize_t> &dimCount,hsize_t totalPixels);
         std::vector<std::vector<bool>> getMask(RegionType regionType,int width);
+        void appendAttribute(FileInfoExtended *extendedFileInfo,H5::Attribute attr);
 };
 #endif  // H5SERVICE_H

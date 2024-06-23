@@ -10,15 +10,16 @@ find_package(HDF5 REQUIRED COMPONENTS CXX)
 find_package(fmt)
 include_directories(${HDF5_INCLUDE_DIRS})
 
+INCLUDE_DIRECTORIES(${PROTOBUF_INCLUDE_DIR})
 
-set(PROTO_FILES
-        proto/submessage.proto
-        proto/H5ReaderServices.proto
-)
-add_library(protolib  ${PROTO_FILES})
 
-# add_library(protolib proto/H5ReaderService.proto)
-# add_library(protolib proto/submessage.proto)
+# set(PROTO_FILES //DOESNT WORK :(
+#         proto/submessage.proto
+#         proto/H5ReaderServices.proto
+# )
+# add_library(protolib  ${PROTO_FILES})
+
+add_library(protolib proto/H5ReaderServices.proto)
 
 
 

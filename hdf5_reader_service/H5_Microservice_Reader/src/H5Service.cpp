@@ -1,8 +1,8 @@
-#include "H5Service.h"
+#include "H5Service.h" 
 
 #include <grpcpp/grpcpp.h>
-#include "proto/H5ReaderService.grpc.pb.h"
-#include "proto/H5ReaderService.pb.h"
+#include "proto/H5ReaderServices.grpc.pb.h"
+#include "proto/H5ReaderServices.pb.h"
 
 #include <string>
 #include <H5Cpp.h>
@@ -20,7 +20,7 @@
         return grpc::Status::OK;
     }
 
-    // CHANGE: According to docs, only open groups and dataset at last miniute and close early.
+    //TODO include a map for the files
     grpc::Status H5Service::OpenFile(::grpc::ServerContext *context, const ::FileOpenRequest *request, ::StatusResponse *response)
     {
 
@@ -77,30 +77,35 @@
         {
             //Relook at this
             std::cout << "Getting file info" << std::endl;
-            H5::H5File qckFile = H5::H5File("/media/stuart/Elements/" + request->filename(), H5F_ACC_RDONLY);
-            int fileSize = qckFile.getFileSize();
-            H5::Group qckGroup = qckFile.openGroup("0");
+            H5::H5File qckFile = H5::H5File(request->directory()+request->file(), H5F_ACC_RDONLY);
+            std::string hdu = !request->hdu().empty()?request->hdu():"0";
+            H5::Group qckGroup = qckFile.openGroup(hdu);
+            
+            FileInfo *fileInfo = response->mutable_file_info();
+            FileInfoExtended *extendedFileInfo = response->mutable_file_info_extended();
+            
+            fileInfo->set_name(request->file());
+
+            int fileSize = qckFile.getFileSize();     
+            fileInfo->set_size(fileSize);
+
+            //Put in cases statment
             int numAttrs = qckGroup.getNumAttrs();
-            // // Iterate through each attribute
-            for (int i = 0; i < 32; i++) {
-                std::cout<< i << std::endl;
-                std::cout<<std::endl;   
-                // Open the attribute
+            for (int i = 0; i < numAttrs; i++) {
                 H5::Attribute attr = qckGroup.openAttribute(i);
-                
-                // Get the name of the attribute
                 std::string attrName = attr.getName();
-                std::cout<<attrName<<std::endl;        
- 
- 
-                // Handle other types as needed
+                fileInfo->add_hdu_list(attrName);
+                appendAttribute(extendedFileInfo,attr);
             }
+            
             response->set_success(true);
         }
         catch (const H5::Exception &e)
         {
+            //Handle more errors
             std::cerr << e.getCDetailMsg() << '\n';
             response->set_success(false);
+            response->set_message("Failed");
         }
 
         return grpc::Status::OK;
@@ -251,6 +256,52 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
     }
     std::cout << "<< Spectral Profile Complete" << std::endl;
     return grpc::Status::OK;
+};
+
+void H5Service::appendAttribute(FileInfoExtended *extendedFileInfo,H5::Attribute attr){
+    std::string attrName = attr.getName();
+    H5::DataType attrType = attr.getDataType();
+
+    if (attrName == "NAXIS") {
+        int value;
+        attr.read(attrType, &value);
+        extendedFileInfo->set_dimensions(value);
+    } else if (attrName == "NAXIS1") {
+        int value;
+        attr.read(attrType, &value);
+        extendedFileInfo->set_width(value);
+    } else if (attrName == "NAXIS2") {
+        int value;
+        attr.read(attrType, &value);
+        extendedFileInfo->set_height(value);
+    } else if (attrName == "NAXIS3") {
+        int value;
+        attr.read(attrType, &value);
+        extendedFileInfo->set_depth(value);
+    } else if (attrName == "NAXIS4") {
+        int value;
+        attr.read(attrType, &value);
+        extendedFileInfo->set_stokes(value);
+    } else {
+        //TODO Create header entry type and enum in .proto
+        if (attrType.getClass() == H5T_INTEGER) {
+            int value;
+            attr.read(attrType, &value);
+            std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
+        } else if (attrType.getClass() == H5T_FLOAT) {
+            double value;
+            attr.read(attrType, &value);
+            std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
+        } else if (attrType.getClass() == H5T_STRING) {
+            std::string value;
+            attr.read(attrType, value);
+            std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
+        } else {
+            std::cout << "Attribute name: " << attrName << " has an unsupported data type." << std::endl;
+        }
+    }
+
+
 };
 
 std::vector<std::vector<bool>> H5Service::getMask(RegionType regionType,int width){
