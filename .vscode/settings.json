@@ -4,5 +4,6 @@
     "tuple": "cpp",
     "xutility": "cpp",
     "iostream": "cpp"
-  }
+  },
+  "cmake.sourceDirectory": "/home/stuart/Honours/MicroVis/hdf5_reader_service/H5_Microservice_Reader"
 }
