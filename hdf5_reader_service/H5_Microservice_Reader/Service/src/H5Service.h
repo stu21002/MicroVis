@@ -2,12 +2,13 @@
 #define H5SERVICE_H
 
 #include <grpcpp/grpcpp.h> 
-#include "proto/H5ReaderServices.grpc.pb.h"
-#include "proto/H5ReaderServices.pb.h"
+#include "./../proto/H5ReaderServices.grpc.pb.h"
+#include "./../proto/H5ReaderServices.pb.h"
 
 #include <H5Cpp.h>
 #include <vector>
 
+using namespace proto;
 
 
 class H5Service final : public H5ReaderServices::Service
@@ -19,7 +20,7 @@ class H5Service final : public H5ReaderServices::Service
             H5::Group _group;
             //Can possibly include datasets
         };
-
+    
         std::unordered_map<std::string, Hdf5_File> hdf5_files;
 
 
@@ -34,4 +35,5 @@ class H5Service final : public H5ReaderServices::Service
         std::vector<std::vector<bool>> getMask(RegionType regionType,int width);
         void appendAttribute(FileInfoExtended *extendedFileInfo,H5::Attribute attr);
 };
+
 #endif  // H5SERVICE_H

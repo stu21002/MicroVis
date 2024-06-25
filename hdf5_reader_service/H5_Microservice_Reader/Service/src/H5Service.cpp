@@ -1,8 +1,8 @@
 #include "H5Service.h" 
 
 #include <grpcpp/grpcpp.h>
-#include "proto/H5ReaderServices.grpc.pb.h"
-#include "proto/H5ReaderServices.pb.h"
+#include "../proto/H5ReaderServices.grpc.pb.h"
+#include "../proto/H5ReaderServices.pb.h"
 
 #include <string>
 #include <H5Cpp.h>
