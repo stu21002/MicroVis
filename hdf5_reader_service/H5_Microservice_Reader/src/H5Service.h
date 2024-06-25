@@ -13,15 +13,15 @@
 class H5Service final : public H5ReaderServices::Service
 {
     protected:
-        //Can change to a list of file pointers
-        H5::H5File _file;
-        H5::Group _group;
-        H5::DataSet _dataset;
-        
-        std::vector<hsize_t> _dims;
-        hsize_t _stokes, _depth, _height, _width;
-        bool open = false;
-        int _N;
+        //TODO Investigate pointers, how they are used, if they are needed
+        struct Hdf5_File {
+            H5::H5File _file;
+            H5::Group _group;
+            //Can possibly include datasets
+        };
+
+        std::unordered_map<std::string, Hdf5_File> hdf5_files;
+
 
     public:
         virtual ::grpc::Status CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response);

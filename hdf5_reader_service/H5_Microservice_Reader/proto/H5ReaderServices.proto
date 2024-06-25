@@ -11,9 +11,10 @@ message StatusResponse {
 }
 
 message FileOpenRequest {
-  string filename = 1;
-//   string hdu = 2;
-//   string uuid = 3;
+  string file = 1;
+  string directory = 2;
+  string hdu = 3;
+  string uuid = 4;
 }
 
 message FileCloseRequest {
@@ -67,9 +68,10 @@ enum RegionType {
 }
 
 message ReadRegionRequest{
-    repeated int32 start = 1;
-    repeated int32 count = 2;
-    RegionType regionType = 3;
+    string uuid = 1;
+    repeated int32 start = 2;
+    repeated int32 count = 3;
+    RegionType regionType = 4;
 }
 
 
