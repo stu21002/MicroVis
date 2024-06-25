@@ -10,7 +10,6 @@
 
 using namespace proto;
 
-
 class H5Service final : public H5ReaderServices::Service
 {
     protected:
