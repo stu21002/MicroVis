@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <fmt/core.h> 
+#include <chrono>
 
 
     grpc::Status H5Service::CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response)
@@ -105,7 +106,8 @@
     {
         try
         {
-            //Relook at this
+            //TODO Currenty only open files Change to ICD method
+            //Possibly is empty... then try open??
             std::cout << ">>Getting file info" << std::endl;
             // H5::H5File qckFile = H5::H5File(request->directory()+request->file(), H5F_ACC_RDONLY);
             // std::string hdu = !request->hdu().empty()?request->hdu():"0";
@@ -147,7 +149,7 @@
         return grpc::Status::OK;
     };
 
-    grpc::Status H5Service::ReadRegion(::grpc::ServerContext *context, const ::ReadRegionRequest *request, ::ReadRegionResponse *response)
+    ::grpc::Status H5Service::GetRegion(::grpc::ServerContext* context, const ::RegionDataRequest* request, ::RegionDataResponse* response)
     {
         if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
@@ -167,8 +169,6 @@
 
         std::vector<hsize_t> start(request->start().begin(), request->start().end());
         std::vector<hsize_t> count(request->count().begin(), request->count().end());
-
-        std::cout << "Reading Region" << std::endl;
   
         Hdf5_File &h5file = hdf5_files[request->uuid()];
 
@@ -178,19 +178,16 @@
 
         int _N = data_space.getSimpleExtentNdims();
 
-      //Breaking somewhere here
         for (int d = 0; d < _N; d++)
         {
 
             h5_start.insert(h5_start.begin(), d < start.size() ? start[d] : 0);
-            std::cout << "Breaking all the time" << d << std::endl;
             h5_count.insert(h5_count.begin(), d < start.size() ? count[d] : 1);
 
             result_size *= d < start.size() ? count[d]: 1;
             // result_size *= end[d] - start[d];
         }
-        //Beraking above
-                std::cout << "Reading Region" << std::endl;
+     
 
         result.resize(result_size);
         H5::DataSpace mem_space(1, &result_size);
@@ -229,10 +226,19 @@
         
         Hdf5_File &h5file = hdf5_files[request->uuid()];
 
-        //Possible add perm group to struct 
+        //Possible add perm group to struct
+        auto sGroup = std::chrono::high_resolution_clock::now();
         H5::Group permGroup = h5file._group.openGroup("PermutedData");
+        auto eGroup = std::chrono::high_resolution_clock::now();
+        auto gDuration = std::chrono::duration_cast<std::chrono::milliseconds>( eGroup - sGroup);
+        std::cout << "Group Time: "<< gDuration.count() << " milliseconds" << std::endl;
+
+        auto sData = std::chrono::high_resolution_clock::now();
         H5::DataSet dataset = permGroup.openDataSet("ZYXW");
-        
+        auto eData = std::chrono::high_resolution_clock::now();
+        auto dDuration = std::chrono::duration_cast<std::chrono::milliseconds>( eData - sData);
+        std::cout << "Dataset Time: "<< dDuration.count() << " milliseconds" << std::endl;
+
         //For ZYXW {W,X,Y,Z} For XYZW {W,Z,Y,X}
         RegionType regionType = request->regiontype();
         if (regionType == RegionType::POINT){
@@ -241,8 +247,9 @@
             std::vector<hsize_t> start = {0,x,y,z};
             std::vector<hsize_t> dimCounts = {1,1,1,num_pixels};
 
-
             result = H5Service::readRegion(dataset,dimCounts,start,num_pixels);
+ 
+
             for (float value : result)
             {
                 response->add_data(value);
@@ -256,10 +263,14 @@
             
             std::vector<hsize_t> start = {0,x,y,z};
             std::vector<hsize_t> dimCounts = {1,width,height,num_pixels};
-
+            
+            auto sRead = std::chrono::high_resolution_clock::now();
             result = H5Service::readRegion(dataset,dimCounts,start,num_pixels*width*height);
+            auto eRead = std::chrono::high_resolution_clock::now();
+            auto dRead = std::chrono::duration_cast<std::chrono::milliseconds>( eRead - sRead);
+            std::cout << "Read time: "<< dRead.count() << " milliseconds" << std::endl;
 
-
+            auto sSpec = std::chrono::high_resolution_clock::now();
             std::vector<float> spectralProfile(num_pixels);
             int offset = num_pixels*height;
             for (int z = 0; z < num_pixels; z++) {
@@ -281,6 +292,9 @@
                 // spectralProfile.at(z) = channel_mean;
                 response->add_data(channel_mean);
             }   
+            auto eSpec = std::chrono::high_resolution_clock::now();
+            auto dSpec = std::chrono::duration_cast<std::chrono::milliseconds>( eSpec- sSpec);
+            std::cout << "Average time: "<< dSpec.count() << " milliseconds" << std::endl;
         }
         else if (regionType == RegionType::CIRCLE){
             std::cout << ">> Performing Multi Point Circle Spectral Profile" << std::endl;
@@ -364,8 +378,6 @@
                 std::cout << "Attribute name: " << attrName << " has an unsupported data type." << std::endl;
             }
         }
-
-
     };
 
     std::vector<std::vector<bool>> H5Service::getMask(RegionType regionType,int width){

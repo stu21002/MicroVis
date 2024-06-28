@@ -2,7 +2,7 @@ syntax = "proto3";
 package proto;
 
 // import "dumy.proto";
-///////
+///////TODO Clean up code, maybe seperate into different files
 message Empty {
   
 }
@@ -13,10 +13,11 @@ message StatusResponse {
 }
 
 message FileOpenRequest {
-  string file = 1;
-  string directory = 2;
-  string hdu = 3;
-  string uuid = 4;
+  string uuid = 1;
+  string file = 2;
+  string directory = 3;
+  string hdu = 4;
+
 }
 
 message FileCloseRequest {
@@ -27,9 +28,9 @@ message FileCloseRequest {
 
 message FileInfoRequest {
   string uuid = 1; //Work this out later
-  string directory = 2;
-  string file = 3;
-  string hdu = 4;
+  // string directory = 2;
+  // string file = 3;
+  // string hdu = 4;
 }
 
 message FileInfoResponse {
@@ -69,16 +70,16 @@ enum RegionType {
   CIRCLE = 3;
 }
 
-message ReadRegionRequest{
+message RegionDataRequest{
     string uuid = 1;
-    repeated int32 start = 2;
-    repeated int32 count = 3;
-    RegionType regionType = 4;
+    RegionType regionType = 2;
+    repeated int32 start = 3;
+    repeated int32 count = 4;
 }
 
 
 //Change To Bytes
-message ReadRegionResponse{
+message RegionDataResponse{
     repeated float region = 1;
 }
 
@@ -106,7 +107,7 @@ service H5ReaderServices{
   rpc OpenFile(FileOpenRequest) returns (StatusResponse) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
-  rpc ReadRegion (ReadRegionRequest) returns (ReadRegionResponse) {}
+  rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
   rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
 
 }

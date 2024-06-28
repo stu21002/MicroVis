@@ -1,0 +1,71 @@
+//adapted from https://github.com/CARTAvis/fits_reader_microservice/tree/main by Angus
+//Provides access to all endpoints of the hdf5 reader microservice 
+import {
+Empty, FileCloseRequest,
+FileInfoRequest,
+FileInfoResponse, FileOpenRequest,
+H5ReaderServicesClient,
+RegionDataRequest,
+RegionDataResponse,
+SpectralProfileRequest, SpectralProfileResponse,
+StatusResponse,
+} from "../bin/src/proto/H5ReaderServices";
+import { credentials } from "@grpc/grpc-js";
+import { promisify } from "util";
+
+  export class H5Reader {
+    readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
+    readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
+    readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
+    readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
+    readonly openFile: (request: FileOpenRequest) => Promise<StatusResponse>;
+    readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
+    //Spacital Profiles, getImageData for all X given a Y and visa versa...
+    private _connected = false;
+    private _readyResolves: (() => void)[] = [];
+    private _rejectResolves: ((err: Error) => void)[] = [];
+  
+    get connected() {
+      return this._connected;
+    }
+  
+    ready() {
+      return new Promise<void>((resolve, reject) => {
+        if (this._connected) {
+          resolve();
+          return;
+        }
+  
+        this._readyResolves.push(resolve);
+        this._rejectResolves.push(reject);
+      });
+    }
+  
+    constructor(port: number = 8080) {
+      const WORKER_URL = `0.0.0.0:${port}`;
+      const client = new H5ReaderServicesClient(WORKER_URL, credentials.createInsecure());
+  
+      //Linking 
+      this.checkStatus = promisify<Empty, StatusResponse>(client.checkStatus).bind(client);
+      this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(client.getFileInfo).bind(client);
+      this.getRegionData = promisify<RegionDataRequest, RegionDataResponse>(client.getRegion).bind(client);
+      this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
+      this.openFile = promisify<FileOpenRequest, StatusResponse>(client.openFile).bind(client);
+      this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
+  
+      client.waitForReady(Date.now() + 1000, (err) => {
+        if (err) {
+          console.error(err);
+          this._connected = false;
+          for (const reject of this._rejectResolves) {
+            reject(err);
+          }
+        } else {
+          this._connected = true;
+          for (const resolve of this._readyResolves) {
+            resolve();
+          }
+        }
+      });
+    }
+  }

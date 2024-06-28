@@ -1,5 +1,6 @@
 
 Must install the following before use
+
 # Install build essentials (c++)
 sudo apt install build-essential cmake
 
@@ -10,4 +11,4 @@ sudo apt install libfmt-dev
 sudo apt install libhdf5-dev
 
 # Install gRPC and Protocol Buffers
-sudo apt install libgrpc-dev libgrpc++-dev protobuf-compiler-grpc
+sudo apt install libgrpc-dev libgrpc++-dev protobuf-compiler-grpcS
