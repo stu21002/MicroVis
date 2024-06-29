@@ -61,7 +61,7 @@ message SpectralProfileResponse {
 service H5ReaderServices{
   rpc CheckStatus(Empty) returns  (StatusResponse) {}
   //TODO Change to OpenFileACK
-  rpc OpenFile(OpenFileRequest) returns (StatusResponse) {}
+  rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
   rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}

@@ -3,12 +3,21 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { H5Reader } from "./H5Reader";
-import { RegionType, SpectralProfileResponse } from "../bin/src/proto/H5ReaderServices";
+import { RegionDataResponse, RegionType, SpectralProfileResponse } from "../bin/src/proto/H5ReaderServices";
 // import { bytesToFloat32 } from "../utils/arrays";
+
+interface DimensionValues {
+  width: number;
+  height: number;
+  depth?: number;
+  stokes?: number;
+  dims:number;
+}
 
 export class ReaderController {
   readonly readers: H5Reader[];
-  //reader type [] extension for fits and hdf5 files
+
+  readonly fileDims: Map<string,DimensionValues > = new Map();
 
   ready() {
     return Promise.all(this.readers.map((reader) => reader.ready()));
@@ -53,8 +62,24 @@ export class ReaderController {
     //TODO Create map with uuid including important headers
     const uuid = uuidv4();
     const promises = this.readers.map((reader) => reader.openFile({ directory, file, hdu, uuid }));
+    
+    const extendedInfo = (await promises[0]).fileInfoExtended;
+    if (!extendedInfo) {
+      //Should return false, meaning error with opening the file
+      throw new Error("Extended file info is undefined");
+    }
+    
+    const dimensionValues: DimensionValues = {
+      width: extendedInfo.width,
+      height: extendedInfo.height,
+      depth: extendedInfo.depth,
+      stokes: extendedInfo.stokes,
+      dims: extendedInfo.dimensions
+    };
+    console.log(dimensionValues);
+    this.fileDims.set(uuid, dimensionValues);
     return Promise.all(promises).then(responses => {
-      return responses.every(res => res.status) ? { uuid } : undefined;
+      return responses.every(res => res.success) ? { uuid } : undefined;
     });
   }
 
@@ -74,14 +99,28 @@ export class ReaderController {
     return reader?.getRegionData({ uuid, start, count,regionType});
   }
 
+
+  //Relook at this
   async getSpatial(uuid:string,x:number,y:number){
-    if (this.readers.length = 1){
-      // this.readers[0].getRegionData(uuid,) all x val for y
-      // this.readers[0].getRegionData(uuid,) all y val for y
-      console.log("YAY");
-    }
-    else (this.readers.length > 1)
-      console.log("YAY");
+    // if (this.readers.length = 1){
+      const promises = new Array<Promise<RegionDataResponse>>();
+
+      const dims =  this.fileDims.get(uuid);
+      if (!dims) {
+        //Should return false, meaning file no longer open
+        throw new Error("Extended file info is undefined");
+      }
+      const xStart:number[] = [x,0,0,0];
+      const xCount:number[] = [1,dims.height,1,1];
+      const yStart:number[] = [0,y,0,0];
+      const yCount:number[] = [dims.width,1,1,1];
+      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,xStart,xCount}))
+      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,yStart,yCount}))
+     
+      return promises
+    // }
+    // else (this.readers.length > 1)
+    //   console.log("YAY");
     
   }
   //TODO 

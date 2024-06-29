@@ -27,7 +27,7 @@
     }
 
     
-    grpc::Status H5Service::OpenFile(::grpc::ServerContext *context, const ::FileOpenRequest *request, ::StatusResponse *response)
+    grpc::Status H5Service::OpenFile(::grpc::ServerContext *context, const ::OpenFileRequest *request, ::OpenFileACK *response)
     {
 
 
@@ -50,19 +50,40 @@
             H5::Group group = file.openGroup(hdu);
           
             hdf5_files[request->uuid()] = {file, group};
-            response->set_statusmessage(request->file() + " has been opened.");
-            response->set_status(true);
+            
+            FileInfo *fileInfo = response->mutable_file_info();
+            FileInfoExtended *extendedFileInfo = response->mutable_file_info_extended();
+            
+            fileInfo->set_name(file.getFileName());
+            int fileSize = file.getFileSize();     
+            fileInfo->set_size(fileSize);
+
+            int numAttrs = group.getNumAttrs();
+            for (int i = 0; i < numAttrs; i++) {
+                H5::Attribute attr = group.openAttribute(i);
+                std::string attrName = attr.getName();
+                fileInfo->add_hdu_list(attrName);
+                appendAttribute(extendedFileInfo,attr);
+            }
+
+            response->set_message(request->file() + " has been opened.");
+            response->set_success(true);
         }
         catch (const H5::FileIException& e)
         {
             // std::cerr << "FileIException: " << e.getCDetailMsg() << std::endl;
+            response->set_success(false);
+
             return {grpc::StatusCode::INTERNAL, "Failed to open HDF5 file"};
         } catch (const H5::GroupIException& e) {
             // std::cerr << "GroupIException: " << e.getCDetailMsg() << std::endl;
+            response->set_success(false);
+
             return {grpc::StatusCode::INTERNAL, "Failed to open HDF5 group " + request->hdu()};
         } catch (const std::exception& e) {
+            response->set_success(false);
 
-            std::cerr << "Exception: " << e.what() << std::endl;
+            // std::cerr << "Exception: " << e.what() << std::endl;
             return {grpc::StatusCode::INTERNAL, "An unexpected error occurred"};
         }
         
@@ -376,17 +397,17 @@
             if (attrType.getClass() == H5T_INTEGER) {
                 int value;
                 attr.read(attrType, &value);
-                std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
+                // std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
             } else if (attrType.getClass() == H5T_FLOAT) {
                 double value;
                 attr.read(attrType, &value);
-                std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
+                // std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
             } else if (attrType.getClass() == H5T_STRING) {
                 std::string value;
                 attr.read(attrType, value);
-                std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
+                // std::cout << "Attribute name: " << attrName << ", value: " << value << std::endl;
             } else {
-                std::cout << "Attribute name: " << attrName << " has an unsupported data type." << std::endl;
+                // std::cout << "Attribute name: " << attrName << " has an unsupported data type." << std::endl;
             }
         }
     };

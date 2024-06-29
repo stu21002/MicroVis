@@ -24,7 +24,7 @@ class H5Service final : public H5ReaderServices::Service
 
     public:
         virtual ::grpc::Status CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response);
-        virtual ::grpc::Status OpenFile(::grpc::ServerContext *context, const ::FileOpenRequest *request, ::StatusResponse *response);
+        virtual ::grpc::Status OpenFile(::grpc::ServerContext *context, const ::OpenFileRequest *request, ::OpenFileACK *response);
         virtual ::grpc::Status CloseFile(::grpc::ServerContext *context, const ::FileCloseRequest *request, ::StatusResponse *response);
         virtual ::grpc::Status GetFileInfo(::grpc::ServerContext *context, const ::FileInfoRequest *request, ::FileInfoResponse *response);
         virtual ::grpc::Status GetRegion(::grpc::ServerContext* context, const ::RegionDataRequest* request, ::RegionDataResponse* response);

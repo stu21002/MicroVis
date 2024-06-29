@@ -3,10 +3,10 @@ import {H5Reader} from './src/H5Reader'
 import {ReaderController} from './src/ReaderController'
 import { FILEINFO } from './src/test/FILEINFO';
 
-FILEINFO();
+// FILEINFO();
 // async function main(){
 //     console.log("Controller Start");
-//     const reader:H5Reader = new H5Reader(9999);
+//     const reader:H5Reader = new H5Reader(1,"8");
 //     console.log(await reader.checkStatus({}))
 //     const uuid:string = "1";
 //     const directory:string = "./files/";
@@ -19,6 +19,7 @@ FILEINFO();
 //     let fileCloseResponse = await reader.closeFile({uuid})
 //     console.log(fileCloseResponse);
 // }
+
 
 
 // const args = process.argv.slice(2); // slice(2) removes the first two elements which are 'node' and the script name
@@ -36,12 +37,12 @@ FILEINFO();
 // const arg4 = numbers[3];
 // const arg5 = numbers[4];
 
-// async function main() {
+ async function main() {
 
 //     const numWorkers = arg4;
 //     const startingPort = 8081
 //     console.log("Starting Port : " + startingPort);
-//     const workerPool = new ReaderController(numWorkers,"0.0.0.0" ,startingPort);
+    const workerPool = new ReaderController(1,"0.0.0.0" ,8080);
   
 //     await workerPool.ready();
   
@@ -51,11 +52,13 @@ FILEINFO();
 //     let isOk = true;
 //     console.time("getFileInfo");
   
-//     let fileOpenResponse = await workerPool.openFile("/media/stuart/Elements/","Big.hdf5", "0");
-//     if (!fileOpenResponse?.uuid) {
-//       console.error("no uuid");
-//       return false;
-//     }
+    let fileOpenResponse = await workerPool.openFile("/home/stuart/H5Files/","small.hdf5", "0");
+    if (!fileOpenResponse?.uuid) {
+      console.error("no uuid");
+      return false;
+    }
+}
+main()
   
 //     const uuid = fileOpenResponse.uuid;
   

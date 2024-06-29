@@ -1,4 +1,4 @@
-import { FileInfoRequest, FileInfoResponse, FileOpenRequest } from '../../bin/src/proto/H5ReaderServices';
+import { FileInfoRequest, FileInfoResponse } from '../../bin/src/proto/FileInfo';
 import {ReaderController} from '../ReaderController';
 import config from "./config.json";
 

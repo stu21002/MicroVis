@@ -1,24 +1,27 @@
 //adapted from https://github.com/CARTAvis/fits_reader_microservice/tree/main by Angus
 //Provides access to all endpoints of the hdf5 reader microservice 
 import {
-Empty, FileCloseRequest,
-FileInfoRequest,
-FileInfoResponse, FileOpenRequest,
+Empty, 
 H5ReaderServicesClient,
 RegionDataRequest,
 RegionDataResponse,
 SpectralProfileRequest, SpectralProfileResponse,
 StatusResponse,
 } from "../bin/src/proto/H5ReaderServices";
+import { FileInfoRequest, FileInfoResponse } from "../bin/src/proto/FileInfo";
+import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "../bin/src/proto/OpenFile";
+
 import { credentials } from "@grpc/grpc-js";
 import { promisify } from "util";
+
+
 
   export class H5Reader {
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
     readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
     readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
-    readonly openFile: (request: FileOpenRequest) => Promise<StatusResponse>;
+    readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
     readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
     //Spacital Profiles, getImageData for all X given a Y and visa versa...
     private _connected = false;
@@ -50,7 +53,7 @@ import { promisify } from "util";
       this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(client.getFileInfo).bind(client);
       this.getRegionData = promisify<RegionDataRequest, RegionDataResponse>(client.getRegion).bind(client);
       this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
-      this.openFile = promisify<FileOpenRequest, StatusResponse>(client.openFile).bind(client);
+      this.openFile = promisify<OpenFileRequest, OpenFileACK>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
   
       client.waitForReady(Date.now() + 4000, (err) => {
