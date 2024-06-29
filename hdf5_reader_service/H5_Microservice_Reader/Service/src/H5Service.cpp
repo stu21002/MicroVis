@@ -55,10 +55,10 @@
         }
         catch (const H5::FileIException& e)
         {
-            std::cerr << "FileIException: " << e.getCDetailMsg() << std::endl;
+            // std::cerr << "FileIException: " << e.getCDetailMsg() << std::endl;
             return {grpc::StatusCode::INTERNAL, "Failed to open HDF5 file"};
         } catch (const H5::GroupIException& e) {
-            std::cerr << "GroupIException: " << e.getCDetailMsg() << std::endl;
+            // std::cerr << "GroupIException: " << e.getCDetailMsg() << std::endl;
             return {grpc::StatusCode::INTERNAL, "Failed to open HDF5 group " + request->hdu()};
         } catch (const std::exception& e) {
 
@@ -107,30 +107,41 @@
         try
         {
             //TODO Currenty only open files Change to ICD method
-            //Possibly is empty... then try open??
+
             std::cout << ">>Getting file info" << std::endl;
-            // H5::H5File qckFile = H5::H5File(request->directory()+request->file(), H5F_ACC_RDONLY);
-            // std::string hdu = !request->hdu().empty()?request->hdu():"0";
-            // H5::Group qckGroup = qckFile.openGroup(hdu);
+            
+            H5::H5File file;
+            H5::Group group;
+
             if (request->uuid().empty()) {
-                return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
-            }
+                try
+                {
+                    file = H5::H5File(request->directory()+request->file(),H5F_ACC_RDONLY);
+                    std::string hdu = !request->hdu().empty()?request->hdu():"0";
+                    group = file.openGroup(hdu);
+                }catch (const std::exception& e){
+                    return {grpc::StatusCode::INVALID_ARGUMENT, "Couldn't open file : " + request->directory()+request->file() + " & No UUID present"};
+                }       
+            } else{
+                if (hdf5_files.find(request->uuid()) == hdf5_files.end()) {
+                    return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
+                }
 
-            if (hdf5_files.find(request->uuid()) == hdf5_files.end()) {
-                return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
-            }
-            Hdf5_File &h5file = hdf5_files[request->uuid()];
+                Hdf5_File &h5file = hdf5_files[request->uuid()];
+                file = h5file._file;
+                group = h5file._group;
 
+            }
             FileInfo *fileInfo = response->mutable_file_info();
             FileInfoExtended *extendedFileInfo = response->mutable_file_info_extended();
             
-            fileInfo->set_name(h5file._file.getFileName());
-            int fileSize = h5file._file.getFileSize();     
+            fileInfo->set_name(file.getFileName());
+            int fileSize = file.getFileSize();     
             fileInfo->set_size(fileSize);
 
-            int numAttrs = h5file._group.getNumAttrs();
+            int numAttrs = group.getNumAttrs();
             for (int i = 0; i < numAttrs; i++) {
-                H5::Attribute attr = h5file._group.openAttribute(i);
+                H5::Attribute attr = group.openAttribute(i);
                 std::string attrName = attr.getName();
                 fileInfo->add_hdu_list(attrName);
                 appendAttribute(extendedFileInfo,attr);
@@ -225,7 +236,6 @@
         const hsize_t num_pixels = request->numpixels();
         
         Hdf5_File &h5file = hdf5_files[request->uuid()];
-
         //Possible add perm group to struct
         auto sGroup = std::chrono::high_resolution_clock::now();
         H5::Group permGroup = h5file._group.openGroup("PermutedData");
@@ -260,7 +270,8 @@
             std::cout << ">> Performing Multi Point Rectangle Spectral Profile " << std::endl;
             const hsize_t width = request->width();
             const hsize_t height = request->height();
-            
+
+            std::cout << x << " " << y << " " << z << " "<< width << " " << height << " " << num_pixels << std::endl;
             std::vector<hsize_t> start = {0,x,y,z};
             std::vector<hsize_t> dimCounts = {1,width,height,num_pixels};
             

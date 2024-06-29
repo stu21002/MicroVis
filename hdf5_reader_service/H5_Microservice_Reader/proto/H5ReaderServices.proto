@@ -1,7 +1,8 @@
 syntax = "proto3";
 package proto;
 
-// import "dumy.proto";
+import "FileInfo.proto";
+import "OpenFile.proto";
 ///////TODO Clean up code, maybe seperate into different files
 message Empty {
   
@@ -12,55 +13,10 @@ message StatusResponse {
   string statusMessage = 2;
 }
 
-message FileOpenRequest {
-  string uuid = 1;
-  string file = 2;
-  string directory = 3;
-  string hdu = 4;
 
-}
-
-message FileCloseRequest {
-  string uuid = 1;
-}
 
 //////////////
 
-message FileInfoRequest {
-  string uuid = 1; //Work this out later
-  // string directory = 2;
-  // string file = 3;
-  // string hdu = 4;
-}
-
-message FileInfoResponse {
-    bool success = 1;
-    string message = 2;
-    FileInfo file_info = 3;
-    FileInfoExtended file_info_extended = 4;
-}
-
-message FileInfo {
-  string name = 1;
-  // FileType type = 2; Assume HDF5
-  sfixed64 size = 3;
-  repeated string HDU_list = 4; //Note sure what goes here
-  sfixed64 date = 5;
-}
-
-message FileInfoExtended {
-  // Number of dimensions of the image file
-  sfixed32 dimensions = 1;
-  // Width of the XY plane
-  sfixed32 width = 2;
-  // Height of the XY plane
-  sfixed32 height = 3;
-  // Number of channels
-  sfixed32 depth = 4;
-  // Number of Stokes parameters
-  sfixed32 stokes = 5;
-
-}
 //////////////////
 
 enum RegionType {
@@ -104,7 +60,8 @@ message SpectralProfileResponse {
 
 service H5ReaderServices{
   rpc CheckStatus(Empty) returns  (StatusResponse) {}
-  rpc OpenFile(FileOpenRequest) returns (StatusResponse) {}
+  //TODO Change to OpenFileACK
+  rpc OpenFile(OpenFileRequest) returns (StatusResponse) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
   rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}

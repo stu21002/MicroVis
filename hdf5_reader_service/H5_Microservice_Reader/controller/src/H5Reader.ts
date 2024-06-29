@@ -35,14 +35,14 @@ import { promisify } from "util";
           resolve();
           return;
         }
-  
+        
         this._readyResolves.push(resolve);
         this._rejectResolves.push(reject);
       });
     }
   
-    constructor(port: number = 8080) {
-      const WORKER_URL = `0.0.0.0:${port}`;
+    constructor(address:string,port: number = 8080) {
+      const WORKER_URL = `${address}:${port}`;
       const client = new H5ReaderServicesClient(WORKER_URL, credentials.createInsecure());
   
       //Linking 
@@ -53,14 +53,18 @@ import { promisify } from "util";
       this.openFile = promisify<FileOpenRequest, StatusResponse>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
   
-      client.waitForReady(Date.now() + 1000, (err) => {
+      client.waitForReady(Date.now() + 4000, (err) => {
         if (err) {
+          console.log(port + " : false")
+
           console.error(err);
           this._connected = false;
           for (const reject of this._rejectResolves) {
             reject(err);
           }
         } else {
+          console.log(port + " : true")
+
           this._connected = true;
           for (const resolve of this._readyResolves) {
             resolve();

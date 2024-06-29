@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@types/jest": "^29.5.12",
     "@types/uuid": "^10.0.0",
     "typescript": "^5.5.2"
   },

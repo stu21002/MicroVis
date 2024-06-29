@@ -1,32 +1,24 @@
 import h5py
+import numpy as np
 
-def read_first_value(file_path, group_name, dataset_name):
-    try:
-        print("Opening the HDF5 file...")
-        with h5py.File(file_path, 'r') as file:
-            print("Accessing the specified group...")
-            group = file[group_name]
-            print("Accessing the specified dataset...")
-            dataset = group[dataset_name]
+# Define the dimensions for the new larger dataset
+new_dims = (100, 200, 300)  # Example dimensions, change as needed
 
-            print("Reading the first value from the dataset...")
-            for y in range (1920):
-                for x in range (1920):
-                    first_value = dataset[0,0, y, x]
-                    # if  first_value
+# Generate random data with the new dimensions
+random_data = np.random.rand(*new_dims)
 
-                # print("First value from the dataset:")
-                    print(x,":",y,"- ")
-                    print(first_value)
-                    print('\n')
+# Transpose the data such that Z is continuous (assuming Z is the third dimension)
+transposed_data = np.transpose(random_data, (2, 1, 0))
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+# Specify the path for the new HDF5 file
+new_file_path = 'new_h5_larger.hdf5'
 
-# Example usage
-file_path = '/media/stuart/Elements/Big.hdf5'
-group_name = '0'
-dataset_name = 'DATA'
+with h5py.File(new_file_path, 'w') as f:
+    # Create a new dataset with the random data
+    
+    data = f.create_dataset('DATA', data=random_data)
+    
+    # Create a new dataset for the transposed data
+    transposed_dataset = f.create_dataset('TRANSPOSED_DATA', data=transposed_data)
 
-read_first_value(file_path, group_name, dataset_name)
-
+print(f"New larger HDF5 file created at {new_file_path}.")

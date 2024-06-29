@@ -8,7 +8,9 @@ pkg_search_module(GRPCPP REQUIRED grpc++>=1.22.0)
 
 
 set(PROTO_FILES
-        # ./dumy.proto
+        ./defs.proto
+        ./FileInfo.proto
+        ./OpenFile.proto
         ./H5ReaderServices.proto
 )
 
