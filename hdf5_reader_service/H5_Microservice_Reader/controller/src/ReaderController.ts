@@ -114,8 +114,8 @@ export class ReaderController {
       const xCount:number[] = [1,dims.height,1,1];
       const yStart:number[] = [0,y,0,0];
       const yCount:number[] = [dims.width,1,1,1];
-      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,xStart,xCount}))
-      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,yStart,yCount}))
+      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]}))
+      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]}))
      
       return promises
     // }

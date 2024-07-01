@@ -8,17 +8,10 @@ def read_hdf5_structure(file_path):
             if isinstance(item, h5py.Group):
                 structure[key] = recursive_extract(item)
             elif isinstance(item, h5py.Dataset):
-                structure[key] = {
-                    'dims': item.shape,
-                    # 'values': extract_values(item)
-                }
+                structure[key] = None
         return structure
 
-    def extract_values(dataset):
-        return {
-            'x:1 y:1 z:1': dataset[1, 1, 1] if dataset.ndim == 3 else None,
-            'x:10 y:11 z:15': dataset[15, 11, 11] if dataset.ndim == 3 else None
-        }
+   
 
     with h5py.File(file_path, 'r') as file:
         structure = recursive_extract(file)
@@ -26,7 +19,8 @@ def read_hdf5_structure(file_path):
     return structure
 
 # Specify the path to your HDF5 file
-file_path = './files/h5.hdf5'
+file_path = '/media/stuart/Elements/Big.hdf5'
+# file_path = '/home/stuart/Big.hdf5'
 
 # Read the HDF5 file and get the structure
 hdf5_structure = read_hdf5_structure(file_path)
