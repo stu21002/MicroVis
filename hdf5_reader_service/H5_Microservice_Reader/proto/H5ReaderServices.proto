@@ -36,9 +36,8 @@ message RegionDataRequest{
 
 //Change To Bytes
 message RegionDataResponse{
-    repeated float region = 1;
+  repeated float data = 1;
 }
-
 
 
 message SpectralProfileRequest {
@@ -50,12 +49,13 @@ message SpectralProfileRequest {
   int32 numPixels = 6;
   int32 width = 7;
   int32 height = 8;
+
 }
 
 //Change TO Bytes
 message SpectralProfileResponse {
   repeated float data = 1;
-  //bytes data = 1;
+  // bytes data = 1;
 }
 
 service H5ReaderServices{
@@ -66,5 +66,7 @@ service H5ReaderServices{
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
   rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
   rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
+  rpc GetRegionStream (RegionDataRequest) returns (stream RegionDataResponse) {}
+  rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
 
 }

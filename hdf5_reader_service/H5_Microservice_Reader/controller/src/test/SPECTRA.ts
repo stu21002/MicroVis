@@ -1,5 +1,5 @@
 import { FileInfoRequest, FileInfoResponse } from '../../bin/src/proto/FileInfo';
-import {ReaderController} from '../ReaderController';
+import {ReaderController} from '../Services/ReaderController';
 import config from "./config.json";
 
 

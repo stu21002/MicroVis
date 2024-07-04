@@ -7,9 +7,9 @@ RegionDataRequest,
 RegionDataResponse,
 SpectralProfileRequest, SpectralProfileResponse,
 StatusResponse,
-} from "../bin/src/proto/H5ReaderServices";
-import { FileInfoRequest, FileInfoResponse } from "../bin/src/proto/FileInfo";
-import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "../bin/src/proto/OpenFile";
+} from "../../bin/src/proto/H5ReaderServices";
+import { FileInfoRequest, FileInfoResponse } from "../../bin/src/proto/FileInfo";
+import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "../../bin/src/proto/OpenFile";
 
 import { credentials } from "@grpc/grpc-js";
 import { promisify } from "util";
@@ -21,6 +21,8 @@ import { promisify } from "util";
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
     readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
     readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
+    readonly getSpectralProfileStream: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse[]>;
+
     readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
     readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
     //Spacital Profiles, getImageData for all X given a Y and visa versa...
@@ -55,7 +57,25 @@ import { promisify } from "util";
       this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
       this.openFile = promisify<OpenFileRequest, OpenFileACK>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
+      this.getSpectralProfileStream = (request: SpectralProfileRequest) => {
+        return new Promise<SpectralProfileResponse[]>((resolve, reject) => {
+          const call = client.getSpectralProfileStream(request);
+          const responses: SpectralProfileResponse[] = [];
   
+          call.on('data', (response: SpectralProfileResponse) => {
+            responses.push(response);
+          });
+  
+          call.on('end', () => {
+            resolve(responses);
+          });
+  
+          call.on('error', (err) => {
+            reject(err);
+          });
+        });
+      };
+
       client.waitForReady(Date.now() + 4000, (err) => {
         if (err) {
           console.log(port + " : false")
@@ -66,7 +86,7 @@ import { promisify } from "util";
             reject(err);
           }
         } else {
-          console.log(port + " : true")
+          // console.log(port + " : true")
 
           this._connected = true;
           for (const resolve of this._readyResolves) {

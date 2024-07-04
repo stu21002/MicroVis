@@ -6,7 +6,7 @@
 int main(int argc, char** argv)
 {
     int port = argc > 1 ? std::stoi(argv[1]) : 9999;
-    H5Service service;
+    H5Service service(port);
     grpc::ServerBuilder builder;
     
     const auto server_address =fmt::format("localhost:{}", port);

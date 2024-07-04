@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+
+
+service Streamer {
+    rpc getNums (StreamRequest) returns (stream StreamResponse2){}
+    rpc getNums2 (StreamRequest) returns (StreamResponse2){}
+  
+}
+
+message StreamRequest {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+message StreamResponse {
+    int32 val = 1;
+}
+message StreamResponse2 {
+    float progress = 1;
+    repeated int32 val = 2;
+
+}
