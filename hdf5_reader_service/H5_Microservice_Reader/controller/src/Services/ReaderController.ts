@@ -100,88 +100,87 @@ export class ReaderController {
     return reader?.getRegionData({ uuid, start, count,regionType});
   }
 
+  async getRegionStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
+    const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
+    return reader?.getRegionDataStream({ uuid, start, count,regionType:RegionType.RECTANGLE});
+  }
 
   //Relook at this
   async getSpatial(uuid:string,x:number,y:number){
     // if (this.readers.length = 1){
-      const promises = new Array<Promise<RegionDataResponse>>();
+      const promises = new Array<Promise<{xProfile:Float64Array,yProfile:Float64Array}>>();
 
       const dims =  this.fileDims.get(uuid);
       if (!dims) {
         //Should return false, meaning file no longer open
         throw new Error("Extended file info is undefined");
       }
-      const xStart:number[] = [x,0,0,0];
-      const xCount:number[] = [1,dims.height,1,1];
-      const yStart:number[] = [0,y,0,0];
-      const yCount:number[] = [dims.width,1,1,1];
-      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]}))
-      promises.push(this.readers[0].getRegionData({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]}))
+      // const xStart:number[] = [x,0,0,0];
+      // const xCount:number[] = [1,dims.height,1,1];
+      // const yStart:number[] = [0,y,0,0];
+      // const yCount:number[] = [dims.width,1,1,1];
+      const xProfile = new Float64Array(dims.height);
+      const yProfile = new Float64Array(dims.width);
+
+      const yPromise = (( this.readers[0].getRegionDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]})))
+      const xPromise = (( this.readers[0].getRegionDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]})))
      
-      return promises
+      return Promise.all([xPromise,yPromise]).then(
+        ([xRegionData, yRegionData]) => {
+          xProfile.set(xRegionData.points, 0);
+          yProfile.set(yRegionData.points, 0);
+          return { xProfile, yProfile };
+        }
+      )
+
     // }
     // else (this.readers.length > 1)
     //   console.log("YAY");
     
   }
 
+  async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
+    const numBins = Math.sqrt(width*height);
+    const {min,max} = {min:0,max:0};
+    //getRegion
+    //
+  }
+
   async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
+
     const pixelsPerWorker = Math.floor(width / numWorkers);
-    const promises = new Array<Promise<SpectralProfileResponse[]>>();
+    const promises = new Array<Promise<{statistic:Float64Array,counts:Number[]}>>();
+
     for (let i = 0; i < numWorkers; i++) {
+
       const xStart = x + i * pixelsPerWorker;
-      // Last worker gets the remainder
       const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
       const reader = this.readers[i % this.readers.length];
-      // console.log(`${xStart} ${y} ${z} ${numPixelsInChunk} ${height} ${numPixels}`);
-
       promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
+   
     }
     
-    
+    const spectralData = new Float64Array(numPixels);
+    const statistic = new Float64Array(numPixels).fill(0);
+    const counts = Array(numPixels).fill(0);
     return Promise.all(promises).then(res => {
-
-      const numPix = numPixels*width*height;
-      const data = new Float32Array(numPixels*width*height);
-      let offset = 0;
+      //Adding values as they come in, avoids heap error
       for (const response of res) {
-          // console.log(response);
-          for (const item of response){
-            data.set(item.data,offset);
-            offset += item.data.length;
-          }
+          response.statistic.forEach((value,index)=>{
+            statistic[index]+=value;
+          })
+          response.counts.forEach((value,index)=>{
+            counts[index]+=value;
+          })
+
       }
 
-      // // return true;
-
-      const spectralData = new Float32Array(numPixels);
-      const x_offset: number = numPixels * height;
-  
-      for (let z = 0; z < numPixels; z++) {
-          let count = 0;
-          let sum = 0;
-  
-          for (let x = 0; x < width; x++) {
-              let index = z + x * x_offset;
-  
-              for (let y = 0; y < height; y++) {
-                  const value = data[index];
-                  
-                  if (Number.isFinite(value)) {
-                      sum += value;
-                      count++;
-                  }
-                  
-                  index += numPixels;
-              }
-          }
-  
-          const channel_mean = count > 0 ? sum / count : NaN;
-          spectralData[z]=(channel_mean);
-      }
+      spectralData.forEach((value,index)=>{
+        spectralData[index]=statistic[index]/counts[index]
+      })
 
       return {spectralData} ;
     });
@@ -207,7 +206,7 @@ export class ReaderController {
     
     return Promise.all(promises).then(res => {
       // For Bytes
-      // const data = new Float32Array(numPixels*width*height);
+      // const data = new Float64Array(numPixels*width*height);
       // let offset = 0;
       // for (const response of res) {
       //   const chunk = bytesToFloat32(response.data);
@@ -215,7 +214,7 @@ export class ReaderController {
       //   offset += chunk.length;
       // }
       const numPix = numPixels*width*height;
-      const data = new Float32Array(numPixels*width*height);
+      const data = new Float64Array(numPixels*width*height);
       let offset = 0;
       for (const response of res) {
 
@@ -223,7 +222,7 @@ export class ReaderController {
           offset += response.data.length;
       }
 
-      const spectralData = new Float32Array(numPixels);
+      const spectralData = new Float64Array(numPixels);
       const x_offset: number = numPixels * height;
   
       for (let z = 0; z < numPixels; z++) {
@@ -271,7 +270,7 @@ export class ReaderController {
 
     // Change when using bytes
     return Promise.all(promises).then(res => {
-        const data = new Float32Array(numPixels);
+        const data = new Float64Array(numPixels);
         let offset = 0;
         for (const response of res) {
             data.set(response.data,offset);

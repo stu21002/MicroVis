@@ -20,8 +20,9 @@ import { promisify } from "util";
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
     readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
+    readonly getRegionDataStream: (request: RegionDataRequest) => Promise<{points:Float64Array}>;
     readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
-    readonly getSpectralProfileStream: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse[]>;
+    readonly getSpectralProfileStream: (request: SpectralProfileRequest) =>Promise<{statistic:Float64Array,counts:Number[]}>;
 
     readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
     readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
@@ -57,17 +58,45 @@ import { promisify } from "util";
       this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
       this.openFile = promisify<OpenFileRequest, OpenFileACK>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
-      this.getSpectralProfileStream = (request: SpectralProfileRequest) => {
-        return new Promise<SpectralProfileResponse[]>((resolve, reject) => {
-          const call = client.getSpectralProfileStream(request);
-          const responses: SpectralProfileResponse[] = [];
-  
+      this.getRegionDataStream = (request: RegionDataRequest) => {
+        return new Promise<{points:Float64Array}>((resolve, reject) => {
+          const call = client.getRegionStream(request);
+          const points = new Float64Array(request.count.reduce((prev,curr)=>{return prev*curr},1)).fill(0);
+          let offset=0;
           call.on('data', (response: SpectralProfileResponse) => {
-            responses.push(response);
+            // responses.push(response);
+            points.set(response.data,offset);
+            offset+=response.data.length;
           });
   
           call.on('end', () => {
-            resolve(responses);
+            resolve({points});
+          });
+  
+          call.on('error', (err) => {
+            reject(err);
+          });
+        })
+      }
+
+      this.getSpectralProfileStream = (request: SpectralProfileRequest) => {
+        return new Promise<{statistic:Float64Array,counts:Number[]}>((resolve, reject) => {
+          const call = client.getSpectralProfileStream(request);
+          // const responses: SpectralProfileResponse[] = [];
+          const statistic = new Float64Array(request.numPixels).fill(0);
+          const counts = Array(request.numPixels).fill(0);
+          call.on('data', (response: SpectralProfileResponse) => {
+            // responses.push(response);
+            response.data.forEach((value,index) =>{
+              if (isFinite(value)){
+                statistic[index]+=value;
+                counts[index]++;
+              }
+            })
+          });
+  
+          call.on('end', () => {
+            resolve({statistic,counts});
           });
   
           call.on('error', (err) => {
