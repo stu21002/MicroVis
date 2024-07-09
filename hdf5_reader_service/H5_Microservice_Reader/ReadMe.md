@@ -11,4 +11,4 @@ sudo apt install libfmt-dev
 sudo apt install libhdf5-dev
 
 # Install gRPC and Protocol Buffers
-sudo apt install libgrpc-dev libgrpc++-dev protobuf-compiler-grpcS
+sudo apt install libgrpc-dev libgrpc++-dev protobuf-compiler-grpc

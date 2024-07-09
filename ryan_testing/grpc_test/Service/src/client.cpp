@@ -1,20 +1,18 @@
 #include <grpcpp/grpcpp.h>
-#include "helloworld.grpc.pb.h"
-#include "helloworld.pb.h"
+#include "H5ReaderServices.grpc.pb.h"
 
 #include <iostream>
 #include <memory>
 #include <string>
 
 void RunClient(const std::string& user) {
-    std::string target_str = "localhost:50051";
-    auto channel = grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials());
-    std::unique_ptr<helloworld::Greeter::Stub> stub_ = helloworld::Greeter::NewStub(channel);
+    auto channel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
+    std::unique_ptr<H5ReaderServices::Greeter::Stub> stub_ = H5ReaderServices::Greeter::NewStub(channel);
 
-    helloworld::HelloRequest request;
+    H5ReaderServices::HelloRequest request;
     request.set_name(user);
 
-    helloworld::HelloReply reply;
+    H5ReaderServices::HelloReply reply;
     grpc::ClientContext context;
 
     grpc::Status status = stub_->SayHello(&context, request, &reply);
