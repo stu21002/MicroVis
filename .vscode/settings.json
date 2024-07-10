@@ -3,7 +3,8 @@
     "vector": "cpp",
     "tuple": "cpp",
     "xutility": "cpp",
-    "iostream": "cpp"
+    "iostream": "cpp",
+    "cmath": "cpp"
   },
   "cmake.sourceDirectory": "/home/stuart/Honours/MicroVis/hdf5_reader_service/H5_Microservice_Reader"
 }

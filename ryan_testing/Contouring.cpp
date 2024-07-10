@@ -15,7 +15,7 @@
 #include <vector>
 
 #include <iostream>
-#include <H5Cpp.h>
+//#include <H5Cpp.h>
 
 // double scale = 1.0;
 //     double offset = 0;
@@ -48,10 +48,10 @@ namespace carta
             double b = image[(j)*width + i + 1];
             double c = image[(j + 1) * width + i + 1];
             double d = image[(j + 1) * width + i];
-            a = isnan(a) ? -std::numeric_limits<float>::max() : a;
-            b = isnan(b) ? -std::numeric_limits<float>::max() : b;
-            c = isnan(c) ? -std::numeric_limits<float>::max() : c;
-            d = isnan(d) ? -std::numeric_limits<float>::max() : d;
+            a = std::isnan(a) ? -std::numeric_limits<float>::max() : a;
+            b = std::isnan(b) ? -std::numeric_limits<float>::max() : b;
+            c = std::isnan(c) ? -std::numeric_limits<float>::max() : c;
+            d = std::isnan(d) ? -std::numeric_limits<float>::max() : d;
 
             double x = 0;
             double y = 0;
@@ -189,7 +189,7 @@ namespace carta
             float pt_a = image[(j)*width + i];
             float pt_b = image[(j)*width + i + 1];
 
-            if ((isnan(pt_a) || pt_a < level) && level <= pt_b)
+            if ((std::isnan(pt_a) || pt_a < level) && level <= pt_b)
             {
                 indices.push_back(vertices.size());
                 TraceSegment(image, visited, width, height, scale, offset, level, i, j, Edge::TopEdge, vertices);
@@ -204,7 +204,7 @@ namespace carta
             float pt_a = image[(j)*width + i];
             float pt_b = image[(j + 1) * width + i];
 
-            if ((isnan(pt_a) || pt_a < level) && level <= pt_b)
+            if ((std::isnan(pt_a) || pt_a < level) && level <= pt_b)
             {
                 indices.push_back(vertices.size());
                 TraceSegment(image, visited, width, height, scale, offset, level, i - 1, j, Edge::RightEdge, vertices);
@@ -219,7 +219,7 @@ namespace carta
             float pt_a = image[(j)*width + i + 1];
             float pt_b = image[(j)*width + i];
 
-            if ((isnan(pt_a) || pt_a < level) && level <= pt_b)
+            if ((std::isnan(pt_a) || pt_a < level) && level <= pt_b)
             {
                 indices.push_back(vertices.size());
                 TraceSegment(image, visited, width, height, scale, offset, level, i, j - 1, Edge::BottomEdge, vertices);
@@ -234,7 +234,7 @@ namespace carta
             float pt_a = image[(j + 1) * width + i];
             float pt_b = image[(j)*width + i];
 
-            if ((isnan(pt_a) || pt_a < level) && level <= pt_b)
+            if ((std::isnan(pt_a) || pt_a < level) && level <= pt_b)
             {
                 indices.push_back(vertices.size());
                 TraceSegment(image, visited, width, height, scale, offset, level, i, j, Edge::LeftEdge, vertices);
@@ -251,7 +251,7 @@ namespace carta
                 float pt_a = image[(j)*width + i];
                 float pt_b = image[(j)*width + i + 1];
 
-                if (!visited[j * width + i] && (isnan(pt_a) || pt_a < level) && level <= pt_b)
+                if (!visited[j * width + i] && (std::isnan(pt_a) || pt_a < level) && level <= pt_b)
                 {
                     indices.push_back(vertices.size());
                     TraceSegment(image, visited, width, height, scale, offset, level, i, j, TopEdge, vertices);
@@ -272,7 +272,7 @@ namespace carta
         index_data.resize(levels.size());
 
         // ThreadManager::ApplyThreadLimit();
-#pragma omp parallel for
+// #pragma omp parallel for
         for (int64_t l = 0; l < levels.size(); l++)
         {
             vertex_data[l].clear();
@@ -307,31 +307,39 @@ namespace carta
         std::cout << "Partial index data size: " << partial_index_data.size() << std::endl;
     }
 
-    int main()
+
+} // namespace carta
+
+int main()
     {
-        std::string fileName = "C:/Ryan stuff/CS Honors Project/MicroVis/ryan_testing/files/example.hdf5"; // Correct the path as needed
-        std::string datasetName = "DATA";                                                                  // Replace with the actual dataset name
+        // std::string fileName = "./files/example.hdf5"; // Correct the path as needed
+        // std::string datasetName = "DATA";                                                                  // Replace with the actual dataset name
 
-        // Open the HDF5 file
-        H5::H5File file(fileName, H5F_ACC_RDONLY);
+        // // Open the HDF5 file
+        // H5::H5File file(fileName, H5F_ACC_RDONLY);
 
-        // Open the dataset
-        H5::DataSet dataset = file.openDataSet(datasetName);
+        // // Open the dataset
+        // H5::DataSet dataset = file.openDataSet(datasetName);
 
-        // Get the dataspace of the dataset
-        H5::DataSpace dataspace = dataset.getSpace();
+        // // Get the dataspace of the dataset
+        // H5::DataSpace dataspace = dataset.getSpace();
 
-        // Get the dimensions of the dataset
-        hsize_t dims[2];
-        dataspace.getSimpleExtentDims(dims, NULL);
-        int64_t width = dims[1];
-        int64_t height = dims[0];
+        // // Get the dimensions of the dataset
+        // hsize_t dims[2];
+        // dataspace.getSimpleExtentDims(dims, NULL);
+        // int64_t width = dims[1];
+        // int64_t height = dims[0];
 
-        // Create a buffer to hold the data
-        std::vector<float> image(width * height);
+        // // Create a buffer to hold the data
+        // std::vector<float> image(width * height);
 
-        // Read the data into the buffer
-        dataset.read(image.data(), H5::PredType::NATIVE_FLOAT);
+        // // Read the data into the buffer
+        // dataset.read(image.data(), H5::PredType::NATIVE_FLOAT);
+
+        std::vector<float> image(10 * 10);
+            for (int i = 0; i < 10 * 10; ++i) {
+                image[i] = static_cast<float>(i); // Simulated data filling
+            }
 
         // Define contour levels
         std::vector<double> levels = {0.1, 0.2, 0.3};
@@ -344,12 +352,10 @@ namespace carta
         int chunk_size = 100;
 
         // Define a callback function
-        ContourCallback callback = MyContourCallback;
+        carta::ContourCallback callback = carta::MyContourCallback;
 
         // Call the TraceContours function
-        TraceContours(image.data(), width, height, 1.0, 0.0, levels, vertex_data, index_data, chunk_size, callback);
+        carta::TraceContours(image.data(), 10, 10, 1.0, 0.0, levels, vertex_data, index_data, chunk_size, callback);
 
         return 0;
     }
-
-} // namespace carta
