@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+message Output {
+    string value = 1;
+}
+
+message Empty{}
+
+service ProcessingServices{
+    rpc computeContour(Empty) returns (Output) {}
+}

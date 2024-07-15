@@ -2,20 +2,37 @@ cmake_minimum_required(VERSION 3.20)
 project(GreeterService)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse3")
+
 find_package(Protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
-add_library(protolib proto/hello.proto)
-target_link_libraries(protolib gRPC::grpc++)
-target_include_directories(protolib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+add_library(protolibContour proto/contouring.proto)
+add_library(protolibSmooth proto/smoothing.proto)
+
+target_link_libraries(protolibContour gRPC::grpc++)
+target_link_libraries(protolibSmooth gRPC::grpc++)
+
+target_include_directories(protolibContour PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(protolibSmooth PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
-protobuf_generate(TARGET protolib LANGUAGE cpp)
-protobuf_generate(TARGET protolib LANGUAGE grpc
+
+protobuf_generate(TARGET protolibContour LANGUAGE cpp)
+protobuf_generate(TARGET protolibContour LANGUAGE grpc
     GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
     PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"    
 )
+protobuf_generate(TARGET protolibSmooth LANGUAGE cpp)
+protobuf_generate(TARGET protolibSmooth LANGUAGE grpc
+    GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
+    PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
+)
 
-add_executable(server src/server.cpp)
-target_link_libraries(server protolib)
+add_executable(ContouringService src/ContouringService.cpp src/Contouring.cpp)
+target_link_libraries(ContouringService protolibContour)
+
+add_executable(SmoothingService src/SmoothingService.cpp src/Smoothing.cpp)
+target_link_libraries(SmoothingService protolibSmooth)
 
 
