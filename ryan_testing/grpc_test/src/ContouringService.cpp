@@ -12,7 +12,7 @@ void ContourCallback(double scale, double offset, const std::vector<float> &part
         std::cout << "Partial index data size: " << partial_index_data.size() << std::endl;
     }
 
-class ProcessingImpl : public ProcessingServices::Service {
+class ProcessingImpl : public ContourServices::Service {
 ::grpc::Status computeContour(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
     std::cout << "Called!" << std::endl;
 
@@ -80,7 +80,7 @@ int main(){
     builder.RegisterService(&service);
 
     std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
-    std::cout << "Smoothing Service Ready" << std::endl;
+    std::cout << "Contouring Service Ready" << std::endl;
 
     server->Wait();
 

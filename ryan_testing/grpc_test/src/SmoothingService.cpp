@@ -4,7 +4,7 @@
 
 #include "Smoothing.h"
 
-class ProcessingImpl : public ProcessingServices::Service {
+class ProcessingImpl : public SmoothingServices::Service {
 ::grpc::Status computeGuassianBlur(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
     std::cout << "Called!" << std::endl;
     

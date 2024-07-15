@@ -6,6 +6,6 @@ message Output {
 
 message Empty{}
 
-service ProcessingServices{
+service ContourServices{
     rpc computeContour(Empty) returns (Output) {}
 }

@@ -6,6 +6,6 @@ message Output {
 
 message Empty{}
 
-service ProcessingServices{
+service SmoothingServices{
     rpc computeGuassianBlur(Empty) returns (Output) {}
 }
