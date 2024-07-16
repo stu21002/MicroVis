@@ -8,4 +8,5 @@ message Empty{}
 
 service SmoothingServices{
     rpc computeGuassianBlur(Empty) returns (Output) {}
+    rpc computeBlockSmoothing(Empty) returns (Output) {}
 }

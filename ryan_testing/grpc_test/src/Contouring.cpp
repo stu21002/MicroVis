@@ -13,6 +13,7 @@
 
 #include <iostream>
 //#include <H5Cpp.h>
+#include <omp.h>
 
 // double scale = 1.0;
 //     double offset = 0;
@@ -21,7 +22,7 @@
 //     std::vector<std::vector<int>> index_data;
 // chunk: 100000
 
-// #include "ThreadingManager/ThreadingManager.h"
+// #include "ThreadingManager.h"
 // #include "Timer/Timer.h"
 
 namespace carta
@@ -268,8 +269,10 @@ namespace carta
         vertex_data.resize(levels.size());
         index_data.resize(levels.size());
 
+        omp_set_num_threads(levels.size());
+
         // ThreadManager::ApplyThreadLimit();
-// #pragma omp parallel for
+#pragma omp parallel for
         for (int64_t l = 0; l < levels.size(); l++)
         {
             vertex_data[l].clear();

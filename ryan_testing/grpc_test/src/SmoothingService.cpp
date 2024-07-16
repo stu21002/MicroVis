@@ -6,7 +6,7 @@
 
 class ProcessingImpl : public SmoothingServices::Service {
 ::grpc::Status computeGuassianBlur(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
-    std::cout << "Called!" << std::endl;
+    std::cout << "Called GuassianBlur" << std::endl;
     
     // Smooth the image from cache
     int mask_size = (2 - 1) * 2 + 1;
@@ -27,10 +27,18 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     std::cout << "Completed" << std::endl;
 
-    response->set_value("Completed");
+    response->set_value("Completed Guassian Blur");
 
     return grpc::Status::OK;
 }
+
+::grpc::Status computeBlockSmoothing(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
+    std::cout << "Called Block Smoothing" << std::endl;
+
+    response->set_value("Completed Block Smoothing");
+
+    return grpc::Status::OK;
+}   
 };
 
 int main(){
