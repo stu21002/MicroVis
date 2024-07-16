@@ -2,6 +2,8 @@
 #include "proto/contouring.grpc.pb.h"
 #include "proto/contouring.pb.h"
 
+#include <H5Cpp.h>
+
 #include "Contouring.h"
 #include "Smoothing.h"
 
@@ -16,34 +18,35 @@ class ProcessingImpl : public ContourServices::Service {
 ::grpc::Status computeContour(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
     std::cout << "Called!" << std::endl;
 
-    // std::string fileName = "./files/example.hdf5"; // Correct the path as needed
-        // std::string datasetName = "DATA";                                                                  // Replace with the actual dataset name
+    std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/example.hdf5"; // Correct the path as needed
+        std::string datasetName = "DATA";                                                                  // Replace with the actual dataset name
 
-        // // Open the HDF5 file
-        // H5::H5File file(fileName, H5F_ACC_RDONLY);
+        // Open the HDF5 file
+        H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
+        H5::Group group = file.openGroup("0");
 
-        // // Open the dataset
-        // H5::DataSet dataset = file.openDataSet(datasetName);
+        // Open the dataset
+        H5::DataSet dataset = group.openDataSet(datasetName);
 
-        // // Get the dataspace of the dataset
-        // H5::DataSpace dataspace = dataset.getSpace();
+        // Get the dataspace of the dataset
+        H5::DataSpace dataspace = dataset.getSpace();
 
-        // // Get the dimensions of the dataset
-        // hsize_t dims[2];
-        // dataspace.getSimpleExtentDims(dims, NULL);
-        // int64_t width = dims[1];
-        // int64_t height = dims[0];
+        // Get the dimensions of the dataset
+        hsize_t dims[2];
+        dataspace.getSimpleExtentDims(dims, NULL);
+        int64_t width = dims[1];
+        int64_t height = dims[0];
 
-        // // Create a buffer to hold the data
-        // std::vector<float> image(width * height);
+        // Create a buffer to hold the data
+        std::vector<float> image(width * height);
 
-        // // Read the data into the buffer
-        // dataset.read(image.data(), H5::PredType::NATIVE_FLOAT);
+        // Read the data into the buffer
+        dataset.read(image.data(), H5::PredType::NATIVE_FLOAT);
 
-        std::vector<float> image(10 * 10);
-            for (int i = 0; i < 10 * 10; ++i) {
-                image[i] = static_cast<float>(i); // Simulated data filling
-            }
+        // std::vector<float> image(10 * 10);
+        //     for (int i = 0; i < 10 * 10; ++i) {
+        //         image[i] = static_cast<float>(i); // Simulated data filling
+        //     }
 
         // Define contour levels
         std::vector<double> levels = {0.1, 0.2, 0.3};
@@ -62,9 +65,10 @@ class ProcessingImpl : public ContourServices::Service {
         carta::TraceContours(image.data(), 10, 10, 1.0, 0.0, levels, vertex_data, index_data, chunk_size, callback);
 
     std::string result = "";
+    std::string filler = " ";
 
     for(int i = 0; i < 10 * 10; ++i){
-        result += std::to_string(image[i]);
+        result += std::to_string(image[i]) + filler;
     }
 
     response->set_value(result);
