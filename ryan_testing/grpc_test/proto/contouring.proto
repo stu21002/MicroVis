@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-message Output {
+message ContouringOutput {
     string value = 1;
 }
 
-message Empty{}
+message ContouringEmpty{}
 
 service ContourServices{
-    rpc computeContour(Empty) returns (Output) {}
+    rpc computeContour(ContouringEmpty) returns (ContouringOutput) {}
 }

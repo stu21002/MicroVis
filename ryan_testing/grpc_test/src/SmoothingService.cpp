@@ -5,7 +5,7 @@
 #include "Smoothing.h"
 
 class ProcessingImpl : public SmoothingServices::Service {
-::grpc::Status computeGuassianBlur(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
+::grpc::Status computeGuassianBlur(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
     std::cout << "Called GuassianBlur" << std::endl;
     
     // Smooth the image from cache
@@ -32,7 +32,7 @@ class ProcessingImpl : public SmoothingServices::Service {
     return grpc::Status::OK;
 }
 
-::grpc::Status computeBlockSmoothing(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
+::grpc::Status computeBlockSmoothing(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
     std::cout << "Called Block Smoothing" << std::endl;
 
     response->set_value("Completed Block Smoothing");

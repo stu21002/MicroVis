@@ -7,4 +7,4 @@ protoc --plugin=$(npm root)/.bin/protoc-gen-ts_proto \
 --ts_proto_out=$OUT_DIR \
 --ts_proto_opt=outputServices=grpc-js \
 --ts_proto_opt=esModulesInterop=true \
--I=$PROTO_DIR $PROTO_DIR/contouring.proto
+-I=$PROTO_DIR $PROTO_DIR/*.proto

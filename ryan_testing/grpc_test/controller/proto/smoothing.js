@@ -3,7 +3,7 @@
 // versions:
 //   protoc-gen-ts_proto  v1.181.1
 //   protoc               v5.26.1
-// source: contouring.proto
+// source: smoothing.proto
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -28,15 +28,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ContourServicesClient = exports.ContourServicesService = exports.ContouringEmpty = exports.ContouringOutput = exports.protobufPackage = void 0;
+exports.SmoothingServicesClient = exports.SmoothingServicesService = exports.SmoothingEmpty = exports.SmoothingOutput = exports.protobufPackage = void 0;
 /* eslint-disable */
 const grpc_js_1 = require("@grpc/grpc-js");
 const _m0 = __importStar(require("protobufjs/minimal"));
 exports.protobufPackage = "";
-function createBaseContouringOutput() {
+function createBaseSmoothingOutput() {
     return { value: "" };
 }
-exports.ContouringOutput = {
+exports.SmoothingOutput = {
     encode(message, writer = _m0.Writer.create()) {
         if (message.value !== "") {
             writer.uint32(10).string(message.value);
@@ -46,7 +46,7 @@ exports.ContouringOutput = {
     decode(input, length) {
         const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
         let end = length === undefined ? reader.len : reader.pos + length;
-        const message = createBaseContouringOutput();
+        const message = createBaseSmoothingOutput();
         while (reader.pos < end) {
             const tag = reader.uint32();
             switch (tag >>> 3) {
@@ -75,26 +75,26 @@ exports.ContouringOutput = {
         return obj;
     },
     create(base) {
-        return exports.ContouringOutput.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.SmoothingOutput.fromPartial(base !== null && base !== void 0 ? base : {});
     },
     fromPartial(object) {
         var _a;
-        const message = createBaseContouringOutput();
+        const message = createBaseSmoothingOutput();
         message.value = (_a = object.value) !== null && _a !== void 0 ? _a : "";
         return message;
     },
 };
-function createBaseContouringEmpty() {
+function createBaseSmoothingEmpty() {
     return {};
 }
-exports.ContouringEmpty = {
+exports.SmoothingEmpty = {
     encode(_, writer = _m0.Writer.create()) {
         return writer;
     },
     decode(input, length) {
         const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
         let end = length === undefined ? reader.len : reader.pos + length;
-        const message = createBaseContouringEmpty();
+        const message = createBaseSmoothingEmpty();
         while (reader.pos < end) {
             const tag = reader.uint32();
             switch (tag >>> 3) {
@@ -114,25 +114,34 @@ exports.ContouringEmpty = {
         return obj;
     },
     create(base) {
-        return exports.ContouringEmpty.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.SmoothingEmpty.fromPartial(base !== null && base !== void 0 ? base : {});
     },
     fromPartial(_) {
-        const message = createBaseContouringEmpty();
+        const message = createBaseSmoothingEmpty();
         return message;
     },
 };
-exports.ContourServicesService = {
-    computeContour: {
-        path: "/ContourServices/computeContour",
+exports.SmoothingServicesService = {
+    computeGuassianBlur: {
+        path: "/SmoothingServices/computeGuassianBlur",
         requestStream: false,
         responseStream: false,
-        requestSerialize: (value) => Buffer.from(exports.ContouringEmpty.encode(value).finish()),
-        requestDeserialize: (value) => exports.ContouringEmpty.decode(value),
-        responseSerialize: (value) => Buffer.from(exports.ContouringOutput.encode(value).finish()),
-        responseDeserialize: (value) => exports.ContouringOutput.decode(value),
+        requestSerialize: (value) => Buffer.from(exports.SmoothingEmpty.encode(value).finish()),
+        requestDeserialize: (value) => exports.SmoothingEmpty.decode(value),
+        responseSerialize: (value) => Buffer.from(exports.SmoothingOutput.encode(value).finish()),
+        responseDeserialize: (value) => exports.SmoothingOutput.decode(value),
+    },
+    computeBlockSmoothing: {
+        path: "/SmoothingServices/computeBlockSmoothing",
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.SmoothingEmpty.encode(value).finish()),
+        requestDeserialize: (value) => exports.SmoothingEmpty.decode(value),
+        responseSerialize: (value) => Buffer.from(exports.SmoothingOutput.encode(value).finish()),
+        responseDeserialize: (value) => exports.SmoothingOutput.decode(value),
     },
 };
-exports.ContourServicesClient = (0, grpc_js_1.makeGenericClientConstructor)(exports.ContourServicesService, "ContourServices");
+exports.SmoothingServicesClient = (0, grpc_js_1.makeGenericClientConstructor)(exports.SmoothingServicesService, "SmoothingServices");
 function isSet(value) {
     return value !== null && value !== undefined;
 }

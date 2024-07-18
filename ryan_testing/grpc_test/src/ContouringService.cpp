@@ -5,7 +5,6 @@
 #include <H5Cpp.h>
 
 #include "Contouring.h"
-#include "Smoothing.h"
 
 void ContourCallback(double scale, double offset, const std::vector<float> &partial_vertex_data, const std::vector<int> &partial_index_data)
     {
@@ -15,7 +14,7 @@ void ContourCallback(double scale, double offset, const std::vector<float> &part
     }
 
 class ProcessingImpl : public ContourServices::Service {
-::grpc::Status computeContour(::grpc::ServerContext* context, const ::Empty *request, ::Output *response){
+::grpc::Status computeContour(::grpc::ServerContext* context, const ::ContouringEmpty *request, ::ContouringOutput *response){
     std::cout << "Called!" << std::endl;
 
     std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/example.hdf5"; // Correct the path as needed

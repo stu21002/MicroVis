@@ -21,29 +21,29 @@ import * as _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "";
 
-export interface Output {
+export interface ContouringOutput {
   value: string;
 }
 
-export interface Empty {
+export interface ContouringEmpty {
 }
 
-function createBaseOutput(): Output {
+function createBaseContouringOutput(): ContouringOutput {
   return { value: "" };
 }
 
-export const Output = {
-  encode(message: Output, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const ContouringOutput = {
+  encode(message: ContouringOutput, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.value !== "") {
       writer.uint32(10).string(message.value);
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): Output {
+  decode(input: _m0.Reader | Uint8Array, length?: number): ContouringOutput {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseOutput();
+    const message = createBaseContouringOutput();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -63,11 +63,11 @@ export const Output = {
     return message;
   },
 
-  fromJSON(object: any): Output {
+  fromJSON(object: any): ContouringOutput {
     return { value: isSet(object.value) ? globalThis.String(object.value) : "" };
   },
 
-  toJSON(message: Output): unknown {
+  toJSON(message: ContouringOutput): unknown {
     const obj: any = {};
     if (message.value !== "") {
       obj.value = message.value;
@@ -75,29 +75,29 @@ export const Output = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Output>, I>>(base?: I): Output {
-    return Output.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<ContouringOutput>, I>>(base?: I): ContouringOutput {
+    return ContouringOutput.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Output>, I>>(object: I): Output {
-    const message = createBaseOutput();
+  fromPartial<I extends Exact<DeepPartial<ContouringOutput>, I>>(object: I): ContouringOutput {
+    const message = createBaseContouringOutput();
     message.value = object.value ?? "";
     return message;
   },
 };
 
-function createBaseEmpty(): Empty {
+function createBaseContouringEmpty(): ContouringEmpty {
   return {};
 }
 
-export const Empty = {
-  encode(_: Empty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const ContouringEmpty = {
+  encode(_: ContouringEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): Empty {
+  decode(input: _m0.Reader | Uint8Array, length?: number): ContouringEmpty {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseEmpty();
+    const message = createBaseContouringEmpty();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -110,20 +110,20 @@ export const Empty = {
     return message;
   },
 
-  fromJSON(_: any): Empty {
+  fromJSON(_: any): ContouringEmpty {
     return {};
   },
 
-  toJSON(_: Empty): unknown {
+  toJSON(_: ContouringEmpty): unknown {
     const obj: any = {};
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Empty>, I>>(base?: I): Empty {
-    return Empty.fromPartial(base ?? ({} as any));
+  create<I extends Exact<DeepPartial<ContouringEmpty>, I>>(base?: I): ContouringEmpty {
+    return ContouringEmpty.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Empty>, I>>(_: I): Empty {
-    const message = createBaseEmpty();
+  fromPartial<I extends Exact<DeepPartial<ContouringEmpty>, I>>(_: I): ContouringEmpty {
+    const message = createBaseContouringEmpty();
     return message;
   },
 };
@@ -134,29 +134,32 @@ export const ContourServicesService = {
     path: "/ContourServices/computeContour",
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: Empty) => Buffer.from(Empty.encode(value).finish()),
-    requestDeserialize: (value: Buffer) => Empty.decode(value),
-    responseSerialize: (value: Output) => Buffer.from(Output.encode(value).finish()),
-    responseDeserialize: (value: Buffer) => Output.decode(value),
+    requestSerialize: (value: ContouringEmpty) => Buffer.from(ContouringEmpty.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => ContouringEmpty.decode(value),
+    responseSerialize: (value: ContouringOutput) => Buffer.from(ContouringOutput.encode(value).finish()),
+    responseDeserialize: (value: Buffer) => ContouringOutput.decode(value),
   },
 } as const;
 
 export interface ContourServicesServer extends UntypedServiceImplementation {
-  computeContour: handleUnaryCall<Empty, Output>;
+  computeContour: handleUnaryCall<ContouringEmpty, ContouringOutput>;
 }
 
 export interface ContourServicesClient extends Client {
-  computeContour(request: Empty, callback: (error: ServiceError | null, response: Output) => void): ClientUnaryCall;
   computeContour(
-    request: Empty,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: Output) => void,
+    request: ContouringEmpty,
+    callback: (error: ServiceError | null, response: ContouringOutput) => void,
   ): ClientUnaryCall;
   computeContour(
-    request: Empty,
+    request: ContouringEmpty,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ContouringOutput) => void,
+  ): ClientUnaryCall;
+  computeContour(
+    request: ContouringEmpty,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: Output) => void,
+    callback: (error: ServiceError | null, response: ContouringOutput) => void,
   ): ClientUnaryCall;
 }
 

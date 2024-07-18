@@ -1,6 +1,6 @@
 import * as grpc from "@grpc/grpc-js";
-import { Empty } from "./proto/contouring";
-import { Output } from "./proto/contouring";
+import { ContouringEmpty } from "./proto/contouring";
+import { ContouringOutput } from "./proto/contouring";
 import { ContourServicesClient } from "./proto/contouring";
 
 const client = new ContourServicesClient(
@@ -9,9 +9,9 @@ const client = new ContourServicesClient(
 ) as ContourServicesClient;
 
 function computeContour(){
-    const emptyRequest: Empty = {};
+    const emptyRequest: ContouringEmpty = {};
 
-    client.computeContour(emptyRequest, (error, response: Output) => {
+    client.computeContour(emptyRequest, (error, response: ContouringOutput) => {
         if(error){
             console.error("Error: ", error);
         } else {
