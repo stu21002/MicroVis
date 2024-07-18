@@ -3,14 +3,15 @@
 #include "proto/contouring.pb.h"
 
 #include <H5Cpp.h>
+#include <chrono>
 
 #include "Contouring.h"
 
 void ContourCallback(double scale, double offset, const std::vector<float> &partial_vertex_data, const std::vector<int> &partial_index_data)
     {
-        std::cout << "Scale: " << scale << ", Offset: " << offset << std::endl;
-        std::cout << "Partial vertex data size: " << partial_vertex_data.size() << std::endl;
-        std::cout << "Partial index data size: " << partial_index_data.size() << std::endl;
+        // std::cout << "Scale: " << scale << ", Offset: " << offset << std::endl;
+        // std::cout << "Partial vertex data size: " << partial_vertex_data.size() << std::endl;
+        // std::cout << "Partial index data size: " << partial_index_data.size() << std::endl;
     }
 
 class ProcessingImpl : public ContourServices::Service {
@@ -61,7 +62,13 @@ class ProcessingImpl : public ContourServices::Service {
         carta::ContourCallback callback = ContourCallback;
 
         // Call the TraceContours function
-        carta::TraceContours(image.data(), 10, 10, 1.0, 0.0, levels, vertex_data, index_data, chunk_size, callback);
+        auto start = std::chrono::high_resolution_clock::now();
+
+        carta::TraceContours(image.data(), width, height, 1.0, 0.0, levels, vertex_data, index_data, chunk_size, callback);
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = end - start;
+        std::cout << "TraceContours took " << duration.count() << " seconds." << std::endl;
 
     std::string result = "";
     std::string filler = " ";
@@ -76,16 +83,27 @@ class ProcessingImpl : public ContourServices::Service {
 }
 };
 
-int main(){
+void StartServer(int port){
+    std::string server_address = "0.0.0.0:" + std::to_string(port);
     ProcessingImpl service;
     grpc::ServerBuilder builder;
-    builder.AddListeningPort("0.0.0.0:9999", grpc::InsecureServerCredentials());
+    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
 
     std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
-    std::cout << "Contouring Service Ready" << std::endl;
+    std::cout << "Contouring Service Ready on " << server_address << std::endl;
 
     server->Wait();
+}
+
+int main(int argc, char** argv){
+    if(argc != 2){
+        std::cerr << "Usage: " << argv[0] << " <port>" << std::endl;
+        return 1;
+    }
+
+    int port = std::stoi(argv[1]);
+    StartServer(port);
 
     return 0;
 }
