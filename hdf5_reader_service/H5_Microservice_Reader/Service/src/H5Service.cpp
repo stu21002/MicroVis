@@ -78,9 +78,9 @@
         {
             // std::cerr << "FileIException: " << e.getCDetailMsg() << std::endl;
             response->set_success(false);
-
             return {grpc::StatusCode::INTERNAL, "Failed to open HDF5 file"};
         } catch (const H5::GroupIException& e) {
+            //Not working currently
             // std::cerr << "GroupIException: " << e.getCDetailMsg() << std::endl;
             response->set_success(false);
 
@@ -109,7 +109,6 @@
 
         try
         {
-            // std::cout << "Closing file" << std::endl;
             ServicePrint("Closing File");
             Hdf5_File &h5file = hdf5_files[request->uuid()];
             h5file._file.close();
@@ -160,6 +159,7 @@
                 group = h5file._group;
 
             }
+
             FileInfo *fileInfo = response->mutable_file_info();
             FileInfoExtended *extendedFileInfo = response->mutable_file_info_extended();
             
@@ -188,7 +188,8 @@
         return grpc::Status::OK;
     };
     grpc::Status H5Service::GetRegionStream(::grpc::ServerContext* context, const ::proto::RegionDataRequest* request, ::grpc::ServerWriter< ::proto::RegionDataResponse>* writer){
-    if (request->uuid().empty()) {
+        
+        if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         }
 
@@ -196,8 +197,8 @@
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
 
-        // std::cout << ">>Reading Region" << std::endl;
         ServicePrint("Region Request");
+
         std::vector<float> result;
 
         std::vector<hsize_t> h5_start;
@@ -233,23 +234,30 @@
         data_space.close();
         dataset.close();
         int offset = 0;
-        
+        // std::cout<<"w: "<<h5_count[0]<< " z: "<< h5_count[1] << " y: " << h5_count[2] << " x: " << h5_count[3] << std::endl; 
+
         for (size_t w = 0; w < h5_count[0]; w++)
         {
             for (size_t z = 0; z < h5_count[1]; z++)
                 {
-                ::RegionDataResponse response;
+                    RegionDataResponse response;     
                     for (size_t y = 0; y < h5_count[2]; y++)
                     {   
-                   
                         for (size_t x = 0; x < h5_count[3]; x++)
                         {
                             response.add_data(result[offset]);
+                            
                             offset++;
                         }
+                    // std::cout<<result.size()<<std::endl;
+                    // std::cout<<response.ByteSizeLong()<<std::endl;
+              
+                        writer->Write(response);
+        
+          
                        
                     }
-                 writer->Write(response);
+
                 }
 
         }
@@ -295,7 +303,7 @@
         std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
         result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
         
-        ServicePrint("Performing Spectral Profile Stream");
+        ServicePrint("Reading Complete");
 
         int offset = 0;
         
@@ -303,27 +311,39 @@
         {
             for (size_t j = 0; j < height; j++)
             {   
+                auto start = std::chrono::high_resolution_clock::now();
                 ::SpectralProfileResponse response;
+                
                 for (size_t k = 0; k < num_pixels; k++)
                 {
                     response.add_data(result[offset]);
                     offset++;
                 }
-                
+                auto mid = std::chrono::high_resolution_clock::now();
+
                 // std::cout << response.ByteSizeLong() << std::endl;
                 // ServicePrint(std::to_string(response.ByteSizeLong()));
                 writer->Write(response);
+
+                auto end = std::chrono::high_resolution_clock::now();
+
+                auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
+                auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+                
+                std::cout << "Loop " <<duration1.count() << std::endl;
+                std::cout << "Write " <<duration2.count() << std::endl;
+        
             }
             
         }
         
-
-
         ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
 
-
+    /// @brief sets an h5 atrribute to its corresponding place in the FileInfoExtended messege
+    /// @param extendedFileInfo 
+    /// @param attr 
     void H5Service::appendAttribute(FileInfoExtended *extendedFileInfo,H5::Attribute attr){
         std::string attrName = attr.getName();
         H5::DataType attrType = attr.getDataType();
@@ -368,6 +388,8 @@
         }
     };
 
+
+    //Old Methods
     std::vector<std::vector<bool>> H5Service::getMask(RegionType regionType,int width){
         std::vector<std::vector<bool>> mask;
         switch (regionType)

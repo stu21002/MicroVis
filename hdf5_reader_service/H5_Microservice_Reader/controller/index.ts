@@ -22,7 +22,7 @@ import { getCoords } from './src/utils/coord';
 
  async function main() {
 
-     const numWorkers = 10;
+     const numWorkers = 1;
 //     const startingPort = 8081
 //     console.log("Starting Port : " + startingPort);
     const workerPool = new ReaderController(numWorkers,"0.0.0.0" ,8080);
@@ -34,40 +34,33 @@ import { getCoords } from './src/utils/coord';
     // console.timeEnd("getStatus");
     // let isOk = true;
     // console.time("getFileInfo");
-  
-    let fileOpenResponse = await workerPool.openFile("/media/stuart/Elements/","Big.hdf5", "0");
+
+
+    let fileOpenResponse = await workerPool.openFile("/home/stuart/","Small.hdf5", "0");
     if (!fileOpenResponse?.uuid) {
       console.error("no uuid");
       return false;
     }
 
-    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(700,900,200,200);
-    console.log({startingX,startingY,adjustedWidth,adjustedHeight})
+    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,600,400,400);
+    // console.log({startingX,startingY,adjustedWidth,adjustedHeight})
 
     console.time("Spectral Profile");
     const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth+1,adjustedHeight+1,numWorkers);
     // console.log(respones1.spectralData.subarray(0,5));
     console.timeEnd("Spectral Profile");
 
-    console.time("Stream");
-    const respones2 = await workerPool.getRegionStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[800,800,0,0],[400,400,1,1]);
-    // console.log(respones2.points);
-    console.timeEnd("Stream");
+    // console.time("Stream");
+    // const respones2 = await workerPool.getRegionStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[0,0,0,0],[1920,1920,1,1]);
+    // // console.log(respones2.points);
+    // console.timeEnd("Stream");
 
-    console.time("Spatial");
-    const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,900,900);
-    // console.log(respones2.xProfile);
-    // console.log(respones2.yProfile);
-    console.timeEnd("Spatial");
+    // console.time("Spatial");
+    // const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,900,900);
+    // // console.log(respones2.xProfile);
+    // // console.log(respones2.yProfile);
+    // console.timeEnd("Spatial");
   
- 
-
-    // const respones2 = await workerPool.getSpectralProfile(fileOpenResponse.uuid,startingX,startingY,0,1,adjustedWidth+1,adjustedHeight+1,numWorkers);
-    // console.log(respones2)
-
-    // const respones3 = await workerPool.getSpectralProfile(fileOpenResponse.uuid,startingX,startingY,0,1,adjustedWidth+1,adjustedHeight+1,1);
-    // console.log(respones3)
-
 
 
     workerPool.closeFile(fileOpenResponse.uuid);
