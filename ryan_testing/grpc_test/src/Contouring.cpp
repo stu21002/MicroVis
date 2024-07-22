@@ -15,13 +15,6 @@
 //#include <H5Cpp.h>
 #include <omp.h>
 
-// double scale = 1.0;
-//     double offset = 0;
-//     bool smooth_successful = false;
-//     std::vector<std::vector<float>> vertex_data;
-//     std::vector<std::vector<int>> index_data;
-// chunk: 100000
-
 // #include "ThreadingManager.h"
 // #include "Timer/Timer.h"
 
