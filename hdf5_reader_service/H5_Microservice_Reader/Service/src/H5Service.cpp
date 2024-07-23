@@ -275,18 +275,17 @@ using namespace std::chrono;
         if (hdf5_files.find(request->uuid()) == hdf5_files.end()) {
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
+        
 
-        bool hasMask = request->has_mask();
+        bool hasMask = !request->mask().empty();
         std::vector<bool> mask_vector;
-        int mask_Width;
-        int mask_Height; 
+
 
         if (hasMask){
-            const Mask& mask = request->mask();
-            const google::protobuf::RepeatedField<bool>& mask_values = mask.mask();
+            const google::protobuf::RepeatedField<bool>& mask_values = request->mask();
             std::vector<bool> mask_vector(mask_values.begin(), mask_values.end());
-            int16_t mask_width = mask.width();
-            int16_t mask_height = mask.height();
+            // int16_t mask_width = mask.width();
+            // int16_t mask_height = mask.height();
         }
 
         ServicePrint("Spectral Profile Stream Request");

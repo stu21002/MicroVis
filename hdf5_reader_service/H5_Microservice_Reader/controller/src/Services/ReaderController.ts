@@ -101,7 +101,7 @@ export class ReaderController {
   // }
 
 
-  ////////////////FIX ME TO BIG, o no
+  
   async getRegionStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
     const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
     return reader?.getRegionDataStream({ uuid, start, count,regionType:RegionType.RECTANGLE});
@@ -117,10 +117,7 @@ export class ReaderController {
         //Should return false, meaning file no longer open
         throw new Error("Extended file info is undefined");
       }
-      // const xStart:number[] = [x,0,0,0];
-      // const xCount:number[] = [1,dims.height,1,1];
-      // const yStart:number[] = [0,y,0,0];
-      // const yCount:number[] = [dims.width,1,1,1];
+
       const xProfile = new Float64Array(dims.height);
       const yProfile = new Float64Array(dims.width);
 
@@ -146,7 +143,7 @@ export class ReaderController {
     //
   }
 
-  async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
+  async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,regionType?:RegionType,diameter?:number,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
@@ -154,14 +151,33 @@ export class ReaderController {
     const pixelsPerWorker = Math.floor(width / numWorkers);
     const promises = new Array<Promise<{statistic:Float64Array,counts:Number[]}>>();
     console.log(pixelsPerWorker+ " " +height+ " "+numPixels);
-    for (let i = 0; i < numWorkers; i++) {
 
-      const xStart = x + i * pixelsPerWorker;
-      const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
-      const reader = this.readers[i % this.readers.length];
-      promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
-   
+    switch (regionType) {
+      case RegionType.CIRCLE:
+        if (diameter === undefined || diameter === null) {
+          throw new Error('Diameter is required for CIRCLE region type.');
+        }
+        for (let i = 0; i < numWorkers; i++) {
+          const xStart = x + i * pixelsPerWorker;
+          const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
+          const reader = this.readers[i % this.readers.length];
+          console.log(i * pixelsPerWorker + " " + numPixelsInChunk);
+          const mask = getMask(i * pixelsPerWorker,0,numPixelsInChunk,height,diameter);
+          
+          promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels, mask }));
+        }        
+      break;
+    
+      default:
+          for (let i = 0; i < numWorkers; i++) {
+            const xStart = x + i * pixelsPerWorker;
+            const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
+            const reader = this.readers[i % this.readers.length];
+            promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels, mask:[] }));
+          }
+        break;
     }
+
     
     const spectralData = new Float64Array(numPixels);
     const statistic = new Float64Array(numPixels).fill(0);
@@ -184,6 +200,8 @@ export class ReaderController {
       return {spectralData} ;
     });
   }
+
+
 
 
   // async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
@@ -251,7 +269,6 @@ export class ReaderController {
   //   });
   // }
 
-//   //TODO 
 //   async getSpectralProfile_workLoadSplitZ(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numreaders?: number) {
 //     if (!numreaders) {
 //       numreaders = this.readers.length;
@@ -282,3 +299,23 @@ export class ReaderController {
 //     };
   
  }
+
+ function getMask(startX:number,startY:number,numX:number,numY:number,diameter:number) {
+  let mask: boolean[] = [];
+  const pow_radius = Math.pow(diameter / 2.0, 2);
+  const centerX = (diameter - 1) / 2.0;
+  const centerY = (diameter - 1) / 2.0;
+  let index = 0;
+  for (let y = startY; y < startY+numY; y++) {
+      const pow_y = Math.pow(y - centerY, 2);
+
+      for (let x = startX; x < startX+numX; x++) {
+          
+          mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
+ 
+      }
+  }
+
+  return mask;
+  
+}

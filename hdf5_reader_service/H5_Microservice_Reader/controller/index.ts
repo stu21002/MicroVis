@@ -22,14 +22,14 @@ import { getCoords } from './src/utils/coord';
 
  async function main() {
 
-     const numWorkers = 20;
+     const numWorkers = 1;
 //     const startingPort = 8081
 //     console.log("Starting Port : " + startingPort);
     const workerPool = new ReaderController(numWorkers,"0.0.0.0" ,8080);
   
     await workerPool.ready();
 
-    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,600,400,400);
+    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,600,10,10);
     console.log({startingX,startingY,adjustedWidth,adjustedHeight})
   
     // console.time("getStatus");
@@ -48,7 +48,7 @@ import { getCoords } from './src/utils/coord';
 
 
     console.time("Spectral Profile");
-    const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth+1,adjustedHeight+1,numWorkers);
+    const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth+1,adjustedHeight+1,RegionType.CIRCLE,adjustedWidth+1);
     console.log(respones1.spectralData.subarray(0,5));
     console.timeEnd("Spectral Profile");
 
@@ -69,4 +69,58 @@ import { getCoords } from './src/utils/coord';
 }
 main()
   
+function main2(){
+const diameter = 5;
+
+let space = "";
+
+for (let i = 0; i < 5; i++) {
+  const length = 2;
+  const diameter = 30;
+  const mask = getMask(i*2,0,2,10,10);
+  const full = getMask(0,0,diameter,diameter,diameter);
+
+
+  // console.log(mask);
+  for (let i = 0; i < mask.length; i += length) {
+    const row = mask.slice(i, i + length);
+    // console.log(row.length);
+    console.log(space+ row.join(' '));
+  }
+
+  for (let i = 0; i < full.length; i += diameter) {
+    const row = full.slice(i, i + diameter);
+    console.log(row.join(' '));
+  }
+  space=space+"    ";
+  // for (let y = 0; y < diameter; y++) {
+    
+  //   for (let x = 0; x < diameter; x++) {
+  //     const index = y * diameter + x;
+  //     console.log(mask[index]);
+  //   }
+  // }
+}
+
+}
+function getMask(startX:number,startY:number,numX:number,numY:number,diameter:number) {
+  let mask: boolean[] = [];
+  const pow_radius = Math.pow(diameter / 2.0, 2);
+  const centerX = (diameter - 1) / 2.0;
+  const centerY = (diameter - 1) / 2.0;
+  let index = 0;
+  for (let y = startY; y < startY+numY; y++) {
+      const pow_y = Math.pow(y - centerY, 2);
+
+      for (let x = startX; x < startX+numX; x++) {
+          
+          mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
+ 
+      }
+  }
+
+  return mask;
+  
+}
+// main2()
  
