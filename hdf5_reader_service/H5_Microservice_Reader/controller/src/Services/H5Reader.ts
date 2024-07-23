@@ -93,8 +93,12 @@ import { promisify } from "util";
             // responses.push(response);
             response.data.forEach((value,index) =>{
               if (isFinite(value)){
-                statistic[index]+=value;
-                counts[index]++;
+                statistic[index]=value;
+              }
+            })
+            response.count.forEach((value,index) =>{
+              if (isFinite(value)){
+                counts[index]=value;
               }
             })
           });

@@ -12,6 +12,7 @@
 #include <cmath>
 #include <fmt/core.h> 
 #include <chrono>
+using namespace std::chrono;
 
 
     H5Service::H5Service(int port) : port(port) {}
@@ -289,15 +290,11 @@
         Hdf5_File &h5file = hdf5_files[request->uuid()];
         //Possible add perm group to struct
        
-        
         H5::Group permGroup = h5file._group.openGroup("PermutedData");
-
 
         H5::DataSet dataset = permGroup.openDataSet("ZYXW");
 
-
         const hsize_t resultSize = width*height*num_pixels;
-
 
         std::vector<hsize_t> start = {0,x,y,z};
         std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
@@ -307,36 +304,81 @@
 
         int offset = 0;
         
-        for (size_t i = 0; i < width; i++)
-        {
-            for (size_t j = 0; j < height; j++)
-            {   
-                auto start = std::chrono::high_resolution_clock::now();
-                ::SpectralProfileResponse response;
+        // for (size_t i = 0; i < width; i++)
+        // {
+        //     for (size_t j = 0; j < height; j++)
+        //     {   
+        //         auto start = std::chrono::high_resolution_clock::now();
+        //         ::SpectralProfileResponse response;
                 
-                for (size_t k = 0; k < num_pixels; k++)
-                {
-                    response.add_data(result[offset]);
-                    offset++;
-                }
-                auto mid = std::chrono::high_resolution_clock::now();
+        //         for (size_t k = 0; k < num_pixels; k++)
+        //         {
+        //             response.add_data(result[offset]);
+        //             offset++;
+        //         }
+        //         auto mid = std::chrono::high_resolution_clock::now();
 
-                // std::cout << response.ByteSizeLong() << std::endl;
-                // ServicePrint(std::to_string(response.ByteSizeLong()));
-                writer->Write(response);
+        //         // std::cout << response.ByteSizeLong() << std::endl;
+        //         // ServicePrint(std::to_string(response.ByteSizeLong()));
+        //         writer->Write(response);
 
-                auto end = std::chrono::high_resolution_clock::now();
+        //         auto end = std::chrono::high_resolution_clock::now();
 
-                auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
-                auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        //         auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
+        //         auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
                 
-                std::cout << "Loop " <<duration1.count() << std::endl;
-                std::cout << "Write " <<duration2.count() << std::endl;
+        //         std::cout << "Loop " <<duration1.count() << std::endl;
+        //         std::cout << "Write " <<duration2.count() << std::endl;
         
-            }
+        //     }
             
+        // }
+
+        //Need to make this faster, gpu?
+        auto st = std::chrono::high_resolution_clock::now();
+
+        std::vector<float> sum(num_pixels,0);
+        std::vector<int> counts(num_pixels,0);
+        int xoffset = num_pixels*height;
+
+            for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+                for (size_t ypos = 0; ypos < height; ypos++) {
+                    int yoffset = ypos * num_pixels + zpos;
+                    for (size_t xpos = 0; xpos < width; xpos++) {
+                        int index = xpos * xoffset + yoffset;
+                        float val = result[index];
+                        if (std::isfinite(val)) {
+                            sum[zpos] += val;
+                            counts[zpos]++;
+                    }
+                }
+            }
         }
+
+
+        auto mid = std::chrono::high_resolution_clock::now();
+
+        ::SpectralProfileResponse response;
+        for (size_t i = 0; i < num_pixels; i++){
+
+            response.add_count(counts[i]);
+            response.add_data(sum[i]);
+
+        }
+        auto mid2 = std::chrono::high_resolution_clock::now();
+
+        writer->Write(response);
         
+        auto end = std::chrono::high_resolution_clock::now();
+     
+        auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - st);
+        auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(mid2 - mid);
+        auto duration3 = std::chrono::duration_cast<std::chrono::microseconds>(end - mid2);
+
+        std::cout << "Cal " <<duration1.count() << std::endl;
+        std::cout << "App " <<duration2.count() << std::endl;
+        std::cout << "Write " <<duration3.count() << std::endl;
+
         ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }

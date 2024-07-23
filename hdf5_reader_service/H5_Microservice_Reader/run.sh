@@ -7,12 +7,11 @@
 pids=()
 
 # Start services in the background and store their PIDs
-for i in {8080..8090}
+for i in {8080..8100}
 do
     ./build/Service/H5Service ${i} &
     pids+=($!)
 done
-
 
 read -p "Enter to terminate all services: " userInput
 

@@ -22,12 +22,15 @@ import { getCoords } from './src/utils/coord';
 
  async function main() {
 
-     const numWorkers = 1;
+     const numWorkers = 20;
 //     const startingPort = 8081
 //     console.log("Starting Port : " + startingPort);
     const workerPool = new ReaderController(numWorkers,"0.0.0.0" ,8080);
   
     await workerPool.ready();
+
+    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,600,400,400);
+    console.log({startingX,startingY,adjustedWidth,adjustedHeight})
   
     // console.time("getStatus");
     // await workerPool.checkStatus();
@@ -42,12 +45,11 @@ import { getCoords } from './src/utils/coord';
       return false;
     }
 
-    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,600,400,400);
-    // console.log({startingX,startingY,adjustedWidth,adjustedHeight})
+
 
     console.time("Spectral Profile");
     const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth+1,adjustedHeight+1,numWorkers);
-    // console.log(respones1.spectralData.subarray(0,5));
+    console.log(respones1.spectralData.subarray(0,5));
     console.timeEnd("Spectral Profile");
 
     // console.time("Stream");
