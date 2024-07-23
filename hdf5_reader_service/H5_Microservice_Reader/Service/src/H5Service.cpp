@@ -276,6 +276,19 @@ using namespace std::chrono;
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
 
+        bool hasMask = request->has_mask();
+        std::vector<bool> mask_vector;
+        int mask_Width;
+        int mask_Height; 
+
+        if (hasMask){
+            const Mask& mask = request->mask();
+            const google::protobuf::RepeatedField<bool>& mask_values = mask.mask();
+            std::vector<bool> mask_vector(mask_values.begin(), mask_values.end());
+            int16_t mask_width = mask.width();
+            int16_t mask_height = mask.height();
+        }
+
         ServicePrint("Spectral Profile Stream Request");
 
         std::vector<float> result;
@@ -302,7 +315,7 @@ using namespace std::chrono;
         
         ServicePrint("Reading Complete");
 
-        int offset = 0;
+        // int offset = 0;
         
         // for (size_t i = 0; i < width; i++)
         // {
@@ -340,11 +353,17 @@ using namespace std::chrono;
         std::vector<float> sum(num_pixels,0);
         std::vector<int> counts(num_pixels,0);
         int xoffset = num_pixels*height;
-
-            for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+        // int yoffset = 0;
+        for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+                int mask_offset = 0;
                 for (size_t ypos = 0; ypos < height; ypos++) {
                     int yoffset = ypos * num_pixels + zpos;
+
                     for (size_t xpos = 0; xpos < width; xpos++) {
+                        if (hasMask && !mask_vector[mask_offset++] ){
+                            continue;
+                        }
+
                         int index = xpos * xoffset + yoffset;
                         float val = result[index];
                         if (std::isfinite(val)) {
@@ -371,9 +390,9 @@ using namespace std::chrono;
         
         auto end = std::chrono::high_resolution_clock::now();
      
-        auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - st);
-        auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(mid2 - mid);
-        auto duration3 = std::chrono::duration_cast<std::chrono::microseconds>(end - mid2);
+        auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(mid - st);
+        auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(mid2 - mid);
+        auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end - mid2);
 
         std::cout << "Cal " <<duration1.count() << std::endl;
         std::cout << "App " <<duration2.count() << std::endl;
