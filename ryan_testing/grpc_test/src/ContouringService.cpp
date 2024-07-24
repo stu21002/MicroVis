@@ -18,10 +18,9 @@ class ProcessingImpl : public ContourServices::Service {
 ::grpc::Status computeContour(::grpc::ServerContext* context, const ::ContouringEmpty *request, ::ContouringOutput *response){
     std::cout << "Called!" << std::endl;
 
-    std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/example.hdf5"; // Correct the path as needed
-        std::string datasetName = "DATA";                                                                  // Replace with the actual dataset name
+    std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
+        std::string datasetName = "DATA";                                                                  
 
-        // Open the HDF5 file
         H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
         H5::Group group = file.openGroup("0");
 
@@ -32,52 +31,51 @@ class ProcessingImpl : public ContourServices::Service {
         H5::DataSpace dataspace = dataset.getSpace();
 
         // Get the dimensions of the dataset
-        hsize_t dims[2];
+        hsize_t dims[4];
         dataspace.getSimpleExtentDims(dims, NULL);
-        int64_t width = dims[1];
-        int64_t height = dims[0];
+        int64_t dim1 = dims[0];
+        int64_t dim2 = dims[1];
+        int64_t width = dims[2];
+        int64_t height = dims[3];
 
-        // Create a buffer to hold the data
-        std::vector<float> image(width * height);
+        int target_slice = 1;
 
-        // Read the data into the buffer
-        dataset.read(image.data(), H5::PredType::NATIVE_FLOAT);
+        hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+        H5::DataSpace memspace(2, slice_dims);
 
-        // std::vector<float> image(10 * 10);
-        //     for (int i = 0; i < 10 * 10; ++i) {
-        //         image[i] = static_cast<float>(i); // Simulated data filling
-        //     }
+        // Create a buffer to hold the data for the entire slice
+        std::vector<float> slice_buffer(width * height);
 
-        // Define contour levels
-        std::vector<double> levels = {0.1, 0.2, 0.3};
+        // Define hyperslab in the dataset
+        hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
+        hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+        dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
-        // Containers for the results
+        try {
+            dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
+        } catch (H5::Exception& e) {
+            std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
+            return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
+        }
+
+        std::vector<double> levels = {-0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03};
+
         std::vector<std::vector<float>> vertex_data;
         std::vector<std::vector<int32_t>> index_data;
 
-        // Define a chunk size
-        int chunk_size = 1;
+        int chunk_size = 100;
 
-        // Define a callback function
         carta::ContourCallback callback = ContourCallback;
 
-        // Call the TraceContours function
         auto start = std::chrono::high_resolution_clock::now();
 
-        carta::TraceContours(image.data(), width, height, 1.0, 0.0, levels, vertex_data, index_data, chunk_size, callback);
+        carta::TraceContours(slice_buffer.data(), static_cast<int>(height), static_cast<int>(width), 1.0, 0.0, levels, vertex_data, index_data, chunk_size, callback);
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = end - start;
         std::cout << "TraceContours took " << duration.count() << " seconds." << std::endl;
 
-    std::string result = "";
-    std::string filler = " ";
-
-    for(int i = 0; i < 10 * 10; ++i){
-        result += std::to_string(image[i]) + filler;
-    }
-
-    response->set_value(result);
+        response->set_value("Contour processing complete");
 
     return grpc::Status::OK;
 }
