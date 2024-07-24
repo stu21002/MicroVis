@@ -173,12 +173,13 @@ export class ReaderController {
             const xStart = x + i * pixelsPerWorker;
             const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
             const reader = this.readers[i % this.readers.length];
+            
+
             promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels, mask:[] }));
           }
         break;
     }
-
-    
+   
     const spectralData = new Float64Array(numPixels);
     const statistic = new Float64Array(numPixels).fill(0);
     const counts = Array(numPixels).fill(0);
@@ -196,11 +197,11 @@ export class ReaderController {
       spectralData.forEach((value,index)=>{
         spectralData[index]=statistic[index]/counts[index]
       })
-
       return {spectralData} ;
     });
   }
 
+  
 
 
 

@@ -283,12 +283,20 @@ using namespace std::chrono;
 
         if (hasMask){
             const google::protobuf::RepeatedField<bool>& mask_values = request->mask();
-            std::vector<bool> mask_vector(mask_values.begin(), mask_values.end());
+            mask_vector.assign(mask_values.begin(), mask_values.end());
             // int16_t mask_width = mask.width();
             // int16_t mask_height = mask.height();
+
+            for (size_t i = 0; i < mask_vector.size(); i++)
+            {
+                std::cout<<mask_vector[i]<<" ";
+                /* code */
+            }
+            std::cout<<std::endl;
+         
         }
 
-        ServicePrint("Spectral Profile Stream Request");
+        // ServicePrint("Spectral Profile Stream Request");
 
         std::vector<float> result;
         const hsize_t x = request->x();
@@ -312,7 +320,7 @@ using namespace std::chrono;
         std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
         result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
         
-        ServicePrint("Reading Complete");
+        // ServicePrint("Reading Complete");
 
         // int offset = 0;
         
@@ -347,11 +355,15 @@ using namespace std::chrono;
         // }
 
         //Need to make this faster, gpu?
-        auto st = std::chrono::high_resolution_clock::now();
+        // auto st = std::chrono::high_resolution_clock::now();
 
         std::vector<float> sum(num_pixels,0);
         std::vector<int> counts(num_pixels,0);
         int xoffset = num_pixels*height;
+
+        for (size_t i = 0; i < num_pixels; i++){
+            
+        }
         // int yoffset = 0;
         for (size_t zpos = 0; zpos < num_pixels; zpos++) {
                 int mask_offset = 0;
@@ -359,13 +371,17 @@ using namespace std::chrono;
                     int yoffset = ypos * num_pixels + zpos;
 
                     for (size_t xpos = 0; xpos < width; xpos++) {
+                        std::cout<<mask_offset<<" "<<ypos<<" "<<xpos;
                         if (hasMask && !mask_vector[mask_offset++] ){
+                            std::cout<<"OUT"<<std::endl;
                             continue;
                         }
 
                         int index = xpos * xoffset + yoffset;
                         float val = result[index];
                         if (std::isfinite(val)) {
+                            std::cout<<val<<std::endl;
+
                             sum[zpos] += val;
                             counts[zpos]++;
                     }
@@ -374,7 +390,7 @@ using namespace std::chrono;
         }
 
 
-        auto mid = std::chrono::high_resolution_clock::now();
+        // auto mid = std::chrono::high_resolution_clock::now();
 
         ::SpectralProfileResponse response;
         for (size_t i = 0; i < num_pixels; i++){
@@ -383,21 +399,21 @@ using namespace std::chrono;
             response.add_data(sum[i]);
 
         }
-        auto mid2 = std::chrono::high_resolution_clock::now();
+        // auto mid2 = std::chrono::high_resolution_clock::now();
 
         writer->Write(response);
         
-        auto end = std::chrono::high_resolution_clock::now();
+        // auto end = std::chrono::high_resolution_clock::now();
      
-        auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(mid - st);
-        auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(mid2 - mid);
-        auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end - mid2);
+        // auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(mid - st);
+        // auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(mid2 - mid);
+        // auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end - mid2);
 
-        std::cout << "Cal " <<duration1.count() << std::endl;
-        std::cout << "App " <<duration2.count() << std::endl;
-        std::cout << "Write " <<duration3.count() << std::endl;
+        // std::cout << "Cal " <<duration1.count() << std::endl;
+        // std::cout << "App " <<duration2.count() << std::endl;
+        // std::cout << "Write " <<duration3.count() << std::endl;
 
-        ServicePrint("Spectral Profile Stream Complete");
+        // ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
 
@@ -482,6 +498,7 @@ using namespace std::chrono;
             std::vector<float> result(totalPixels);
             H5::DataSpace data_space = dataset.getSpace();
             H5::DataSpace mem_space(1,&totalPixels);
+
             data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
             dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
             return result;
