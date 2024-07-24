@@ -16,7 +16,7 @@ void ContourCallback(double scale, double offset, const std::vector<float> &part
 
 class ProcessingImpl : public ContourServices::Service {
 ::grpc::Status computeContour(::grpc::ServerContext* context, const ::ContouringEmpty *request, ::ContouringOutput *response){
-    std::cout << "Called!" << std::endl;
+    std::cout << "Called Contouring Service" << std::endl;
 
     std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
         std::string datasetName = "DATA";                                                                  

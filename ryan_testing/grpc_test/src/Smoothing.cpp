@@ -50,7 +50,7 @@ bool RunKernel(const std::vector<float>& kernel, const float* src_data, float* d
 
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(dest_height);
+    omp_set_num_threads(omp_get_num_procs());
 
 #pragma omp parallel for
     for (int64_t dest_y = 0; dest_y < dest_height; dest_y++) {
@@ -164,7 +164,7 @@ bool GaussianSmooth(const float* src_data, float* dest_data, int64_t src_width, 
         dest_ptr += num_lines * dest_width;
     }
 
-    omp_set_num_threads(dest_height);
+    omp_set_num_threads(omp_get_num_procs());
     // Fill in original NaNs
     //ThreadManager::ApplyThreadLimit();
 #pragma omp parallel for

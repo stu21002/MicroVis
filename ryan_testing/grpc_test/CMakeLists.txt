@@ -42,6 +42,6 @@ add_executable(ContouringService src/ContouringService.cpp src/Contouring.cpp)
 target_link_libraries(ContouringService protolibContour ${HDF5_LIBRARIES})
 
 add_executable(SmoothingService src/SmoothingService.cpp src/Smoothing.cpp)
-target_link_libraries(SmoothingService protolibSmooth)
+target_link_libraries(SmoothingService protolibSmooth ${HDF5_LIBRARIES})
 
 

@@ -2,15 +2,17 @@
 
 pids=()
 
-server_executable="./build/ContouringService"
+server_executable="./build/SmoothingService"
 
-for port in {9995..9999}; do
+for port in {9990..9994}; do
     $server_executable $port &
     pids+=($!)
     echo "Started server on port $port with PID $!"
 done
 
-read -p "Enter to terminate all servers: " userInput
+echo -e "\n"
+
+read -p $'Enter to terminate all servers:\n' userInput
 
 for pid in "${pids[@]}"; do
     kill $pid
