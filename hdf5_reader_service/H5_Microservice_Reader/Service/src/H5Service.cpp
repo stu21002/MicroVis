@@ -199,6 +199,7 @@ using namespace std::chrono;
         }
 
         ServicePrint("Region Request");
+      
 
         std::vector<float> result;
 
@@ -216,6 +217,7 @@ using namespace std::chrono;
         H5::DataSet dataset = h5file._group.openDataSet("DATA");  
   
         auto data_space = dataset.getSpace();
+
         int numDims = data_space.getSimpleExtentNdims();
 
         for (int d = 0; d < numDims; d++)
@@ -229,31 +231,34 @@ using namespace std::chrono;
         H5::DataSpace mem_space(1, &result_size);
         
         // auto file_space = _dataset.getSpace();
+  
+
+
         data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
         dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+ 
 
         data_space.close();
         dataset.close();
         int offset = 0;
-        // std::cout<<"w: "<<h5_count[0]<< " z: "<< h5_count[1] << " y: " << h5_count[2] << " x: " << h5_count[3] << std::endl; 
 
         for (size_t w = 0; w < h5_count[0]; w++)
         {
             for (size_t z = 0; z < h5_count[1]; z++)
                 {
-                    RegionDataResponse response;     
                     for (size_t y = 0; y < h5_count[2]; y++)
                     {   
+                        RegionDataResponse response;     
                         for (size_t x = 0; x < h5_count[3]; x++)
                         {
                             response.add_data(result[offset]);
                             
                             offset++;
                         }
-                    // std::cout<<result.size()<<std::endl;
-                    // std::cout<<response.ByteSizeLong()<<std::endl;
+  
               
                         writer->Write(response);
+                        response.clear_data();
         
           
                        

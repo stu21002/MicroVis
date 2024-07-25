@@ -139,6 +139,8 @@ export class ReaderController {
     
   }
 
+
+  //TODO
   async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
     const numBins = Math.sqrt(width*height);
     const {min,max} = {min:0,max:0};
@@ -153,7 +155,6 @@ export class ReaderController {
 
     const pixelsPerWorker = Math.floor(width / numWorkers);
     const promises = new Array<Promise<{statistic:Float64Array,counts:Number[]}>>();
-    console.log(pixelsPerWorker+ " " +height+ " "+numPixels);
     for (let i = 0; i < numWorkers; i++) {
 
       const xStart = x + i * pixelsPerWorker;

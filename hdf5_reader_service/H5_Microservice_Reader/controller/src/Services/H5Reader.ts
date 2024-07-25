@@ -68,6 +68,7 @@ import { promisify } from "util";
       
           call.on('data', (response: SpectralProfileResponse) => {
             if (response.data) {
+
               points.set(response.data, offset);
               offset += response.data.length;
             }
