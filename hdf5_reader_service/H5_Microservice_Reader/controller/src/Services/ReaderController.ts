@@ -15,7 +15,7 @@ interface DimensionValues {
   dims:number;
 }
 
-export class ReaderController {
+export class Hdf5WorkerPool {
   readonly readers: H5Reader[];
 
   readonly fileDims: Map<string,DimensionValues > = new Map();
@@ -95,11 +95,13 @@ export class ReaderController {
     return this.primaryreader?.getFileInfo({ uuid ,directory ,file ,hdu });
   }
 
-  async getImageData(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
-    const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
-    return reader?.getRegionData({ uuid, start, count,regionType});
-  }
+  // async getImageData(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
+  //   const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
+  //   return reader?.getRegionData({ uuid, start, count,regionType});
+  // }
 
+
+  
   async getRegionStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
     const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
     return reader?.getRegionDataStream({ uuid, start, count,regionType:RegionType.RECTANGLE});
@@ -115,10 +117,7 @@ export class ReaderController {
         //Should return false, meaning file no longer open
         throw new Error("Extended file info is undefined");
       }
-      // const xStart:number[] = [x,0,0,0];
-      // const xCount:number[] = [1,dims.height,1,1];
-      // const yStart:number[] = [0,y,0,0];
-      // const yCount:number[] = [dims.width,1,1,1];
+
       const xProfile = new Float64Array(dims.height);
       const yProfile = new Float64Array(dims.width);
 
@@ -133,12 +132,12 @@ export class ReaderController {
         }
       )
 
-    // }
-    // else (this.readers.length > 1)
-    //   console.log("YAY");
+
     
   }
 
+
+  //TODO
   async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
     const numBins = Math.sqrt(width*height);
     const {min,max} = {min:0,max:0};
@@ -146,14 +145,13 @@ export class ReaderController {
     //
   }
 
-  async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
+  async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,regionType?:RegionType,diameter?:number,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
 
     const pixelsPerWorker = Math.floor(width / numWorkers);
     const promises = new Array<Promise<{statistic:Float64Array,counts:Number[]}>>();
-
     for (let i = 0; i < numWorkers; i++) {
 
       const xStart = x + i * pixelsPerWorker;
@@ -162,7 +160,7 @@ export class ReaderController {
       promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
    
     }
-    
+   
     const spectralData = new Float64Array(numPixels);
     const statistic = new Float64Array(numPixels).fill(0);
     const counts = Array(numPixels).fill(0);
@@ -175,111 +173,131 @@ export class ReaderController {
           response.counts.forEach((value,index)=>{
             counts[index]+=value;
           })
-
       }
 
       spectralData.forEach((value,index)=>{
         spectralData[index]=statistic[index]/counts[index]
       })
-
       return {spectralData} ;
     });
   }
 
+  
 
-  async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
-    if (!numWorkers) {
-      numWorkers = this.readers.length;
-    }
-    const pixelsPerWorker = Math.floor(width / numWorkers);
-    const promises = new Array<Promise<SpectralProfileResponse>>();
-    for (let i = 0; i < numWorkers; i++) {
-      const xStart = x + i * pixelsPerWorker;
-      // Last worker gets the remainder
-      const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
-      const reader = this.readers[i % this.readers.length];
-      // console.log(`${xStart} ${y} ${z} ${numPixelsInChunk} ${height} ${numPixels}`);
 
-      promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
-    }
+
+  // async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
+  //   if (!numWorkers) {
+  //     numWorkers = this.readers.length;
+  //   }
+  //   const pixelsPerWorker = Math.floor(width / numWorkers);
+  //   const promises = new Array<Promise<SpectralProfileResponse>>();
+  //   for (let i = 0; i < numWorkers; i++) {
+  //     const xStart = x + i * pixelsPerWorker;
+  //     // Last worker gets the remainder
+  //     const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
+  //     const reader = this.readers[i % this.readers.length];
+  //     // console.log(`${xStart} ${y} ${z} ${numPixelsInChunk} ${height} ${numPixels}`);
+
+  //     promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
+  //   }
     
     
-    return Promise.all(promises).then(res => {
-      // For Bytes
-      // const data = new Float64Array(numPixels*width*height);
-      // let offset = 0;
-      // for (const response of res) {
-      //   const chunk = bytesToFloat32(response.data);
-      //   data.set(chunk, offset);
-      //   offset += chunk.length;
-      // }
-      const numPix = numPixels*width*height;
-      const data = new Float64Array(numPixels*width*height);
-      let offset = 0;
-      for (const response of res) {
+  //   return Promise.all(promises).then(res => {
+  //     // For Bytes
+  //     // const data = new Float64Array(numPixels*width*height);
+  //     // let offset = 0;
+  //     // for (const response of res) {
+  //     //   const chunk = bytesToFloat32(response.data);
+  //     //   data.set(chunk, offset);
+  //     //   offset += chunk.length;
+  //     // }
+  //     const numPix = numPixels*width*height;
+  //     const data = new Float64Array(numPixels*width*height);
+  //     let offset = 0;
+  //     for (const response of res) {
 
-          data.set(response.data,offset);
-          offset += response.data.length;
-      }
+  //         data.set(response.data,offset);
+  //         offset += response.data.length;
+  //     }
 
-      const spectralData = new Float64Array(numPixels);
-      const x_offset: number = numPixels * height;
+  //     const spectralData = new Float64Array(numPixels);
+  //     const x_offset: number = numPixels * height;
   
-      for (let z = 0; z < numPixels; z++) {
-          let count = 0;
-          let sum = 0;
+  //     for (let z = 0; z < numPixels; z++) {
+  //         let count = 0;
+  //         let sum = 0;
   
-          for (let x = 0; x < width; x++) {
-              let index = z + x * x_offset;
+  //         for (let x = 0; x < width; x++) {
+  //             let index = z + x * x_offset;
   
-              for (let y = 0; y < height; y++) {
-                  const value = data[index];
+  //             for (let y = 0; y < height; y++) {
+  //                 const value = data[index];
                   
-                  if (Number.isFinite(value)) {
-                      sum += value;
-                      count++;
-                  }
+  //                 if (Number.isFinite(value)) {
+  //                     sum += value;
+  //                     count++;
+  //                 }
                   
-                  index += numPixels;
-              }
-          }
+  //                 index += numPixels;
+  //             }
+  //         }
   
-          const channel_mean = count > 0 ? sum / count : NaN;
-          spectralData[z]=(channel_mean);
-      }
+  //         const channel_mean = count > 0 ? sum / count : NaN;
+  //         spectralData[z]=(channel_mean);
+  //     }
 
-      return { spectralData };
-    });
-  }
+  //     return { spectralData };
+  //   });
+  // }
 
-  //TODO 
-  async getSpectralProfile_workLoadSplitZ(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numreaders?: number) {
-    if (!numreaders) {
-      numreaders = this.readers.length;
-    }
+//   async getSpectralProfile_workLoadSplitZ(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numreaders?: number) {
+//     if (!numreaders) {
+//       numreaders = this.readers.length;
+//     }
 
-    const pixelsPerreader = Math.floor(numPixels / numreaders);
-    const promises = new Array<Promise<SpectralProfileResponse>>();
-    for (let i = 0; i < numreaders; i++) {
-      const zStart = z + i * pixelsPerreader;
-      // Last reader gets the remainder
-      const numPixelsInChunk = (i === numreaders - 1) ? numPixels - i * pixelsPerreader : pixelsPerreader;
-      const reader = this.readers[i % this.readers.length];
-      promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
-    }
+//     const pixelsPerreader = Math.floor(numPixels / numreaders);
+//     const promises = new Array<Promise<SpectralProfileResponse>>();
+//     for (let i = 0; i < numreaders; i++) {
+//       const zStart = z + i * pixelsPerreader;
+//       // Last reader gets the remainder
+//       const numPixelsInChunk = (i === numreaders - 1) ? numPixels - i * pixelsPerreader : pixelsPerreader;
+//       const reader = this.readers[i % this.readers.length];
+//       promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
+//     }
 
-    // Change when using bytes
-    return Promise.all(promises).then(res => {
-        const data = new Float64Array(numPixels);
-        let offset = 0;
-        for (const response of res) {
-            data.set(response.data,offset);
-            offset += response.data.length;
-        }
-    return {data}
-    })
+//     // Change when using bytes
+//     return Promise.all(promises).then(res => {
+//         const data = new Float64Array(numPixels);
+//         let offset = 0;
+//         for (const response of res) {
+//             data.set(response.data,offset);
+//             offset += response.data.length;
+//         }
+//     return {data}
+//     })
         
 
-    };
+//     };
+  
+ }
+
+ function getMask(startX:number,startY:number,numX:number,numY:number,diameter:number) {
+  let mask: boolean[] = [];
+  const pow_radius = Math.pow(diameter / 2.0, 2);
+  const centerX = (diameter - 1) / 2.0;
+  const centerY = (diameter - 1) / 2.0;
+  let index = 0;
+  for (let y = startY; y < startY+numY; y++) {
+      const pow_y = Math.pow(y - centerY, 2);
+
+      for (let x = startX; x < startX+numX; x++) {
+          
+          mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
+ 
+      }
+  }
+
+  return mask;
   
 }

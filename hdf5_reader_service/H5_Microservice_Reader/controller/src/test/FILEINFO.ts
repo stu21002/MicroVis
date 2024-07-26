@@ -1,5 +1,5 @@
 import { FileInfoRequest, FileInfoResponse } from '../../bin/src/proto/FileInfo';
-import {ReaderController} from '../Services/ReaderController';
+import {Hdf5WorkerPool} from '../Services/ReaderController';
 import config from "./config.json";
 
 
@@ -46,7 +46,7 @@ let assertItem: AssertItem = {
 //  })
 
   const FILEINFO = async() => {
-    const readers = new ReaderController(1,config.serverUrl, config.startingPort);
+    const readers = new Hdf5WorkerPool(1,config.serverUrl, config.startingPort);
     console.time("FILEINFO");
     const response = await readers.getFileInfo("",assertItem.fileInfoReq.directory,assertItem.fileInfoReq.file,assertItem.fileInfoReq.hdu);
     console.timeEnd("FILEINFO");

@@ -12,6 +12,7 @@
 #include <cmath>
 #include <fmt/core.h> 
 #include <chrono>
+using namespace std::chrono;
 
 
     H5Service::H5Service(int port) : port(port) {}
@@ -78,9 +79,9 @@
         {
             // std::cerr << "FileIException: " << e.getCDetailMsg() << std::endl;
             response->set_success(false);
-
             return {grpc::StatusCode::INTERNAL, "Failed to open HDF5 file"};
         } catch (const H5::GroupIException& e) {
+            //Not working currently
             // std::cerr << "GroupIException: " << e.getCDetailMsg() << std::endl;
             response->set_success(false);
 
@@ -109,7 +110,6 @@
 
         try
         {
-            // std::cout << "Closing file" << std::endl;
             ServicePrint("Closing File");
             Hdf5_File &h5file = hdf5_files[request->uuid()];
             h5file._file.close();
@@ -160,6 +160,7 @@
                 group = h5file._group;
 
             }
+
             FileInfo *fileInfo = response->mutable_file_info();
             FileInfoExtended *extendedFileInfo = response->mutable_file_info_extended();
             
@@ -188,7 +189,8 @@
         return grpc::Status::OK;
     };
     grpc::Status H5Service::GetRegionStream(::grpc::ServerContext* context, const ::proto::RegionDataRequest* request, ::grpc::ServerWriter< ::proto::RegionDataResponse>* writer){
-    if (request->uuid().empty()) {
+        
+        if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         }
 
@@ -196,8 +198,9 @@
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
 
-        // std::cout << ">>Reading Region" << std::endl;
         ServicePrint("Region Request");
+      
+
         std::vector<float> result;
 
         std::vector<hsize_t> h5_start;
@@ -214,6 +217,7 @@
         H5::DataSet dataset = h5file._group.openDataSet("DATA");  
   
         auto data_space = dataset.getSpace();
+
         int numDims = data_space.getSimpleExtentNdims();
 
         for (int d = 0; d < numDims; d++)
@@ -227,29 +231,39 @@
         H5::DataSpace mem_space(1, &result_size);
         
         // auto file_space = _dataset.getSpace();
+  
+
+
         data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
         dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+ 
 
         data_space.close();
         dataset.close();
         int offset = 0;
-        
+
         for (size_t w = 0; w < h5_count[0]; w++)
         {
             for (size_t z = 0; z < h5_count[1]; z++)
                 {
-                ::RegionDataResponse response;
                     for (size_t y = 0; y < h5_count[2]; y++)
                     {   
-                   
+                        RegionDataResponse response;     
                         for (size_t x = 0; x < h5_count[3]; x++)
                         {
                             response.add_data(result[offset]);
+                            
                             offset++;
                         }
+  
+              
+                        writer->Write(response);
+                        response.clear_data();
+        
+          
                        
                     }
-                 writer->Write(response);
+
                 }
 
         }
@@ -266,8 +280,28 @@
         if (hdf5_files.find(request->uuid()) == hdf5_files.end()) {
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
+        
 
-        ServicePrint("Spectral Profile Stream Request");
+        // bool hasMask = false;//!request->mask().empty();
+        // std::vector<bool> mask_vector;
+
+
+        // if (hasMask){
+        //     // const google::protobuf::RepeatedField<bool>& mask_values  = request->mask();
+        //     // mask_vector.assign(mask_values.begin(), mask_values.end());
+        //     // // int16_t mask_width = mask.width();
+        //     // // int16_t mask_height = mask.height();
+
+        //     // for (size_t i = 0; i < mask_vector.size(); i++)
+        //     // {
+        //     //     std::cout<<mask_vector[i]<<" ";
+        //     //     /* code */
+        //     // }
+        //     std::cout<<std::endl;
+         
+        // }
+
+        // ServicePrint("Spectral Profile Stream Request");
 
         std::vector<float> result;
         const hsize_t x = request->x();
@@ -281,49 +315,71 @@
         Hdf5_File &h5file = hdf5_files[request->uuid()];
         //Possible add perm group to struct
        
-        
         H5::Group permGroup = h5file._group.openGroup("PermutedData");
-
 
         H5::DataSet dataset = permGroup.openDataSet("ZYXW");
 
-
         const hsize_t resultSize = width*height*num_pixels;
-
 
         std::vector<hsize_t> start = {0,x,y,z};
         std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
         result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
         
-        ServicePrint("Performing Spectral Profile Stream");
+        // ServicePrint("Reading Complete");
 
         int offset = 0;
         
-        for (size_t i = 0; i < width; i++)
-        {
-            for (size_t j = 0; j < height; j++)
-            {   
-                ::SpectralProfileResponse response;
-                for (size_t k = 0; k < num_pixels; k++)
-                {
-                    response.add_data(result[offset]);
-                    offset++;
-                }
-                
-                // std::cout << response.ByteSizeLong() << std::endl;
-                // ServicePrint(std::to_string(response.ByteSizeLong()));
-                writer->Write(response);
-            }
-            
-        }
+        std::vector<float> sum(num_pixels,0);
+        std::vector<int> counts(num_pixels,0);
+        int xoffset = num_pixels*height;
         
+        int index = 0;
+        for (size_t xpos = 0; xpos < width; xpos++) {
+            for (size_t ypos = 0; ypos < height; ypos++) {
+                    // int yoffset = ypos * num_pixels + zpos;
+                    for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+                        // int index = xpos * xoffset + yoffset;
+                        float val = result[index++];
+                        if (std::isfinite(val)) {
+                            sum[zpos] += val;
+                            counts[zpos]++;
+                    }
+                }
+            }
+        }
 
 
-        ServicePrint("Spectral Profile Stream Complete");
+
+        // auto mid = std::chrono::high_resolution_clock::now();
+
+        ::SpectralProfileResponse response;
+        for (size_t i = 0; i < num_pixels; i++){
+
+            response.add_count(counts[i]);
+            response.add_data(sum[i]);
+
+        }
+        // auto mid2 = std::chrono::high_resolution_clock::now();
+
+        writer->Write(response);
+        
+        // auto end = std::chrono::high_resolution_clock::now();
+     
+        // auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(mid - st);
+        // auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(mid2 - mid);
+        // auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end - mid2);
+
+        // std::cout << "Cal " <<duration1.count() << std::endl;
+        // std::cout << "App " <<duration2.count() << std::endl;
+        // std::cout << "Write " <<duration3.count() << std::endl;
+
+        // ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
 
-
+    /// @brief sets an h5 atrribute to its corresponding place in the FileInfoExtended messege
+    /// @param extendedFileInfo 
+    /// @param attr 
     void H5Service::appendAttribute(FileInfoExtended *extendedFileInfo,H5::Attribute attr){
         std::string attrName = attr.getName();
         H5::DataType attrType = attr.getDataType();
@@ -368,6 +424,8 @@
         }
     };
 
+
+    //Old Methods
     std::vector<std::vector<bool>> H5Service::getMask(RegionType regionType,int width){
         std::vector<std::vector<bool>> mask;
         switch (regionType)
@@ -400,6 +458,7 @@
             std::vector<float> result(totalPixels);
             H5::DataSpace data_space = dataset.getSpace();
             H5::DataSpace mem_space(1,&totalPixels);
+
             data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
             dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
             return result;

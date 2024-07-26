@@ -17,13 +17,14 @@ import { promisify } from "util";
 
 
   export class H5Reader {
+    
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
-    readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
     readonly getRegionDataStream: (request: RegionDataRequest) => Promise<{points:Float64Array}>;
-    readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
     readonly getSpectralProfileStream: (request: SpectralProfileRequest) =>Promise<{statistic:Float64Array,counts:Number[]}>;
-
+    
+    // readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
+    // readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
     readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
     readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
     //Spacital Profiles, getImageData for all X given a Y and visa versa...
@@ -54,30 +55,34 @@ import { promisify } from "util";
       //Linking 
       this.checkStatus = promisify<Empty, StatusResponse>(client.checkStatus).bind(client);
       this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(client.getFileInfo).bind(client);
-      this.getRegionData = promisify<RegionDataRequest, RegionDataResponse>(client.getRegion).bind(client);
-      this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
+      // this.getRegionData = promisify<RegionDataRequest, RegionDataResponse>(client.getRegion).bind(client);
+      // this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
       this.openFile = promisify<OpenFileRequest, OpenFileACK>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
+
       this.getRegionDataStream = (request: RegionDataRequest) => {
-        return new Promise<{points:Float64Array}>((resolve, reject) => {
+        return new Promise<{ points: Float64Array }>((resolve, reject) => {
           const call = client.getRegionStream(request);
-          const points = new Float64Array(request.count.reduce((prev,curr)=>{return prev*curr},1)).fill(0);
-          let offset=0;
+          const points = new Float64Array(request.count.reduce((prev, curr) => prev * curr, 1));
+          let offset = 0;
+      
           call.on('data', (response: SpectralProfileResponse) => {
-            // responses.push(response);
-            points.set(response.data,offset);
-            offset+=response.data.length;
+            if (response.data) {
+
+              points.set(response.data, offset);
+              offset += response.data.length;
+            }
           });
-  
+      
           call.on('end', () => {
-            resolve({points});
+            resolve({ points });
           });
-  
+      
           call.on('error', (err) => {
             reject(err);
           });
-        })
-      }
+        });
+      };
 
       this.getSpectralProfileStream = (request: SpectralProfileRequest) => {
         return new Promise<{statistic:Float64Array,counts:Number[]}>((resolve, reject) => {
@@ -89,8 +94,12 @@ import { promisify } from "util";
             // responses.push(response);
             response.data.forEach((value,index) =>{
               if (isFinite(value)){
-                statistic[index]+=value;
-                counts[index]++;
+                statistic[index]=value;
+              }
+            })
+            response.count.forEach((value,index) =>{
+              if (isFinite(value)){
+                counts[index]=value;
               }
             })
           });

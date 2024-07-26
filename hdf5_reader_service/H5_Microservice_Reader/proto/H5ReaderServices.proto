@@ -26,6 +26,8 @@ enum RegionType {
   CIRCLE = 3;
 }
 
+
+
 message RegionDataRequest{
     string uuid = 1;
     RegionType regionType = 2;
@@ -39,6 +41,11 @@ message RegionDataResponse{
   repeated float data = 1;
 }
 
+message Mask{
+  repeated bool mask = 1;
+  int32 width = 2;
+  int32 height = 3;
+}
 
 message SpectralProfileRequest {
   string uuid = 1;
@@ -49,12 +56,13 @@ message SpectralProfileRequest {
   int32 numPixels = 6;
   int32 width = 7;
   int32 height = 8;
-
+  // repeated bool mask = 9;
 }
 
 //Change TO Bytes
 message SpectralProfileResponse {
   repeated float data = 1;
+  repeated int32 count = 2;
   // bytes data = 1;
 }
 
@@ -64,8 +72,8 @@ service H5ReaderServices{
   rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
-  rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
-  rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
+  // rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
+  // rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
   rpc GetRegionStream (RegionDataRequest) returns (stream RegionDataResponse) {}
   rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
 
