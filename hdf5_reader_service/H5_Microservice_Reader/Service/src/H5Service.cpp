@@ -341,8 +341,6 @@ using namespace std::chrono;
                         // int index = xpos * xoffset + yoffset;
                         float val = result[index++];
                         if (std::isfinite(val)) {
-                            std::cout<<val<<std::endl;
-
                             sum[zpos] += val;
                             counts[zpos]++;
                     }
