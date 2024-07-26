@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+message SmoothingOutput {
+    string value = 1;
+}
+
+message SmoothingEmpty{}
+
+service SmoothingServices{
+    rpc computeGuassianBlur(SmoothingEmpty) returns (SmoothingOutput) {}
+    rpc computeBlockSmoothing(SmoothingEmpty) returns (SmoothingOutput) {}
+}

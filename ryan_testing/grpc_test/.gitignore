@@ -1,0 +1,4 @@
+build/
+controller/node_modules
+files/Big.fits
+files/Big.hdf5*
