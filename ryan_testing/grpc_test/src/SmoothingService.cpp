@@ -4,6 +4,7 @@
 
 #include <H5Cpp.h>
 #include <chrono>
+#include <sstream>
 
 #include "Smoothing.h"
 
@@ -70,24 +71,22 @@ class ProcessingImpl : public SmoothingServices::Service {
     std::chrono::duration<double> duration = end - start;
     std::cout << "GaussianSmooth took " << duration.count() << " seconds." << std::endl;
 
-    std::cout << "Completed" << std::endl;
+    std::ostringstream oss;
+        oss << "Completed Gaussian Blur: First 5 values: ";
+        for (int i = 0; i < 5 && i < dest_width * dest_height; ++i) {
+            oss << dest_array[i];
+            if (i < 4) {
+                oss << ", ";
+            }
+        }
 
-    response->set_value("Completed Guassian Blur");
+    response->set_value(oss.str());
 
     return grpc::Status::OK;
 }
 
 ::grpc::Status computeBlockSmoothing(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
     std::cout << "Called Block Smoothing" << std::endl;
-
-//     CARTA::ImageBounds Message::ImageBounds(int32_t x_min, int32_t x_max, int32_t y_min, int32_t y_max) {
-//     CARTA::ImageBounds message;
-//     message.set_x_min(x_min);
-//     message.set_x_max(x_max);
-//     message.set_y_min(y_min);
-//     message.set_y_max(y_max);
-//     return message;
-// }
 
     std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
         std::string datasetName = "DATA";                                                                  
@@ -160,7 +159,16 @@ class ProcessingImpl : public SmoothingServices::Service {
     std::chrono::duration<double> duration = end - start;
     std::cout << "BlockSmoothing took " << duration.count() << " seconds." << std::endl;
 
-    response->set_value("Completed Block Smoothing");
+    std::ostringstream oss;
+        oss << "Completed Block Smoothing: First 5 values: ";
+        for (int i = 0; i < 5 && i < num_rows_region * row_length_region; ++i) {
+            oss << dest_array[i];
+            if (i < 4) {
+                oss << ", ";
+            }
+        }
+
+    response->set_value(oss.str());
 
     return grpc::Status::OK;
 }   
