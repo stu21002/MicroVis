@@ -26,51 +26,53 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const grpc = __importStar(require("@grpc/grpc-js"));
 const smoothing_1 = require("./proto/smoothing");
 const emptyRequest = {};
-const client1 = new smoothing_1.SmoothingServicesClient("localhost:9994", grpc.credentials.createInsecure());
-const client2 = new smoothing_1.SmoothingServicesClient("localhost:9993", grpc.credentials.createInsecure());
-const client3 = new smoothing_1.SmoothingServicesClient("localhost:9992", grpc.credentials.createInsecure());
-const client4 = new smoothing_1.SmoothingServicesClient("localhost:9991", grpc.credentials.createInsecure());
-const client5 = new smoothing_1.SmoothingServicesClient("localhost:9990", grpc.credentials.createInsecure());
-function computeGuassianBlur() {
-    client1.computeGuassianBlur(emptyRequest, (error, response) => {
-        if (error) {
-            console.error("Error: ", error);
-        }
-        else {
-            console.log("Smoothing Output 1: ", response === null || response === void 0 ? void 0 : response.value);
-        }
-    });
-    client2.computeGuassianBlur(emptyRequest, (error, response) => {
-        if (error) {
-            console.error("Error: ", error);
-        }
-        else {
-            console.log("Smoothing Output 2: ", response === null || response === void 0 ? void 0 : response.value);
-        }
-    });
-    client3.computeGuassianBlur(emptyRequest, (error, response) => {
-        if (error) {
-            console.error("Error: ", error);
-        }
-        else {
-            console.log("Smoothing Output 3: ", response === null || response === void 0 ? void 0 : response.value);
-        }
-    });
-    client4.computeGuassianBlur(emptyRequest, (error, response) => {
-        if (error) {
-            console.error("Error: ", error);
-        }
-        else {
-            console.log("Smoothing Output 4: ", response === null || response === void 0 ? void 0 : response.value);
-        }
-    });
-    client5.computeGuassianBlur(emptyRequest, (error, response) => {
-        if (error) {
-            console.error("Error: ", error);
-        }
-        else {
-            console.log("Smoothing Output 5: ", response === null || response === void 0 ? void 0 : response.value);
-        }
+const clients = [
+    new smoothing_1.SmoothingServicesClient("localhost:9994", grpc.credentials.createInsecure()),
+    new smoothing_1.SmoothingServicesClient("localhost:9993", grpc.credentials.createInsecure()),
+    new smoothing_1.SmoothingServicesClient("localhost:9992", grpc.credentials.createInsecure()),
+    new smoothing_1.SmoothingServicesClient("localhost:9991", grpc.credentials.createInsecure()),
+    new smoothing_1.SmoothingServicesClient("localhost:9990", grpc.credentials.createInsecure()),
+];
+function computeGaussianBlur() {
+    clients.forEach((client, index) => {
+        client.computeGuassianBlur(emptyRequest, (error, response) => {
+            if (error) {
+                console.error(`Error: ${error}`);
+            }
+            else {
+                console.log(`Smoothing Output ${index + 1}: ${response === null || response === void 0 ? void 0 : response.value}`);
+            }
+        });
     });
 }
-computeGuassianBlur();
+function computeBlockSmoothing() {
+    clients.forEach((client, index) => {
+        client.computeBlockSmoothing(emptyRequest, (error, response) => {
+            if (error) {
+                console.error(`Error: ${error}`);
+            }
+            else {
+                console.log(`Smoothing Output ${index + 1}: ${response === null || response === void 0 ? void 0 : response.value}`);
+            }
+        });
+    });
+}
+function main() {
+    const args = process.argv.slice(2);
+    if (args.length !== 1) {
+        console.error("Usage: node smoothing_controller.js <0|1> for GuassianBlur and BlockSmoothing");
+        process.exit(1);
+    }
+    const command = args[0];
+    if (command === "0") {
+        computeGaussianBlur();
+    }
+    else if (command === "1") {
+        computeBlockSmoothing();
+    }
+    else {
+        console.error("Invalid command. Use either '0' or '1' for GuassianBlur and BlockSmoothing");
+        process.exit(1);
+    }
+}
+main();

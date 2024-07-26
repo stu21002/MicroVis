@@ -80,6 +80,86 @@ class ProcessingImpl : public SmoothingServices::Service {
 ::grpc::Status computeBlockSmoothing(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
     std::cout << "Called Block Smoothing" << std::endl;
 
+//     CARTA::ImageBounds Message::ImageBounds(int32_t x_min, int32_t x_max, int32_t y_min, int32_t y_max) {
+//     CARTA::ImageBounds message;
+//     message.set_x_min(x_min);
+//     message.set_x_max(x_max);
+//     message.set_y_min(y_min);
+//     message.set_y_max(y_max);
+//     return message;
+// }
+
+    std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
+        std::string datasetName = "DATA";                                                                  
+
+        H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
+        H5::Group group = file.openGroup("0");
+
+        // Open the dataset
+        H5::DataSet dataset = group.openDataSet(datasetName);
+
+        // Get the dataspace of the dataset
+        H5::DataSpace dataspace = dataset.getSpace();
+
+        // Get the dimensions of the dataset
+        hsize_t dims[4];
+        dataspace.getSimpleExtentDims(dims, NULL);
+        int64_t dim1 = dims[0];
+        int64_t dim2 = dims[1];
+        int64_t width = dims[2];
+        int64_t height = dims[3];
+
+        int target_slice = 1;
+
+        hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+        H5::DataSpace memspace(2, slice_dims);
+
+        // Create a buffer to hold the data for the entire slice
+        std::vector<float> slice_buffer(width * height);
+
+        // Define hyperslab in the dataset
+        hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
+        hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+        dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
+
+        try {
+            dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
+        } catch (H5::Exception& e) {
+            std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
+            return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
+        }
+    
+    int smoothing_factor = 4;
+
+    bool mean_filter = true;
+
+    const int x = 0;
+    const int y = 0;
+    const int req_height = height - y;
+    const int req_width = width - x;
+
+    // size returned vector
+    size_t num_rows_region = std::ceil((float)req_height / smoothing_factor);
+    size_t row_length_region = std::ceil((float)req_width / smoothing_factor);
+    std::unique_ptr<float[]> dest_array(new float[num_rows_region * row_length_region]);
+    int num_image_columns = width;
+    int num_image_rows = height;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    if (mean_filter && smoothing_factor > 1) {
+        // Perform down-sampling by calculating the mean for each MIPxMIP block
+        carta::BlockSmooth(
+            slice_buffer.data(), dest_array.get(), num_image_columns, num_image_rows, row_length_region, num_rows_region, x, y, smoothing_factor);
+    } else {
+        // Nearest neighbour filtering
+        carta::NearestNeighbor(slice_buffer.data(), dest_array.get(), num_image_columns, row_length_region, num_rows_region, x, y, smoothing_factor);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "BlockSmoothing took " << duration.count() << " seconds." << std::endl;
+
     response->set_value("Completed Block Smoothing");
 
     return grpc::Status::OK;

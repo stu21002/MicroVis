@@ -206,7 +206,7 @@ bool BlockSmoothSSE(const float* src_data, float* dest_data, int64_t src_width, 
     int64_t x_offset, int64_t y_offset, int smoothing_factor) {
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(dest_height);
+    omp_set_num_threads(omp_get_num_procs());
 
 #pragma omp parallel for
     for (int64_t j = 0; j < dest_height; ++j) {
@@ -268,7 +268,7 @@ bool BlockSmoothAVX(const float* src_data, float* dest_data, int64_t src_width, 
     int64_t x_offset, int64_t y_offset, int smoothing_factor) {
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(dest_height);
+    omp_set_num_threads(omp_get_num_procs());
 
 #pragma omp parallel for
     for (int64_t j = 0; j < dest_height; ++j) {
@@ -327,7 +327,7 @@ bool BlockSmoothScalar(const float* src_data, float* dest_data, int64_t src_widt
     //ThreadManager::ApplyThreadLimit();
     // Non-SIMD version. This could still be optimised to use SIMD in future
 
-    omp_set_num_threads(dest_height);
+    omp_set_num_threads(omp_get_num_procs());
 
 #pragma omp parallel for
     for (int64_t j = 0; j < dest_height; ++j) {
@@ -359,7 +359,7 @@ void NearestNeighbor(const float* src_data, float* dest_data, int64_t src_width,
     int64_t y_offset, int smoothing_factor) {
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(dest_height);
+    omp_set_num_threads(omp_get_num_procs());
 
 #pragma omp parallel for
     for (size_t j = 0; j < dest_height; ++j) {
