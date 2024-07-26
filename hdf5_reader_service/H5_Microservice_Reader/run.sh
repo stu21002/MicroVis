@@ -7,7 +7,7 @@
 pids=()
 
 # Start services in the background and store their PIDs
-for i in {8080..8100}
+for i in {8080..8088}
 do
     ./build/Service/H5Service ${i} &
     pids+=($!)

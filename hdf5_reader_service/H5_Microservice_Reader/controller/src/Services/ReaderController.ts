@@ -15,7 +15,7 @@ interface DimensionValues {
   dims:number;
 }
 
-export class ReaderController {
+export class Hdf5WorkerPool {
   readonly readers: H5Reader[];
 
   readonly fileDims: Map<string,DimensionValues > = new Map();
@@ -136,6 +136,8 @@ export class ReaderController {
     
   }
 
+
+  //TODO
   async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
     const numBins = Math.sqrt(width*height);
     const {min,max} = {min:0,max:0};
@@ -150,34 +152,13 @@ export class ReaderController {
 
     const pixelsPerWorker = Math.floor(width / numWorkers);
     const promises = new Array<Promise<{statistic:Float64Array,counts:Number[]}>>();
-    console.log(pixelsPerWorker+ " " +height+ " "+numPixels);
+    for (let i = 0; i < numWorkers; i++) {
 
-    switch (regionType) {
-      case RegionType.CIRCLE:
-        if (diameter === undefined || diameter === null) {
-          throw new Error('Diameter is required for CIRCLE region type.');
-        }
-        for (let i = 0; i < numWorkers; i++) {
-          const xStart = x + i * pixelsPerWorker;
-          const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
-          const reader = this.readers[i % this.readers.length];
-          console.log(i * pixelsPerWorker + " " + numPixelsInChunk);
-          const mask = getMask(i * pixelsPerWorker,0,numPixelsInChunk,height,diameter);
-          
-          promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels, mask }));
-        }        
-      break;
-    
-      default:
-          for (let i = 0; i < numWorkers; i++) {
-            const xStart = x + i * pixelsPerWorker;
-            const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
-            const reader = this.readers[i % this.readers.length];
-            
-
-            promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels, mask:[] }));
-          }
-        break;
+      const xStart = x + i * pixelsPerWorker;
+      const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
+      const reader = this.readers[i % this.readers.length];
+      promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
+   
     }
    
     const spectralData = new Float64Array(numPixels);

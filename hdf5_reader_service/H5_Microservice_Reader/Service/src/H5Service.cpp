@@ -199,6 +199,7 @@ using namespace std::chrono;
         }
 
         ServicePrint("Region Request");
+      
 
         std::vector<float> result;
 
@@ -216,6 +217,7 @@ using namespace std::chrono;
         H5::DataSet dataset = h5file._group.openDataSet("DATA");  
   
         auto data_space = dataset.getSpace();
+
         int numDims = data_space.getSimpleExtentNdims();
 
         for (int d = 0; d < numDims; d++)
@@ -229,31 +231,34 @@ using namespace std::chrono;
         H5::DataSpace mem_space(1, &result_size);
         
         // auto file_space = _dataset.getSpace();
+  
+
+
         data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
         dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+ 
 
         data_space.close();
         dataset.close();
         int offset = 0;
-        // std::cout<<"w: "<<h5_count[0]<< " z: "<< h5_count[1] << " y: " << h5_count[2] << " x: " << h5_count[3] << std::endl; 
 
         for (size_t w = 0; w < h5_count[0]; w++)
         {
             for (size_t z = 0; z < h5_count[1]; z++)
                 {
-                    RegionDataResponse response;     
                     for (size_t y = 0; y < h5_count[2]; y++)
                     {   
+                        RegionDataResponse response;     
                         for (size_t x = 0; x < h5_count[3]; x++)
                         {
                             response.add_data(result[offset]);
                             
                             offset++;
                         }
-                    // std::cout<<result.size()<<std::endl;
-                    // std::cout<<response.ByteSizeLong()<<std::endl;
+  
               
                         writer->Write(response);
+                        response.clear_data();
         
           
                        
@@ -277,24 +282,24 @@ using namespace std::chrono;
         }
         
 
-        bool hasMask = !request->mask().empty();
-        std::vector<bool> mask_vector;
+        // bool hasMask = false;//!request->mask().empty();
+        // std::vector<bool> mask_vector;
 
 
-        if (hasMask){
-            const google::protobuf::RepeatedField<bool>& mask_values = request->mask();
-            mask_vector.assign(mask_values.begin(), mask_values.end());
-            // int16_t mask_width = mask.width();
-            // int16_t mask_height = mask.height();
+        // if (hasMask){
+        //     // const google::protobuf::RepeatedField<bool>& mask_values  = request->mask();
+        //     // mask_vector.assign(mask_values.begin(), mask_values.end());
+        //     // // int16_t mask_width = mask.width();
+        //     // // int16_t mask_height = mask.height();
 
-            for (size_t i = 0; i < mask_vector.size(); i++)
-            {
-                std::cout<<mask_vector[i]<<" ";
-                /* code */
-            }
-            std::cout<<std::endl;
+        //     // for (size_t i = 0; i < mask_vector.size(); i++)
+        //     // {
+        //     //     std::cout<<mask_vector[i]<<" ";
+        //     //     /* code */
+        //     // }
+        //     std::cout<<std::endl;
          
-        }
+        // }
 
         // ServicePrint("Spectral Profile Stream Request");
 
@@ -322,63 +327,19 @@ using namespace std::chrono;
         
         // ServicePrint("Reading Complete");
 
-        // int offset = 0;
+        int offset = 0;
         
-        // for (size_t i = 0; i < width; i++)
-        // {
-        //     for (size_t j = 0; j < height; j++)
-        //     {   
-        //         auto start = std::chrono::high_resolution_clock::now();
-        //         ::SpectralProfileResponse response;
-                
-        //         for (size_t k = 0; k < num_pixels; k++)
-        //         {
-        //             response.add_data(result[offset]);
-        //             offset++;
-        //         }
-        //         auto mid = std::chrono::high_resolution_clock::now();
-
-        //         // std::cout << response.ByteSizeLong() << std::endl;
-        //         // ServicePrint(std::to_string(response.ByteSizeLong()));
-        //         writer->Write(response);
-
-        //         auto end = std::chrono::high_resolution_clock::now();
-
-        //         auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
-        //         auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-                
-        //         std::cout << "Loop " <<duration1.count() << std::endl;
-        //         std::cout << "Write " <<duration2.count() << std::endl;
-        
-        //     }
-            
-        // }
-
-        //Need to make this faster, gpu?
-        // auto st = std::chrono::high_resolution_clock::now();
-
         std::vector<float> sum(num_pixels,0);
         std::vector<int> counts(num_pixels,0);
         int xoffset = num_pixels*height;
-
-        for (size_t i = 0; i < num_pixels; i++){
-            
-        }
-        // int yoffset = 0;
-        for (size_t zpos = 0; zpos < num_pixels; zpos++) {
-                int mask_offset = 0;
-                for (size_t ypos = 0; ypos < height; ypos++) {
-                    int yoffset = ypos * num_pixels + zpos;
-
-                    for (size_t xpos = 0; xpos < width; xpos++) {
-                        std::cout<<mask_offset<<" "<<ypos<<" "<<xpos;
-                        if (hasMask && !mask_vector[mask_offset++] ){
-                            std::cout<<"OUT"<<std::endl;
-                            continue;
-                        }
-
-                        int index = xpos * xoffset + yoffset;
-                        float val = result[index];
+        
+        int index = 0;
+        for (size_t xpos = 0; xpos < width; xpos++) {
+            for (size_t ypos = 0; ypos < height; ypos++) {
+                    // int yoffset = ypos * num_pixels + zpos;
+                    for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+                        // int index = xpos * xoffset + yoffset;
+                        float val = result[index++];
                         if (std::isfinite(val)) {
                             std::cout<<val<<std::endl;
 
@@ -388,6 +349,7 @@ using namespace std::chrono;
                 }
             }
         }
+
 
 
         // auto mid = std::chrono::high_resolution_clock::now();
