@@ -15,7 +15,7 @@ interface DimensionValues {
   dims:number;
 }
 
-export class ReaderController {
+export class Hdf5WorkerPool {
   readonly readers: H5Reader[];
 
   readonly fileDims: Map<string,DimensionValues > = new Map();

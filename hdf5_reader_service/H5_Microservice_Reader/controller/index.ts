@@ -1,6 +1,6 @@
 import { RegionDataResponse, RegionType } from './bin/src/proto/H5ReaderServices';
 import {H5Reader} from './src/Services/H5Reader'
-import {ReaderController} from './src/Services/ReaderController'
+import {Hdf5WorkerPool} from './src/Services/ReaderController'
 import { FILEINFO } from './src/test/FILEINFO';
 import { getCoords } from './src/utils/coord';
 
@@ -23,11 +23,11 @@ import { getCoords } from './src/utils/coord';
  async function main() {
 
     const numWorkers = 4;
-    const workerPool = new ReaderController(numWorkers,"0.0.0.0" ,8080);
+    const workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);
   
     await workerPool.ready();
 
-    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,200,400,400);
+    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(400,400,600,600);
     // console.log({startingX,startingY,adjustedWidth,adjustedHeight})
     console.log();
 
