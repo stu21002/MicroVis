@@ -1,5 +1,5 @@
 import { FileInfoRequest, FileInfoResponse } from '../../bin/src/proto/FileInfo';
-import {Hdf5WorkerPool} from '../Services/ReaderController';
+import {Hdf5WorkerPool} from '../Services/Hdf5WorkerPool';
 import config from "./config.json";
 
 

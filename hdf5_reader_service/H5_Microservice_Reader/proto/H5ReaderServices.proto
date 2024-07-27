@@ -66,15 +66,58 @@ message SpectralProfileResponse {
   // bytes data = 1;
 }
 
+message HistogramRequest {
+  string uuid = 1;
+  // int32 x = 2;
+  // int32 y = 3;
+  // int32 width = 4;
+  // int32 height = 5;
+  repeated int32 start = 2;
+  repeated int32 count = 3;
+}
+
+message HistogramDistRequest {
+  string uuid = 1;
+  // int32 x = 2;
+  // int32 y = 3;
+  // int32 width = 4;
+  // int32 height = 5;
+  repeated int32 start = 2;
+  repeated int32 count = 3;
+  repeated float data = 4;
+  sfixed32 num_bins = 6;
+  double bin_width = 7;
+  double min_value = 8;
+  double max_value = 9;
+}
+
+message HistogramResponse {
+  sfixed32 num_bins = 1;
+  double bin_width = 2;
+  double first_bin_center = 3;
+  repeated sfixed32 bins = 4;
+  double mean = 5;
+  double std_dev = 6;
+  repeated double data = 7;
+  double min_value = 8;
+  double max_value = 9;
+
+}
+
+
 service H5ReaderServices{
   rpc CheckStatus(Empty) returns  (StatusResponse) {}
-  //TODO Change to OpenFileACK
+
   rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
-  // rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
-  // rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
   rpc GetRegionStream (RegionDataRequest) returns (stream RegionDataResponse) {}
   rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
+
+  rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
+  rpc GetHistogramDist (HistogramDistRequest) returns (HistogramResponse) {}
+
+  // rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
+  // rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
 
 }

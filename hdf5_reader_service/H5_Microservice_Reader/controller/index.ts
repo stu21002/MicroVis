@@ -1,6 +1,6 @@
 import { RegionDataResponse, RegionType } from './bin/src/proto/H5ReaderServices';
 import {H5Reader} from './src/Services/H5Reader'
-import {Hdf5WorkerPool} from './src/Services/ReaderController'
+import {Hdf5WorkerPool} from './src/Services/Hdf5WorkerPool'
 import { FILEINFO } from './src/test/FILEINFO';
 import { getCoords } from './src/utils/coord';
 
@@ -49,30 +49,38 @@ import { getCoords } from './src/utils/coord';
     console.log();
 
 
+    // console.time("Hist");
+    // const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,0,0,0,800,800,0);
+    // console.timeEnd("Hist");
+    // console.log(histRes.bins.slice(0,6));
+
+    for (let index = 0; index < numWorkers; index++) {
+      console.time("Hist"+index);
+      const histRes = await workerPool.getHistogramDist(fileOpenResponse.uuid,400,400,0,400,400,0,index+1);
+      console.timeEnd("Hist"+index);
+      console.log(histRes.bins.slice(0,6));
+      
+    }
 
     // console.time("Spectral Profile");
-    // const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth,adjustedHeight,RegionType.CIRCLE,adjustedWidth+1);
-    // console.log(respones1.spectralData.subarray(0,5));
+    // const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth,adjustedHeight);
+    // console.log("First five values : " + respones1.spectralData.subarray(0,5));
     // console.timeEnd("Spectral Profile");
-    console.time("Spectral Profile");
-    const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth,adjustedHeight);
-    console.log("First five values : " + respones1.spectralData.subarray(0,5));
-    console.timeEnd("Spectral Profile");
-    console.log();
+    // console.log();
 
-    console.time("ImageData");
-    const respones2 = await workerPool.getRegionStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[0,0,0,0],[600,600,1,1]);
-    // console.log(respones2.points);
-    console.timeEnd("ImageData");
-    console.log();
+    // console.time("ImageData");
+    // const respones2 = await workerPool.getRegionStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[0,0,0,0],[600,600,1,1]);
+    // // console.log(respones2.points);
+    // console.timeEnd("ImageData");
+    // console.log();
 
-    console.time("Spatial");
-    const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
-    // console.log(respones2.xProfile);
-    // console.log(respones2.yProfile);
-    console.timeEnd("Spatial");
+    // console.time("Spatial");
+    // const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
+    // // console.log(respones2.xProfile);
+    // // console.log(respones2.yProfile);
+    // console.timeEnd("Spatial");
   
-    console.log();
+    // console.log();
 
 
     workerPool.closeFile(fileOpenResponse.uuid);

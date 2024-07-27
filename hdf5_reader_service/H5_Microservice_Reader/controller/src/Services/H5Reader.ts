@@ -3,6 +3,9 @@
 import {
 Empty, 
 H5ReaderServicesClient,
+HistogramDistRequest,
+HistogramRequest,
+HistogramResponse,
 RegionDataRequest,
 RegionDataResponse,
 SpectralProfileRequest, SpectralProfileResponse,
@@ -25,6 +28,9 @@ import { promisify } from "util";
     
     // readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
     // readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
+    readonly getHistogram: (request: HistogramRequest) =>Promise<HistogramResponse>;
+    readonly getHistogramDist: (request: HistogramDistRequest) =>Promise<HistogramResponse>;
+
     readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
     readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
     //Spacital Profiles, getImageData for all X given a Y and visa versa...
@@ -59,6 +65,9 @@ import { promisify } from "util";
       // this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
       this.openFile = promisify<OpenFileRequest, OpenFileACK>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
+
+      this.getHistogram = promisify<HistogramRequest, HistogramResponse>(client.getHistogram).bind(client);
+      this.getHistogramDist = promisify<HistogramDistRequest, HistogramResponse>(client.getHistogramDist).bind(client);
 
       this.getRegionDataStream = (request: RegionDataRequest) => {
         return new Promise<{ points: Float64Array }>((resolve, reject) => {

@@ -3,7 +3,7 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { H5Reader } from "./H5Reader";
-import { RegionDataResponse, RegionType, SpectralProfileResponse } from "../../bin/src/proto/H5ReaderServices";
+import { HistogramResponse, RegionDataResponse, RegionType, SpectralProfileResponse } from "../../bin/src/proto/H5ReaderServices";
 import { bytesToFloat32 } from "../utils/arrays";
 // import { bytesToFloat32 } from "../utils/arrays";
 
@@ -139,10 +139,58 @@ export class Hdf5WorkerPool {
 
   //TODO
   async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
-    const numBins = Math.sqrt(width*height);
-    const {min,max} = {min:0,max:0};
+    const reader = this.randomConnectedreader;
+    return reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
+
     //getRegion
     //
+  }
+
+  async getHistogramDist(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number,workers:number){
+    const numBins = Math.sqrt(width*height);
+    const {min,max} = {min:0,max:0};
+    const reader = this.primaryreader;
+    const histres = await reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
+    const promises = new Array<Promise<HistogramResponse>>();
+    const pixelsPerWorker = Math.floor((width *height)/ workers);
+    // console.log(pixelsPerWorker);
+    // console.log(width);
+    // console.log(height);
+    // console.log(width*height);
+    for (let index = 0; index < workers; index++) {
+      const yStart = x + index * pixelsPerWorker;
+      const numPixelsInChunk = (index === workers - 1) ? height*width - index * pixelsPerWorker : pixelsPerWorker;
+      const reader = this.readers[index];
+      // promises.push(reader.getHistogram({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1]})); 
+      // histres.data.slice(yStart,yStart+numPixelsInChunk)
+      // console.log(histres.data.slice(yStart,yStart+numPixelsInChunk));
+      promises.push(reader.getHistogramDist({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1],data:histres.data.slice(yStart,yStart+numPixelsInChunk),numBins:histres.numBins,binWidth:histres.binWidth,minValue:histres.minValue,maxValue:histres.maxValue})); 
+
+    }
+    return Promise.all(promises).then(res => {
+      //Adding values as they come in, avoids heap error
+      const hist = HistogramResponse.create();
+      hist.numBins = histres.numBins;
+      hist.binWidth = histres.binWidth;
+
+
+      for (let index = 0; index < numBins; index++) {
+        hist.bins.push(0)
+      }
+
+      for (const response of res){
+        for (let index = 0; index < numBins; index++) {
+          hist.bins[index] += response.bins[index];
+        }
+        // hist.bins = hist.bins.map((value, index) => value + response.bins[index])
+        // console.log(hist.bins.slice(100,5))
+        // console.log(response.bins.slice(100,5))
+      }
+
+      return hist;
+    });
+
+
   }
 
   async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,regionType?:RegionType,diameter?:number,numWorkers?: number) {

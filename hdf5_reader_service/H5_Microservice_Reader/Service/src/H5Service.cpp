@@ -12,6 +12,7 @@
 #include <cmath>
 #include <fmt/core.h> 
 #include <chrono>
+
 using namespace std::chrono;
 
 
@@ -292,6 +293,7 @@ using namespace std::chrono;
         //     // // int16_t mask_width = mask.width();
         //     // // int16_t mask_height = mask.height();
 
+
         //     // for (size_t i = 0; i < mask_vector.size(); i++)
         //     // {
         //     //     std::cout<<mask_vector[i]<<" ";
@@ -301,7 +303,7 @@ using namespace std::chrono;
          
         // }
 
-        // ServicePrint("Spectral Profile Stream Request");
+        ServicePrint("Spectral Profile Stream Request");
 
         std::vector<float> result;
         const hsize_t x = request->x();
@@ -360,7 +362,7 @@ using namespace std::chrono;
 
         }
         // auto mid2 = std::chrono::high_resolution_clock::now();
-
+      
         writer->Write(response);
         
         // auto end = std::chrono::high_resolution_clock::now();
@@ -376,6 +378,146 @@ using namespace std::chrono;
         // ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
+
+    grpc::Status H5Service::GetHistogram(::grpc::ServerContext* context, const ::proto::HistogramRequest* request, ::proto::HistogramResponse* response){
+        
+        ServicePrint("Histogram Request");
+
+        // std::vector<float> result;
+        
+        auto begin = std::chrono::high_resolution_clock::now();
+
+        std::vector<hsize_t> h5_start;
+        std::vector<hsize_t> h5_count;
+
+        hsize_t result_size = 1;
+
+        std::vector<hsize_t> start(request->start().begin(), request->start().end());
+        std::vector<hsize_t> count(request->count().begin(), request->count().end());
+
+        Hdf5_File &h5file = hdf5_files[request->uuid()];
+
+        H5::DataSet dataset = h5file._group.openDataSet("DATA");  
+  
+        auto data_space = dataset.getSpace();
+
+        int numDims = data_space.getSimpleExtentNdims(); 
+        
+        for (int d = 0; d < numDims; d++)
+        {
+            h5_start.insert(h5_start.begin(), d < start.size() ? start[d] : 0);
+            h5_count.insert(h5_count.begin(), d < count.size() ? count[d] : 1);
+            result_size *= d < count.size() ? count[d]: 1;
+        }
+
+        std::vector<float> data = readRegion(dataset,h5_count,h5_start,result_size);
+
+        //Find Min,Max;
+        float min_val = std::numeric_limits<float>::max(); 
+        float max_val = std::numeric_limits<float>::min();
+
+        for (size_t i = 0; i < result_size; i++)
+        {
+            const float val = data[i];
+            if (std::isfinite(val)){
+                if (val<min_val){
+                    min_val = val;
+                }
+                if (val>max_val){
+                    max_val = val;
+                }
+            }
+        }
+        const size_t num_bins = floor(sqrt(count[0]*count[1]));
+        const float bin_width = (max_val - min_val) / num_bins;
+        std::vector<int64_t> bins(num_bins);
+        
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+        std::cout << "Read : " <<duration1.count() << std::endl;
+
+        // #pragma omp parallel
+        //     {
+        //         auto num_threads = omp_get_num_threads();
+        //         auto thread_index = omp_get_thread_num();
+        // #pragma omp single
+        //         { temp_bins.resize(num_bins * num_threads); }
+        // #pragma omp for
+
+        for (int64_t i = 0; i < result_size; i++) {
+            auto val = data[i];
+            if (min_val <= val && val <= max_val) {
+                size_t bin_number = std::clamp((size_t)((val - min_val) / bin_width), (size_t)0, num_bins - 1);
+                bins[bin_number]++;
+            }
+        }
+
+        // #pragma omp for
+        //         for (int64_t i = 0; i < num_bins; i++) {
+        //             for (int t = 0; t < num_threads; t++) {
+        //                 _histogram_bins[i] += temp_bins[num_bins * t + i];
+        //             }
+        //         }
+        // }  
+
+        response->set_bin_width(bin_width);
+        response->set_num_bins(num_bins);
+
+        response->set_min_value(min_val);
+        response->set_max_value(max_val);
+        // for (size_t i = 0; i < num_bins; i++)
+        // {
+        //     response->add_bins(bins[i]);
+        // }
+ 
+        for (size_t i = 0; i < result_size; i++)
+        {
+            response->add_data(data[i]);
+        }
+
+        
+         
+               
+        return grpc::Status::OK;
+    }
+    grpc::Status H5Service::GetHistogramDist(::grpc::ServerContext* context, const ::proto::HistogramDistRequest* request, ::proto::HistogramResponse* response){
+        
+        ServicePrint("Histogram Request");
+        const size_t num_bins = request->num_bins();
+        const float bin_width = request->bin_width();
+        const std::vector<float> data(request->data().begin(),request->data().end());
+        const size_t result_size = data.size();
+        std::vector<int64_t> bins(num_bins);
+        const float min_val = request->min_value();
+        const float max_val = request->max_value(); 
+        // for (int64_t i = 0; i < result_size; i++) {
+        //     auto val = data[i];
+        //     if (min_val <= val && val <= max_val) {
+        //         size_t bin_number = std::clamp((size_t)((val - min_val) / bin_width), (size_t)0, num_bins - 1);
+        //         bins[bin_number]++;
+        //     }
+        // }
+
+        // #pragma omp for
+        //         for (int64_t i = 0; i < num_bins; i++) {
+        //             for (int t = 0; t < num_threads; t++) {
+        //                 _histogram_bins[i] += temp_bins[num_bins * t + i];
+        //             }
+        //         }
+        // }  
+
+        response->set_bin_width(bin_width);
+        response->set_num_bins(num_bins);
+        for (size_t i = 0; i < num_bins; i++)
+        {
+            response->add_bins(bins[i]);
+        }
+         
+            
+        return grpc::Status::OK;
+    }
+
+
 
     /// @brief sets an h5 atrribute to its corresponding place in the FileInfoExtended messege
     /// @param extendedFileInfo 
