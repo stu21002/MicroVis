@@ -49,18 +49,12 @@ import { getCoords } from './src/utils/coord';
     console.log();
 
 
-    // console.time("Hist");
-    // const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,0,0,0,800,800,0);
-    // console.timeEnd("Hist");
-    // console.log(histRes.bins.slice(0,6));
+    console.time("Hist");
+    const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,0,0,0,800,800,0);
+    console.timeEnd("Hist");
+    console.log(histRes.bins.slice(0,6));
 
-    for (let index = 0; index < numWorkers; index++) {
-      console.time("Hist"+index);
-      const histRes = await workerPool.getHistogramDist(fileOpenResponse.uuid,400,400,0,400,400,0,index+1);
-      console.timeEnd("Hist"+index);
-      console.log(histRes.bins.slice(0,6));
-      
-    }
+
 
     // console.time("Spectral Profile");
     // const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth,adjustedHeight);

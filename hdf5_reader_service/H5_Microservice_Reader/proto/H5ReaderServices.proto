@@ -98,9 +98,6 @@ message HistogramResponse {
   repeated sfixed32 bins = 4;
   double mean = 5;
   double std_dev = 6;
-  repeated double data = 7;
-  double min_value = 8;
-  double max_value = 9;
 
 }
 

@@ -463,17 +463,12 @@ using namespace std::chrono;
         response->set_bin_width(bin_width);
         response->set_num_bins(num_bins);
 
-        response->set_min_value(min_val);
-        response->set_max_value(max_val);
-        // for (size_t i = 0; i < num_bins; i++)
-        // {
-        //     response->add_bins(bins[i]);
-        // }
- 
-        for (size_t i = 0; i < result_size; i++)
+        for (size_t i = 0; i < num_bins; i++)
         {
-            response->add_data(data[i]);
+            response->add_bins(bins[i]);
         }
+ 
+
 
         
          
@@ -483,35 +478,35 @@ using namespace std::chrono;
     grpc::Status H5Service::GetHistogramDist(::grpc::ServerContext* context, const ::proto::HistogramDistRequest* request, ::proto::HistogramResponse* response){
         
         ServicePrint("Histogram Request");
-        const size_t num_bins = request->num_bins();
-        const float bin_width = request->bin_width();
-        const std::vector<float> data(request->data().begin(),request->data().end());
-        const size_t result_size = data.size();
-        std::vector<int64_t> bins(num_bins);
-        const float min_val = request->min_value();
-        const float max_val = request->max_value(); 
-        // for (int64_t i = 0; i < result_size; i++) {
-        //     auto val = data[i];
-        //     if (min_val <= val && val <= max_val) {
-        //         size_t bin_number = std::clamp((size_t)((val - min_val) / bin_width), (size_t)0, num_bins - 1);
-        //         bins[bin_number]++;
-        //     }
+        // const size_t num_bins = request->num_bins();
+        // const float bin_width = request->bin_width();
+        // const std::vector<float> data(request->data().begin(),request->data().end());
+        // const size_t result_size = data.size();
+        // std::vector<int64_t> bins(num_bins);
+        // const float min_val = request->min_value();
+        // const float max_val = request->max_value(); 
+        // // for (int64_t i = 0; i < result_size; i++) {
+        // //     auto val = data[i];
+        // //     if (min_val <= val && val <= max_val) {
+        // //         size_t bin_number = std::clamp((size_t)((val - min_val) / bin_width), (size_t)0, num_bins - 1);
+        // //         bins[bin_number]++;
+        // //     }
+        // // }
+
+        // // #pragma omp for
+        // //         for (int64_t i = 0; i < num_bins; i++) {
+        // //             for (int t = 0; t < num_threads; t++) {
+        // //                 _histogram_bins[i] += temp_bins[num_bins * t + i];
+        // //             }
+        // //         }
+        // // }  
+
+        // response->set_bin_width(bin_width);
+        // response->set_num_bins(num_bins);
+        // for (size_t i = 0; i < num_bins; i++)
+        // {
+        //     response->add_bins(bins[i]);
         // }
-
-        // #pragma omp for
-        //         for (int64_t i = 0; i < num_bins; i++) {
-        //             for (int t = 0; t < num_threads; t++) {
-        //                 _histogram_bins[i] += temp_bins[num_bins * t + i];
-        //             }
-        //         }
-        // }  
-
-        response->set_bin_width(bin_width);
-        response->set_num_bins(num_bins);
-        for (size_t i = 0; i < num_bins; i++)
-        {
-            response->add_bins(bins[i]);
-        }
          
             
         return grpc::Status::OK;
