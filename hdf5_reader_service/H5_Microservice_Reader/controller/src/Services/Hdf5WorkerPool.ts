@@ -3,7 +3,7 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { H5Reader } from "./H5Reader";
-import { HistogramResponse, RegionDataResponse, RegionType, SpectralProfileResponse } from "../../bin/src/proto/H5ReaderServices";
+import { HistogramResponse, ImageDataResponse, RegionType, SpatialProfile, SpectralProfileResponse } from "../../bin/src/proto/H5ReaderServices";
 import { bytesToFloat32 } from "../utils/arrays";
 // import { bytesToFloat32 } from "../utils/arrays";
 
@@ -102,15 +102,16 @@ export class Hdf5WorkerPool {
 
 
   
-  async getRegionStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
+  //Refine Method
+  async getImageDataStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
     const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
-    return reader?.getRegionDataStream({ uuid, start, count,regionType:RegionType.RECTANGLE});
+    return reader?.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE});
   }
 
   //Relook at this
   async getSpatial(uuid:string,x:number,y:number){
     // if (this.readers.length = 1){
-      const promises = new Array<Promise<{xProfile:Float64Array,yProfile:Float64Array}>>();
+      // const promises = new Array<Promise<{xProfile:number[],yProfile:number[]}>>();
 
       const dims =  this.fileDims.get(uuid);
       if (!dims) {
@@ -118,22 +119,45 @@ export class Hdf5WorkerPool {
         throw new Error("Extended file info is undefined");
       }
 
-      const xProfile = new Float64Array(dims.height);
-      const yProfile = new Float64Array(dims.width);
 
-      const yPromise = (( this.readers[0].getRegionDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]})))
-      const xPromise = (( this.readers[0].getRegionDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]})))
+
+      const promises = new Array<Promise<ImageDataResponse[]>>
+
+      if (this.readers.length==1){
+        //y
+        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]})))
+        //x
+        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]})))
+      }
+      else{
+        //y
+        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]})))
+        //x
+        promises.push(( this.readers[1].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]})))
+      }
      
-      return Promise.all([xPromise,yPromise]).then(
-        ([xRegionData, yRegionData]) => {
-          xProfile.set(xRegionData.points, 0);
-          yProfile.set(yRegionData.points, 0);
-          return { xProfile, yProfile };
+
+      return Promise.all(promises).then(
+        ([yImageData, xImageData]) => {
+          const profiles:SpatialProfile[]=[];
+
+          let xStart = 0;
+          for (const profile of xImageData){
+            const xEnd = xStart + profile.numPixels;
+            profiles.push({coordinate:"x",rawValuesFp32:profile.rawValuesFp32,start:xStart,end:xEnd});
+            xStart=xEnd;
+          }
+
+          let yStart = 0;
+          for (const profile of yImageData){
+            const yEnd = yStart + profile.numPixels;
+            profiles.push({coordinate:"y",rawValuesFp32:profile.rawValuesFp32,start:yStart,end:yEnd});
+            yStart=yEnd;
+          }
+          
+          return { profiles };
         }
       )
-
-
-    
   }
 
   async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
@@ -141,53 +165,8 @@ export class Hdf5WorkerPool {
     return reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
   }
 
-  // async getHistogramDist(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number,workers:number){
-  //   const numBins = Math.sqrt(width*height);
-  //   const {min,max} = {min:0,max:0};
-  //   const reader = this.primaryreader;
-  //   const histres = await reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
-  //   const promises = new Array<Promise<HistogramResponse>>();
-  //   const pixelsPerWorker = Math.floor((width *height)/ workers);
-  //   // console.log(pixelsPerWorker);
-  //   // console.log(width);
-  //   // console.log(height);
-  //   // console.log(width*height);
-  //   for (let index = 0; index < workers; index++) {
-  //     const yStart = x + index * pixelsPerWorker;
-  //     const numPixelsInChunk = (index === workers - 1) ? height*width - index * pixelsPerWorker : pixelsPerWorker;
-  //     const reader = this.readers[index];
-  //     // promises.push(reader.getHistogram({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1]})); 
-  //     // histres.data.slice(yStart,yStart+numPixelsInChunk)
-  //     // console.log(histres.data.slice(yStart,yStart+numPixelsInChunk));
-  //     promises.push(reader.getHistogramDist({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1],data:histres.data.slice(yStart,yStart+numPixelsInChunk),numBins:histres.numBins,binWidth:histres.binWidth,minValue:histres.minValue,maxValue:histres.maxValue})); 
-
-  //   }
-  //   return Promise.all(promises).then(res => {
-  //     //Adding values as they come in, avoids heap error
-  //     const hist = HistogramResponse.create();
-  //     hist.numBins = histres.numBins;
-  //     hist.binWidth = histres.binWidth;
-
-
-  //     for (let index = 0; index < numBins; index++) {
-  //       hist.bins.push(0)
-  //     }
-
-  //     for (const response of res){
-  //       for (let index = 0; index < numBins; index++) {
-  //         hist.bins[index] += response.bins[index];
-  //       }
-  //       // hist.bins = hist.bins.map((value, index) => value + response.bins[index])
-  //       // console.log(hist.bins.slice(100,5))
-  //       // console.log(response.bins.slice(100,5))
-  //     }
-
-  //     return hist;
-  //   });
-
-
-  // }
-
+  //Cube Hist?? Mostly fits
+  
   async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,regionType?:RegionType,diameter?:number,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
@@ -226,12 +205,57 @@ export class Hdf5WorkerPool {
   }
 
   
-
+  
+    // async getHistogramDist(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number,workers:number){
+    //   const numBins = Math.sqrt(width*height);
+    //   const {min,max} = {min:0,max:0};
+    //   const reader = this.primaryreader;
+    //   const histres = await reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
+    //   const promises = new Array<Promise<HistogramResponse>>();
+    //   const pixelsPerWorker = Math.floor((width *height)/ workers);
+    //   // console.log(pixelsPerWorker);
+    //   // console.log(width);
+    //   // console.log(height);
+    //   // console.log(width*height);
+    //   for (let index = 0; index < workers; index++) {
+    //     const yStart = x + index * pixelsPerWorker;
+    //     const numPixelsInChunk = (index === workers - 1) ? height*width - index * pixelsPerWorker : pixelsPerWorker;
+    //     const reader = this.readers[index];
+    //     // promises.push(reader.getHistogram({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1]})); 
+    //     // histres.data.slice(yStart,yStart+numPixelsInChunk)
+    //     // console.log(histres.data.slice(yStart,yStart+numPixelsInChunk));
+    //     promises.push(reader.getHistogramDist({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1],data:histres.data.slice(yStart,yStart+numPixelsInChunk),numBins:histres.numBins,binWidth:histres.binWidth,minValue:histres.minValue,maxValue:histres.maxValue})); 
+  
+    //   }
+    //   return Promise.all(promises).then(res => {
+    //     //Adding values as they come in, avoids heap error
+    //     const hist = HistogramResponse.create();
+    //     hist.numBins = histres.numBins;
+    //     hist.binWidth = histres.binWidth;
+  
+  
+    //     for (let index = 0; index < numBins; index++) {
+    //       hist.bins.push(0)
+    //     }
+  
+    //     for (const response of res){
+    //       for (let index = 0; index < numBins; index++) {
+    //         hist.bins[index] += response.bins[index];
+    //       }
+    //       // hist.bins = hist.bins.map((value, index) => value + response.bins[index])
+    //       // console.log(hist.bins.slice(100,5))
+    //       // console.log(response.bins.slice(100,5))
+    //     }
+  
+    //     return hist;
+    //   });
+    // }
+  
 
 
   // async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
   //   if (!numWorkers) {
-  //     numWorkers = this.readers.length;
+    //     numWorkers = this.readers.length;
   //   }
   //   const pixelsPerWorker = Math.floor(width / numWorkers);
   //   const promises = new Array<Promise<SpectralProfileResponse>>();
@@ -244,8 +268,8 @@ export class Hdf5WorkerPool {
 
   //     promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
   //   }
-    
-    
+  
+  
   //   return Promise.all(promises).then(res => {
   //     // For Bytes
   //     // const data = new Float64Array(numPixels*width*height);

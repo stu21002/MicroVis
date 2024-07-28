@@ -6,8 +6,8 @@ H5ReaderServicesClient,
 HistogramDistRequest,
 HistogramRequest,
 HistogramResponse,
-RegionDataRequest,
-RegionDataResponse,
+ImageDataRequest,
+ImageDataResponse,
 SpectralProfileRequest, SpectralProfileResponse,
 StatusResponse,
 } from "../../bin/src/proto/H5ReaderServices";
@@ -23,7 +23,7 @@ import { promisify } from "util";
     
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
-    readonly getRegionDataStream: (request: RegionDataRequest) => Promise<{points:Float64Array}>;
+    readonly getImageDataStream: (request: ImageDataRequest) => Promise<ImageDataResponse[]>;
     readonly getSpectralProfileStream: (request: SpectralProfileRequest) =>Promise<{statistic:Float64Array,counts:Number[]}>;
     
     // readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
@@ -69,22 +69,18 @@ import { promisify } from "util";
       this.getHistogram = promisify<HistogramRequest, HistogramResponse>(client.getHistogram).bind(client);
       this.getHistogramDist = promisify<HistogramDistRequest, HistogramResponse>(client.getHistogramDist).bind(client);
 
-      this.getRegionDataStream = (request: RegionDataRequest) => {
-        return new Promise<{ points: Float64Array }>((resolve, reject) => {
-          const call = client.getRegionStream(request);
-          const points = new Float64Array(request.count.reduce((prev, curr) => prev * curr, 1));
-          let offset = 0;
-      
-          call.on('data', (response: SpectralProfileResponse) => {
-            if (response.data) {
-
-              points.set(response.data, offset);
-              offset += response.data.length;
-            }
+      this.getImageDataStream = (request: ImageDataRequest) => {
+        return new Promise<ImageDataResponse[]>((resolve, reject) => {
+          const call = client.getImageDataStream(request);
+          const imageDataResponses:ImageDataResponse[] = [];
+          call.on('data', (response: ImageDataResponse) => {
+            //Possible Conditions
+              imageDataResponses.push(response)
+            
           });
       
           call.on('end', () => {
-            resolve({ points });
+            resolve(imageDataResponses);
           });
       
           call.on('error', (err) => {

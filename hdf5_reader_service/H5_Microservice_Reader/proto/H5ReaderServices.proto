@@ -28,7 +28,7 @@ enum RegionType {
 
 
 
-message RegionDataRequest{
+message ImageDataRequest{
     string uuid = 1;
     RegionType regionType = 2;
     repeated int32 start = 3;
@@ -37,8 +37,9 @@ message RegionDataRequest{
 
 
 //Change To Bytes
-message RegionDataResponse{
-  repeated float data = 1;
+message ImageDataResponse{
+  bytes raw_values_fp32 = 1;
+  int32 num_pixels = 2;
 }
 
 message Mask{
@@ -101,6 +102,14 @@ message HistogramResponse {
 
 }
 
+message SpatialProfile {
+  sfixed32 start = 1;
+  sfixed32 end = 2;
+  bytes raw_values_fp32 = 3;
+  // repeated double values = 3;
+  string coordinate = 4;
+  // sfixed32 mip = 5;
+}
 
 service H5ReaderServices{
   rpc CheckStatus(Empty) returns  (StatusResponse) {}
@@ -108,10 +117,10 @@ service H5ReaderServices{
   rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
-  rpc GetRegionStream (RegionDataRequest) returns (stream RegionDataResponse) {}
+  rpc GetImageDataStream (ImageDataRequest) returns (stream ImageDataResponse) {}
   rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
-
   rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
+
   rpc GetHistogramDist (HistogramDistRequest) returns (HistogramResponse) {}
 
   // rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}

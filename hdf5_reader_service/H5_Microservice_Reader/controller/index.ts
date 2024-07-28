@@ -1,4 +1,4 @@
-import { RegionDataResponse, RegionType } from './bin/src/proto/H5ReaderServices';
+import {  RegionType } from './bin/src/proto/H5ReaderServices';
 import {H5Reader} from './src/Services/H5Reader'
 import {Hdf5WorkerPool} from './src/Services/Hdf5WorkerPool'
 import { FILEINFO } from './src/test/FILEINFO';
@@ -20,9 +20,17 @@ import { getCoords } from './src/utils/coord';
 // const arg4 = numbers[3];
 // const arg5 = numbers[4];
 
+ function bytesToFloat32(bytes: Uint8Array) {
+  if (bytes.byteOffset % 4 !== 0) {
+    const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length);
+    return new Float32Array(copy, 0, bytes.length / 4);
+  } else {
+    return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.length / 4);
+  }
+}
  async function main() {
 
-    const numWorkers = 8;
+    const numWorkers = 1;
     const workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);
   
     await workerPool.ready();
@@ -49,10 +57,10 @@ import { getCoords } from './src/utils/coord';
     console.log();
 
 
-    console.time("Hist");
-    const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,0,0,0,800,800,0);
-    console.timeEnd("Hist");
-    console.log(histRes.bins.slice(0,6));
+    // console.time("Hist");
+    // const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,0,0,0,800,800,0);
+    // console.timeEnd("Hist");
+    // console.log(histRes.bins.slice(0,6));
 
 
 
@@ -63,18 +71,18 @@ import { getCoords } from './src/utils/coord';
     // console.log();
 
     // console.time("ImageData");
-    // const respones2 = await workerPool.getRegionStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[0,0,0,0],[600,600,1,1]);
-    // // console.log(respones2.points);
+    // const respones2 = await workerPool.getImageDataStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[200,200,0,0],[1,1,1,1]);
+    // console.log(respones2[0].rawValuesFp32.buffer)
+    // console.log(bytesToFloat32(respones2[0].rawValuesFp32));
     // console.timeEnd("ImageData");
     // console.log();
 
-    // console.time("Spatial");
-    // const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
-    // // console.log(respones2.xProfile);
-    // // console.log(respones2.yProfile);
-    // console.timeEnd("Spatial");
+    console.time("Spatial");
+    const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
+    console.log(respones3);
+    console.timeEnd("Spatial");
   
-    // console.log();
+    console.log();
 
 
     workerPool.closeFile(fileOpenResponse.uuid);

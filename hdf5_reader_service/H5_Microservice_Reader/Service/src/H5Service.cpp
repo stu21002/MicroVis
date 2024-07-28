@@ -15,7 +15,6 @@
 
 using namespace std::chrono;
 
-
     H5Service::H5Service(int port) : port(port) {}
 
     grpc::Status H5Service::CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response)
@@ -189,7 +188,7 @@ using namespace std::chrono;
 
         return grpc::Status::OK;
     };
-    grpc::Status H5Service::GetRegionStream(::grpc::ServerContext* context, const ::proto::RegionDataRequest* request, ::grpc::ServerWriter< ::proto::RegionDataResponse>* writer){
+    grpc::Status H5Service::GetImageDataStream(::grpc::ServerContext* context, const ::proto::ImageDataRequest* request, ::grpc::ServerWriter< ::proto::ImageDataResponse>* writer){
         
         if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
@@ -202,7 +201,11 @@ using namespace std::chrono;
         ServicePrint("Region Request");
       
 
-        std::vector<float> result;
+        Hdf5_File &h5file = hdf5_files[request->uuid()];
+        H5::DataSet dataset = h5file._group.openDataSet("DATA");  
+        auto data_space = dataset.getSpace();
+
+        // std::vector<float> result;
 
         std::vector<hsize_t> h5_start;
         std::vector<hsize_t> h5_count;
@@ -211,13 +214,6 @@ using namespace std::chrono;
 
         std::vector<hsize_t> start(request->start().begin(), request->start().end());
         std::vector<hsize_t> count(request->count().begin(), request->count().end());
-          
-
-        Hdf5_File &h5file = hdf5_files[request->uuid()];
-
-        H5::DataSet dataset = h5file._group.openDataSet("DATA");  
-  
-        auto data_space = dataset.getSpace();
 
         int numDims = data_space.getSimpleExtentNdims();
 
@@ -228,46 +224,63 @@ using namespace std::chrono;
             result_size *= d < count.size() ? count[d]: 1;
         }
 
-        result.resize(result_size);
+        // Calculate the number of bytes needed for the result
+        int num_bytes = result_size * sizeof(float);
+
+        // Allocate memory for the entire dataset
+        std::vector<float> buffer(result_size);
+
+        // Set up the memory space for reading the data
         H5::DataSpace mem_space(1, &result_size);
-        
-        // auto file_space = _dataset.getSpace();
-  
 
-
+        // Select the hyperslab in the file
         data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
-        dataset.read(result.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
- 
 
+        // Read data into the buffer
+        dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
         data_space.close();
         dataset.close();
-        int offset = 0;
 
-        for (size_t w = 0; w < h5_count[0]; w++)
-        {
-            for (size_t z = 0; z < h5_count[1]; z++)
-                {
-                    for (size_t y = 0; y < h5_count[2]; y++)
-                    {   
-                        RegionDataResponse response;     
-                        for (size_t x = 0; x < h5_count[3]; x++)
-                        {
-                            response.add_data(result[offset]);
-                            
-                            offset++;
-                        }
-  
-              
-                        writer->Write(response);
-                        response.clear_data();
-        
-          
-                       
-                    }
+        // const size_t MAX_CHUNK_SIZE = 2048* 2048;
+        const size_t MAX_CHUNK_SIZE = 2000* 2000;
 
-                }
+        size_t offset = 0;
+        size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
 
+        while (offset < buffer.size()) {
+            size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
+            ImageDataResponse response;
+            response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
+            response.set_num_pixels(current_chunk_size);
+            float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+
+            std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+
+            writer->Write(response);
+
+            offset += current_chunk_size;
         }
+
+
+        // int num_bytes = result_size * sizeof(float);
+        // std::cout<<sizeof(float)<<std::endl; 
+        // //Create a bytes var
+        //         ImageDataResponse response;    
+
+        // //Fix this to not use the response var
+        // response.mutable_raw_values_fp32()->resize(num_bytes);
+
+        // H5::DataSpace mem_space(1, &result_size);
+
+        // data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+
+        // //Read data into the bytes var
+        // dataset.read(response.mutable_raw_values_fp32()->data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+        
+        // ImageDataResponse response;    
+     
+        // //For loop to write chunks of the read into the response var
+        // writer->Write(response);
         
         ServicePrint("Region Request Complete");
         return grpc::Status::OK;
