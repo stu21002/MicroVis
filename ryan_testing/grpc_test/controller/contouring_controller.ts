@@ -5,72 +5,28 @@ import { ContourServicesClient } from "./proto/contouring";
 
 const emptyRequest: ContouringEmpty = {};
 
-const client1 = new ContourServicesClient(
-    "localhost:9999",
-    grpc.credentials.createInsecure()
-) as ContourServicesClient;
+const clients = [
+    new ContourServicesClient("localhost:9994", grpc.credentials.createInsecure()),
+    new ContourServicesClient("localhost:9993", grpc.credentials.createInsecure()),
+    new ContourServicesClient("localhost:9992", grpc.credentials.createInsecure()),
+    new ContourServicesClient("localhost:9991", grpc.credentials.createInsecure()),
+    new ContourServicesClient("localhost:9990", grpc.credentials.createInsecure()),
+];
 
-const client2 = new ContourServicesClient(
-    "localhost:9998",
-    grpc.credentials.createInsecure()
-) as ContourServicesClient;
-
-const client3 = new ContourServicesClient(
-    "localhost:9997",
-    grpc.credentials.createInsecure()
-) as ContourServicesClient;
-
-const client4 = new ContourServicesClient(
-    "localhost:9996",
-    grpc.credentials.createInsecure()
-) as ContourServicesClient;
-
-const client5 = new ContourServicesClient(
-    "localhost:9995",
-    grpc.credentials.createInsecure()
-) as ContourServicesClient;
-
-function computeContour(){
-
-    client1.computeContour(emptyRequest, (error, response: ContouringOutput) => {
-        if(error){
-            console.error("Error: ", error);
-        } else {
-            console.log("Contour Output 1: ", response?.value);
-        }
-    });
-
-    client2.computeContour(emptyRequest, (error, response: ContouringOutput) => {
-        if(error){
-            console.error("Error: ", error);
-        } else {
-            console.log("Contour Output 2: ", response?.value);
-        }
-    });
-
-    client3.computeContour(emptyRequest, (error, response: ContouringOutput) => {
-        if(error){
-            console.error("Error: ", error);
-        } else {
-            console.log("Contour Output 3: ", response?.value);
-        }
-    });
-
-    client4.computeContour(emptyRequest, (error, response: ContouringOutput) => {
-        if(error){
-            console.error("Error: ", error);
-        } else {
-            console.log("Contour Output 4: ", response?.value);
-        }
-    });
-
-    client5.computeContour(emptyRequest, (error, response: ContouringOutput) => {
-        if(error){
-            console.error("Error: ", error);
-        } else {
-            console.log("Contour Output 5: ", response?.value);
-        }
+function computeContour() {
+    clients.forEach((client, index) => {
+        client.computeContour(emptyRequest, (error, response: ContouringOutput) => {
+            if (error) {
+                console.error(`Error: ${error}`);
+            } else {
+                console.log(`Contouring Output ${index + 1}: ${response?.value}`);
+            }
+        });
     });
 }
 
-computeContour();
+function main() {
+    computeContour()
+}
+
+main();
