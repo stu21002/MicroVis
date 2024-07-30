@@ -57,16 +57,11 @@ class ProcessingImpl : public ContourServices::Service {
     //         std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
     //         return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
     //     }
-        auto requestRecievedStart = std::chrono::high_resolution_clock::now();
 
         const google::protobuf::RepeatedField<float>& data = request->data();
 
         int width = request->width();
         int height = request->height();
-
-        auto requestRecievedEnd = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> requestDuration = requestRecievedEnd - requestRecievedStart;
-        std::cout << "Recieved Request took " << requestDuration.count() << " seconds." << std::endl;
 
         auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
 
@@ -105,8 +100,8 @@ void StartServer(int port){
     ProcessingImpl service;
     grpc::ServerBuilder builder;
 
-    builder.SetMaxSendMessageSize(50 * 1024 * 1024); // 50MB
-    builder.SetMaxReceiveMessageSize(50 * 1024 * 1024); // 50MB
+    builder.SetMaxSendMessageSize(5 * 1024 * 1024); // 5MB
+    builder.SetMaxReceiveMessageSize(5 * 1024 * 1024); // 5MB
 
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
