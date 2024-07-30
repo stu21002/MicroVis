@@ -75,20 +75,30 @@ exports.ContouringOutput = {
         return obj;
     },
     create(base) {
-        return exports.ContouringOutput.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.ContouringOutput.fromPartial(base ?? {});
     },
     fromPartial(object) {
-        var _a;
         const message = createBaseContouringOutput();
-        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : "";
+        message.value = object.value ?? "";
         return message;
     },
 };
 function createBaseContouringEmpty() {
-    return {};
+    return { data: [], width: 0, height: 0 };
 }
 exports.ContouringEmpty = {
-    encode(_, writer = _m0.Writer.create()) {
+    encode(message, writer = _m0.Writer.create()) {
+        writer.uint32(10).fork();
+        for (const v of message.data) {
+            writer.float(v);
+        }
+        writer.ldelim();
+        if (message.width !== 0) {
+            writer.uint32(21).float(message.width);
+        }
+        if (message.height !== 0) {
+            writer.uint32(29).float(message.height);
+        }
         return writer;
     },
     decode(input, length) {
@@ -98,6 +108,31 @@ exports.ContouringEmpty = {
         while (reader.pos < end) {
             const tag = reader.uint32();
             switch (tag >>> 3) {
+                case 1:
+                    if (tag === 13) {
+                        message.data.push(reader.float());
+                        continue;
+                    }
+                    if (tag === 10) {
+                        const end2 = reader.uint32() + reader.pos;
+                        while (reader.pos < end2) {
+                            message.data.push(reader.float());
+                        }
+                        continue;
+                    }
+                    break;
+                case 2:
+                    if (tag !== 21) {
+                        break;
+                    }
+                    message.width = reader.float();
+                    continue;
+                case 3:
+                    if (tag !== 29) {
+                        break;
+                    }
+                    message.height = reader.float();
+                    continue;
             }
             if ((tag & 7) === 4 || tag === 0) {
                 break;
@@ -106,18 +141,34 @@ exports.ContouringEmpty = {
         }
         return message;
     },
-    fromJSON(_) {
-        return {};
+    fromJSON(object) {
+        return {
+            data: globalThis.Array.isArray(object?.data) ? object.data.map((e) => globalThis.Number(e)) : [],
+            width: isSet(object.width) ? globalThis.Number(object.width) : 0,
+            height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+        };
     },
-    toJSON(_) {
+    toJSON(message) {
         const obj = {};
+        if (message.data?.length) {
+            obj.data = message.data;
+        }
+        if (message.width !== 0) {
+            obj.width = message.width;
+        }
+        if (message.height !== 0) {
+            obj.height = message.height;
+        }
         return obj;
     },
     create(base) {
-        return exports.ContouringEmpty.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.ContouringEmpty.fromPartial(base ?? {});
     },
-    fromPartial(_) {
+    fromPartial(object) {
         const message = createBaseContouringEmpty();
+        message.data = object.data?.map((e) => e) || [];
+        message.width = object.width ?? 0;
+        message.height = object.height ?? 0;
         return message;
     },
 };

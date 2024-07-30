@@ -75,12 +75,11 @@ exports.SmoothingOutput = {
         return obj;
     },
     create(base) {
-        return exports.SmoothingOutput.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.SmoothingOutput.fromPartial(base ?? {});
     },
     fromPartial(object) {
-        var _a;
         const message = createBaseSmoothingOutput();
-        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : "";
+        message.value = object.value ?? "";
         return message;
     },
 };
@@ -114,7 +113,7 @@ exports.SmoothingEmpty = {
         return obj;
     },
     create(base) {
-        return exports.SmoothingEmpty.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.SmoothingEmpty.fromPartial(base ?? {});
     },
     fromPartial(_) {
         const message = createBaseSmoothingEmpty();

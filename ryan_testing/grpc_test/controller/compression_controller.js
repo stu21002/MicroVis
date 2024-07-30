@@ -40,7 +40,7 @@ function computeCompression() {
                 console.error(`Error: ${error}`);
             }
             else {
-                console.log(`Compression Output ${index + 1}: ${response === null || response === void 0 ? void 0 : response.value}`);
+                console.log(`Compression Output ${index + 1}: ${response?.value}`);
             }
         });
     });
@@ -52,7 +52,7 @@ function computeNanEncodingsBlock() {
                 console.error(`Error: ${error}`);
             }
             else {
-                console.log(`GetNanEncodingsBlock Output ${index + 1}: ${response === null || response === void 0 ? void 0 : response.value}`);
+                console.log(`GetNanEncodingsBlock Output ${index + 1}: ${response?.value}`);
             }
         });
     });

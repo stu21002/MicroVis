@@ -40,7 +40,7 @@ function computeGaussianBlur() {
                 console.error(`Error: ${error}`);
             }
             else {
-                console.log(`Smoothing Output ${index + 1}: ${response === null || response === void 0 ? void 0 : response.value}`);
+                console.log(`Smoothing Output ${index + 1}: ${response?.value}`);
             }
         });
     });
@@ -52,7 +52,7 @@ function computeBlockSmoothing() {
                 console.error(`Error: ${error}`);
             }
             else {
-                console.log(`Smoothing Output ${index + 1}: ${response === null || response === void 0 ? void 0 : response.value}`);
+                console.log(`Smoothing Output ${index + 1}: ${response?.value}`);
             }
         });
     });

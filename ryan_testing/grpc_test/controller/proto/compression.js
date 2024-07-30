@@ -75,12 +75,11 @@ exports.CompressionOutput = {
         return obj;
     },
     create(base) {
-        return exports.CompressionOutput.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.CompressionOutput.fromPartial(base ?? {});
     },
     fromPartial(object) {
-        var _a;
         const message = createBaseCompressionOutput();
-        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : "";
+        message.value = object.value ?? "";
         return message;
     },
 };
@@ -114,7 +113,7 @@ exports.CompressionEmpty = {
         return obj;
     },
     create(base) {
-        return exports.CompressionEmpty.fromPartial(base !== null && base !== void 0 ? base : {});
+        return exports.CompressionEmpty.fromPartial(base ?? {});
     },
     fromPartial(_) {
         const message = createBaseCompressionEmpty();
