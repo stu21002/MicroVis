@@ -11,7 +11,7 @@ set(PROTO_FILES
         ./defs.proto
         ./FileInfo.proto
         ./OpenFile.proto
-        ./H5ReaderServices.proto
+        ./H5ReaderService.proto
 )
 
 # Add Library target with protobuf sources

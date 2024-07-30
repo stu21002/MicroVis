@@ -1,8 +1,8 @@
 #include "H5Service.h" 
 
 #include <grpcpp/grpcpp.h>
-#include "../proto/H5ReaderServices.grpc.pb.h"
-#include "../proto/H5ReaderServices.pb.h"
+#include "../proto/H5ReaderService.grpc.pb.h"
+#include "../proto/H5ReaderService.pb.h"
 
 #include <string>
 #include <H5Cpp.h>
@@ -57,20 +57,20 @@ using namespace std::chrono;
           
             hdf5_files[request->uuid()] = {file, group};
             
-            FileInfo *fileInfo = response->mutable_file_info();
-            FileInfoExtended *extendedFileInfo = response->mutable_file_info_extended();
+            // FileInfo *fileInfo = response->mutable_file_info();
+            // FileInfoExtended *extendedFileInfo = response->mutable_file_info_extended();
             
-            fileInfo->set_name(file.getFileName());
-            int64_t fileSize = file.getFileSize();     
-            fileInfo->set_size(fileSize);
+            // fileInfo->set_name(file.getFileName());
+            // int64_t fileSize = file.getFileSize();     
+            // fileInfo->set_size(fileSize);
 
-            int numAttrs = group.getNumAttrs();
-            for (int i = 0; i < numAttrs; i++) {
-                H5::Attribute attr = group.openAttribute(i);
-                std::string attrName = attr.getName();
-                fileInfo->add_hdu_list(attrName);
-                appendAttribute(extendedFileInfo,attr);
-            }
+            // int numAttrs = group.getNumAttrs();
+            // for (int i = 0; i < numAttrs; i++) {
+            //     H5::Attribute attr = group.openAttribute(i);
+            //     std::string attrName = attr.getName();
+            //     fileInfo->add_hdu_list(attrName);
+            //     appendAttribute(extendedFileInfo,attr);
+            // }
 
             response->set_message(request->file() + " has been opened.");
             response->set_success(true);
@@ -224,24 +224,18 @@ using namespace std::chrono;
             result_size *= d < count.size() ? count[d]: 1;
         }
 
-        // Calculate the number of bytes needed for the result
         int num_bytes = result_size * sizeof(float);
 
-        // Allocate memory for the entire dataset
         std::vector<float> buffer(result_size);
 
-        // Set up the memory space for reading the data
         H5::DataSpace mem_space(1, &result_size);
 
-        // Select the hyperslab in the file
         data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
 
-        // Read data into the buffer
         dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
         data_space.close();
         dataset.close();
 
-        // const size_t MAX_CHUNK_SIZE = 2048* 2048;
         const size_t MAX_CHUNK_SIZE = 2000* 2000;
 
         size_t offset = 0;
@@ -285,8 +279,7 @@ using namespace std::chrono;
         ServicePrint("Region Request Complete");
         return grpc::Status::OK;
     };
-
-    grpc::Status H5Service::GetSpectralProfileStream(::grpc::ServerContext* context, const ::proto::SpectralProfileRequest* request, ::grpc::ServerWriter< ::proto::SpectralProfileResponse>* writer){
+grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const ::proto::SpectralProfileRequest* request, ::proto::SpectralProfileResponse* response){
                 if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         }
@@ -313,10 +306,9 @@ using namespace std::chrono;
         //     //     /* code */
         //     // }
         //     std::cout<<std::endl;
-         
-        // }
+        //}
 
-        ServicePrint("Spectral Profile Stream Request");
+        ServicePrint("Spectral Profile Request");
 
         std::vector<float> result;
         const hsize_t x = request->x();
@@ -340,43 +332,50 @@ using namespace std::chrono;
         std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
         result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
         
-        // ServicePrint("Reading Complete");
+        const auto num_bytes_sum = num_pixels * sizeof(float);
+        const auto num_bytes_count = num_pixels * sizeof(int);
+    
+        response->mutable_raw_values_fp32()->resize(num_bytes_sum);
+        response->mutable_counts()->resize(num_bytes_count);
 
-        int offset = 0;
-        
-        std::vector<float> sum(num_pixels,0);
-        std::vector<int> counts(num_pixels,0);
-        int xoffset = num_pixels*height;
+        float* sum = reinterpret_cast<float*>(response->mutable_raw_values_fp32()->data());
+        int* counts = reinterpret_cast<int*>(response->mutable_counts()->data());
+        // std::vector<float> sum(num_pixels,0);
+        // std::vector<int> counts(num_pixels,0);
+        // int xoffset = num_pixels*height;
         
         int index = 0;
+
+        // for (size_t i = 0; i < num_pixels; i++)
+        // {
+        //     sum[i]=0;
+        //     counts[i]=0;
+        // }
+
         for (size_t xpos = 0; xpos < width; xpos++) {
             for (size_t ypos = 0; ypos < height; ypos++) {
-                    // int yoffset = ypos * num_pixels + zpos;
-                    for (size_t zpos = 0; zpos < num_pixels; zpos++) {
-                        // int index = xpos * xoffset + yoffset;
-                        float val = result[index++];
-                        if (std::isfinite(val)) {
-                            sum[zpos] += val;
-                            counts[zpos]++;
+                for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+                    float val = result[index++];
+                    if (std::isfinite(val)) {
+                        sum[zpos] += val;
+                        counts[zpos]+=1;
                     }
                 }
             }
         }
 
-
-
         // auto mid = std::chrono::high_resolution_clock::now();
 
-        ::SpectralProfileResponse response;
-        for (size_t i = 0; i < num_pixels; i++){
+        // ::SpectralProfileResponse response;
+        // for (size_t i = 0; i < num_pixels; i++){
 
-            response.add_count(counts[i]);
-            response.add_data(sum[i]);
+        //     response.add_count(counts[i]);
+        //     response.add_data(sum[i]);
 
-        }
+        // }
         // auto mid2 = std::chrono::high_resolution_clock::now();
       
-        writer->Write(response);
+        // writer->Write(response);
         
         // auto end = std::chrono::high_resolution_clock::now();
      
@@ -391,6 +390,7 @@ using namespace std::chrono;
         // ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
+
 
     grpc::Status H5Service::GetHistogram(::grpc::ServerContext* context, const ::proto::HistogramRequest* request, ::proto::HistogramResponse* response){
         
@@ -447,7 +447,7 @@ using namespace std::chrono;
         
         auto end = std::chrono::high_resolution_clock::now();
         auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-        std::cout << "Read : " <<duration1.count() << std::endl;
+        // std::cout << "Read : " <<duration1.count() << std::endl;
 
         // #pragma omp parallel
         //     {
@@ -480,14 +480,11 @@ using namespace std::chrono;
         {
             response->add_bins(bins[i]);
         }
- 
-
-
-        
-         
                
         return grpc::Status::OK;
     }
+
+    //For later if needed
     grpc::Status H5Service::GetHistogramDist(::grpc::ServerContext* context, const ::proto::HistogramDistRequest* request, ::proto::HistogramResponse* response){
         
         ServicePrint("Histogram Request");
@@ -619,3 +616,110 @@ using namespace std::chrono;
         std::cout << "[" << port << "] " << msg << std::endl;
     }
 
+//old
+    grpc::Status H5Service::GetSpectralProfileStream(::grpc::ServerContext* context, const ::proto::SpectralProfileRequest* request, ::grpc::ServerWriter< ::proto::SpectralProfileResponse>* writer){
+        //         if (request->uuid().empty()) {
+        //     return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
+        // }
+
+        // if (hdf5_files.find(request->uuid()) == hdf5_files.end()) {
+        //     return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
+        // }
+        
+
+        // // bool hasMask = false;//!request->mask().empty();
+        // // std::vector<bool> mask_vector;
+
+
+        // // if (hasMask){
+        // //     // const google::protobuf::RepeatedField<bool>& mask_values  = request->mask();
+        // //     // mask_vector.assign(mask_values.begin(), mask_values.end());
+        // //     // // int16_t mask_width = mask.width();
+        // //     // // int16_t mask_height = mask.height();
+
+
+        // //     // for (size_t i = 0; i < mask_vector.size(); i++)
+        // //     // {
+        // //     //     std::cout<<mask_vector[i]<<" ";
+        // //     //     /* code */
+        // //     // }
+        // //     std::cout<<std::endl;
+         
+        // // }
+
+        // ServicePrint("Spectral Profile Stream Request");
+
+        // std::vector<float> result;
+        // const hsize_t x = request->x();
+        // const hsize_t y = request->y();
+        // const hsize_t z = request->z();
+        // const hsize_t width = request->width();
+        // const hsize_t height = request->height();
+        // const hsize_t num_pixels = request->numpixels();
+        
+     
+        // Hdf5_File &h5file = hdf5_files[request->uuid()];
+        // //Possible add perm group to struct
+       
+        // H5::Group permGroup = h5file._group.openGroup("PermutedData");
+
+        // H5::DataSet dataset = permGroup.openDataSet("ZYXW");
+
+        // const hsize_t resultSize = width*height*num_pixels;
+
+        // std::vector<hsize_t> start = {0,x,y,z};
+        // std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
+        // result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
+        
+        //   const auto num_bytes = num_pixels * sizeof(float);
+        // response->mutable_data()->resize(num_bytes);
+
+        // int offset = 0;
+        
+        // std::vector<float> sum(num_pixels,0);
+        // std::vector<int> counts(num_pixels,0);
+        // int xoffset = num_pixels*height;
+        
+        // int index = 0;
+        // for (size_t xpos = 0; xpos < width; xpos++) {
+        //     for (size_t ypos = 0; ypos < height; ypos++) {
+        //             // int yoffset = ypos * num_pixels + zpos;
+        //             for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+        //                 // int index = xpos * xoffset + yoffset;
+        //                 float val = result[index++];
+        //                 if (std::isfinite(val)) {
+        //                     sum[zpos] += val;
+        //                     counts[zpos]++;
+        //             }
+        //         }
+        //     }
+        // }
+
+
+
+        // // auto mid = std::chrono::high_resolution_clock::now();
+
+        // ::SpectralProfileResponse response;
+        // for (size_t i = 0; i < num_pixels; i++){
+
+        //     response.add_count(counts[i]);
+        //     response.add_data(sum[i]);
+
+        // }
+        // // auto mid2 = std::chrono::high_resolution_clock::now();
+      
+        // writer->Write(response);
+        
+        // // auto end = std::chrono::high_resolution_clock::now();
+     
+        // // auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(mid - st);
+        // // auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(mid2 - mid);
+        // // auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end - mid2);
+
+        // // std::cout << "Cal " <<duration1.count() << std::endl;
+        // // std::cout << "App " <<duration2.count() << std::endl;
+        // // std::cout << "Write " <<duration3.count() << std::endl;
+
+        // // ServicePrint("Spectral Profile Stream Complete");
+        return grpc::Status::OK;
+    }

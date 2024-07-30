@@ -1,4 +1,4 @@
-import {  RegionType } from './bin/src/proto/H5ReaderServices';
+import {  RegionType } from './bin/src/proto/H5ReaderService';
 import {H5Reader} from './src/Services/H5Reader'
 import {Hdf5WorkerPool} from './src/Services/Hdf5WorkerPool'
 import { FILEINFO } from './src/test/FILEINFO';
@@ -20,14 +20,7 @@ import { getCoords } from './src/utils/coord';
 // const arg4 = numbers[3];
 // const arg5 = numbers[4];
 
- function bytesToFloat32(bytes: Uint8Array) {
-  if (bytes.byteOffset % 4 !== 0) {
-    const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length);
-    return new Float32Array(copy, 0, bytes.length / 4);
-  } else {
-    return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.length / 4);
-  }
-}
+
  async function main() {
 
     const numWorkers = 1;
@@ -35,7 +28,7 @@ import { getCoords } from './src/utils/coord';
   
     await workerPool.ready();
 
-    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,200,400,400);
+    const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,200,2,2);
     console.log({startingX,startingY,adjustedWidth,adjustedHeight})
     console.log();
 
@@ -61,28 +54,32 @@ import { getCoords } from './src/utils/coord';
     // const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,0,0,0,800,800,0);
     // console.timeEnd("Hist");
     // console.log(histRes.bins.slice(0,6));
+    // console.log();
 
 
 
     // console.time("Spectral Profile");
-    // const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,1917,adjustedWidth,adjustedHeight);
+    // const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,5,adjustedWidth,adjustedHeight);
     // console.log("First five values : " + respones1.spectralData.subarray(0,5));
     // console.timeEnd("Spectral Profile");
     // console.log();
 
-    // console.time("ImageData");
-    // const respones2 = await workerPool.getImageDataStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[200,200,0,0],[1,1,1,1]);
+    console.time("ImageData");
+    const respones2 = await workerPool.getImageDataStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[200,200,0],[200,200,10]);
     // console.log(respones2[0].rawValuesFp32.buffer)
     // console.log(bytesToFloat32(respones2[0].rawValuesFp32));
-    // console.timeEnd("ImageData");
-    // console.log();
-
-    console.time("Spatial");
-    const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
-    console.log(respones3);
-    console.timeEnd("Spatial");
-  
+    console.timeEnd("ImageData");
     console.log();
+    for await (const iterator of respones2) {
+      console.log(await iterator);
+    }
+
+
+    // console.time("Spatial");
+    // const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
+    // // console.log(respones3);
+    // console.timeEnd("Spatial");
+    // console.log();
 
 
     workerPool.closeFile(fileOpenResponse.uuid);

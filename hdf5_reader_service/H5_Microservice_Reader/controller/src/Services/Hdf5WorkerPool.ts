@@ -3,8 +3,8 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { H5Reader } from "./H5Reader";
-import { HistogramResponse, ImageDataResponse, RegionType, SpatialProfile, SpectralProfileResponse } from "../../bin/src/proto/H5ReaderServices";
-import { bytesToFloat32 } from "../utils/arrays";
+import { HistogramResponse, ImageDataResponse, RegionType, SpatialProfile, SpectralProfileResponse } from "../../bin/src/proto/H5ReaderService";
+import { bytesToFloat32, bytesToInt32 } from "../utils/arrays";
 // import { bytesToFloat32 } from "../utils/arrays";
 
 interface DimensionValues {
@@ -28,7 +28,7 @@ export class Hdf5WorkerPool {
     if (numReaders < 1) {
       throw new Error("reader count must be at least 1");
     }
-
+ 
     this.readers = [];
     for (let i = 0; i < numReaders; i++) {
       this.readers.push(new H5Reader(address,startPort + i));
@@ -64,21 +64,22 @@ export class Hdf5WorkerPool {
     const uuid = uuidv4();
     const promises = this.readers.map((reader) => reader.openFile({ directory, file, hdu, uuid }));
     
-    const extendedInfo = (await promises[0]).fileInfoExtended;
-    if (!extendedInfo) {
-      //Should return false, meaning error with opening the file
-      throw new Error("Extended file info is undefined");
-    }
+    // const extendedInfo = (await promises[0]).fileInfoExtended;
+    // if (!extendedInfo) {
+    //   //Should return false, meaning error with opening the file
+    //   throw new Error("Extended file info is undefined");
+    // }
     
-    const dimensionValues: DimensionValues = {
-      width: extendedInfo.width,
-      height: extendedInfo.height,
-      depth: extendedInfo.depth,
-      stokes: extendedInfo.stokes,
-      dims: extendedInfo.dimensions
-    };
+    // const dimensionValues: DimensionValues = {
+    //   width: extendedInfo.width,
+    //   height: extendedInfo.height,
+    //   depth: extendedInfo.depth,
+    //   stokes: extendedInfo.stokes,
+    //   dims: extendedInfo.dimensions
+    // };
     // console.log(dimensionValues);
-    this.fileDims.set(uuid, dimensionValues);
+    // this.fileDims.set(uuid, dimensionValues);
+    
     return Promise.all(promises).then(responses => {
       return responses.every(res => res.success) ? { uuid } : undefined;
     });
@@ -94,18 +95,28 @@ export class Hdf5WorkerPool {
   async getFileInfo(uuid: string,directory:string,file:string,hdu:string) {
     return this.primaryreader?.getFileInfo({ uuid ,directory ,file ,hdu });
   }
-
-  // async getImageData(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
-  //   const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
-  //   return reader?.getRegionData({ uuid, start, count,regionType});
-  // }
-
-
   
   //Refine Method
   async getImageDataStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
-    const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
-    return reader?.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE});
+
+    //possbly add data type
+    const promises = new Array<Promise<ImageDataResponse[]>>
+    if (count.length<=2){
+       promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE}));
+    }
+    else{
+      //Handling distributed reading
+      
+      for (let dim3 = start[2]; dim3 <start[2]+count[2]; dim3++) {
+        const tempStart = [start[0],start[1],dim3]
+        const tempCount = [start[0],start[1],1]
+        console.log("Reader Pushed")
+        promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}))
+        
+      }
+    }
+    return promises;
+
   }
 
   //Relook at this
@@ -173,14 +184,15 @@ export class Hdf5WorkerPool {
     }
 
     const pixelsPerWorker = Math.floor(width / numWorkers);
-    const promises = new Array<Promise<{statistic:Float64Array,counts:Number[]}>>();
+    const promises = new Array<Promise<SpectralProfileResponse>>();
     for (let i = 0; i < numWorkers; i++) {
 
       const xStart = x + i * pixelsPerWorker;
       const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
       const reader = this.readers[i % this.readers.length];
-      promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
-   
+      // promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
+      promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
+
     }
    
     const spectralData = new Float64Array(numPixels);
@@ -189,17 +201,21 @@ export class Hdf5WorkerPool {
     return Promise.all(promises).then(res => {
       //Adding values as they come in, avoids heap error
       for (const response of res) {
-          response.statistic.forEach((value,index)=>{
-            statistic[index]+=value;
-          })
-          response.counts.forEach((value,index)=>{
-            counts[index]+=value;
-          })
+          const values = bytesToFloat32(response.rawValuesFp32);
+          const count = bytesToInt32(response.counts);
+
+        for (let index = 0; index < numPixels; index++) {
+          statistic[index]+=values[index];
+          counts[index]+=count[index];  
+        }
       }
 
-      spectralData.forEach((value,index)=>{
-        spectralData[index]=statistic[index]/counts[index]
-      })
+      for (let index = 0; index < numPixels; index++) {
+          console.log(statistic);
+          console.log(counts);
+        spectralData[index]=statistic[index]/counts[index]      
+      }
+
       return {spectralData} ;
     });
   }

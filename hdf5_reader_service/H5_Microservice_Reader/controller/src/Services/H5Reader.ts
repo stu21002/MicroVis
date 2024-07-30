@@ -2,7 +2,7 @@
 //Provides access to all endpoints of the hdf5 reader microservice 
 import {
 Empty, 
-H5ReaderServicesClient,
+H5ReadersClient,
 HistogramDistRequest,
 HistogramRequest,
 HistogramResponse,
@@ -10,7 +10,7 @@ ImageDataRequest,
 ImageDataResponse,
 SpectralProfileRequest, SpectralProfileResponse,
 StatusResponse,
-} from "../../bin/src/proto/H5ReaderServices";
+} from "../../bin/src/proto/H5ReaderService";
 import { FileInfoRequest, FileInfoResponse } from "../../bin/src/proto/FileInfo";
 import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "../../bin/src/proto/OpenFile";
 
@@ -24,9 +24,9 @@ import { promisify } from "util";
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
     readonly getImageDataStream: (request: ImageDataRequest) => Promise<ImageDataResponse[]>;
-    readonly getSpectralProfileStream: (request: SpectralProfileRequest) =>Promise<{statistic:Float64Array,counts:Number[]}>;
+    // readonly getSpectralProfileStream: (request: SpectralProfileRequest) =>Promise<{statistic:Float64Array,counts:Number[]}>;
     
-    // readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
+    readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
     // readonly getRegionData: (request: RegionDataRequest) => Promise<RegionDataResponse>;
     readonly getHistogram: (request: HistogramRequest) =>Promise<HistogramResponse>;
     readonly getHistogramDist: (request: HistogramDistRequest) =>Promise<HistogramResponse>;
@@ -56,13 +56,13 @@ import { promisify } from "util";
   
     constructor(address:string,port: number = 8080) {
       const WORKER_URL = `${address}:${port}`;
-      const client = new H5ReaderServicesClient(WORKER_URL, credentials.createInsecure());
+      const client = new H5ReadersClient(WORKER_URL, credentials.createInsecure());
   
       //Linking 
       this.checkStatus = promisify<Empty, StatusResponse>(client.checkStatus).bind(client);
       this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(client.getFileInfo).bind(client);
       // this.getRegionData = promisify<RegionDataRequest, RegionDataResponse>(client.getRegion).bind(client);
-      // this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
+      this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
       this.openFile = promisify<OpenFileRequest, OpenFileACK>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
 
@@ -89,35 +89,35 @@ import { promisify } from "util";
         });
       };
 
-      this.getSpectralProfileStream = (request: SpectralProfileRequest) => {
-        return new Promise<{statistic:Float64Array,counts:Number[]}>((resolve, reject) => {
-          const call = client.getSpectralProfileStream(request);
-          // const responses: SpectralProfileResponse[] = [];
-          const statistic = new Float64Array(request.numPixels).fill(0);
-          const counts = Array(request.numPixels).fill(0);
-          call.on('data', (response: SpectralProfileResponse) => {
-            // responses.push(response);
-            response.data.forEach((value,index) =>{
-              if (isFinite(value)){
-                statistic[index]=value;
-              }
-            })
-            response.count.forEach((value,index) =>{
-              if (isFinite(value)){
-                counts[index]=value;
-              }
-            })
-          });
+      // this.getSpectralProfileStream = (request: SpectralProfileRequest) => {
+      //   return new Promise<{statistic:Float64Array,counts:Number[]}>((resolve, reject) => {
+      //     const call = client.getSpectralProfileStream(request);
+      //     // const responses: SpectralProfileResponse[] = [];
+      //     const statistic = new Float64Array(request.numPixels).fill(0);
+      //     const counts = Array(request.numPixels).fill(0);
+      //     call.on('data', (response: SpectralProfileResponse) => {
+      //       // responses.push(response);
+      //       response.data.forEach((value,index) =>{
+      //         if (isFinite(value)){
+      //           statistic[index]=value;
+      //         }
+      //       })
+      //       response.count.forEach((value,index) =>{
+      //         if (isFinite(value)){
+      //           counts[index]=value;
+      //         }
+      //       })
+      //     });
   
-          call.on('end', () => {
-            resolve({statistic,counts});
-          });
+      //     call.on('end', () => {
+      //       resolve({statistic,counts});
+      //     });
   
-          call.on('error', (err) => {
-            reject(err);
-          });
-        });
-      };
+      //     call.on('error', (err) => {
+      //       reject(err);
+      //     });
+      //   });
+      // };
 
       client.waitForReady(Date.now() + 4000, (err) => {
         if (err) {

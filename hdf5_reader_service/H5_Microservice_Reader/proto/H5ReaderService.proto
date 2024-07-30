@@ -62,9 +62,10 @@ message SpectralProfileRequest {
 
 //Change TO Bytes
 message SpectralProfileResponse {
-  repeated float data = 1;
-  repeated int32 count = 2;
-  // bytes data = 1;
+  // repeated float data = 1;
+  // repeated int32 count = 2;
+  bytes raw_values_fp32 = 1;
+  bytes counts=2;
 }
 
 message HistogramRequest {
@@ -111,19 +112,41 @@ message SpatialProfile {
   // sfixed32 mip = 5;
 }
 
-service H5ReaderServices{
+service H5Readers{
   rpc CheckStatus(Empty) returns  (StatusResponse) {}
 
   rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
   rpc GetImageDataStream (ImageDataRequest) returns (stream ImageDataResponse) {}
-  rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
-  rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
 
+  rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
+  rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
+  
+  rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
   rpc GetHistogramDist (HistogramDistRequest) returns (HistogramResponse) {}
 
   // rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
-  // rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
 
+}
+
+message SetSpatialReq {
+  sfixed32 x = 1;
+  sfixed32 y = 2;
+}
+
+message SpatialProfileData{
+  string file_id = 1;
+  repeated SpatialProfile profiles = 2;
+}
+
+service H5Services{
+  rpc CheckStatus(Empty) returns  (StatusResponse) {}
+  rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
+  rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
+  rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
+  rpc GetImageDataStream (ImageDataRequest) returns (stream ImageDataResponse) {}
+  rpc GetSpatialProfile (SetSpatialReq) returns (SpatialProfileData) {}
+  rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {} 
+  rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
 }
