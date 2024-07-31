@@ -131,12 +131,23 @@ service H5Readers{
 }
 
 message SetSpatialReq {
-  sfixed32 x = 1;
-  sfixed32 y = 2;
+  string uuid = 1;
+  sfixed32 x = 2;
+  sfixed32 y = 3;
+}
+message SetHistogramReq {
+  string uuid = 1;
+  sfixed32 x = 2;
+  sfixed32 y = 3;
+  sfixed32 z = 4;
+  sfixed32 width = 5;
+  sfixed32 height = 6;
+  sfixed32 depth = 7;
+
 }
 
 message SpatialProfileData{
-  string file_id = 1;
+  string uuid = 1;
   repeated SpatialProfile profiles = 2;
 }
 
@@ -148,5 +159,5 @@ service H5Services{
   rpc GetImageDataStream (ImageDataRequest) returns (stream ImageDataResponse) {}
   rpc GetSpatialProfile (SetSpatialReq) returns (SpatialProfileData) {}
   rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {} 
-  rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
+  rpc GetHistogram (SetHistogramReq) returns (HistogramResponse) {}
 }

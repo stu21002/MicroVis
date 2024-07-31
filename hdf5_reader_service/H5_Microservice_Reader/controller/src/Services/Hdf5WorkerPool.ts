@@ -7,18 +7,10 @@ import { HistogramResponse, ImageDataResponse, RegionType, SpatialProfile, Spect
 import { bytesToFloat32, bytesToInt32 } from "../utils/arrays";
 // import { bytesToFloat32 } from "../utils/arrays";
 
-interface DimensionValues {
-  width: number;
-  height: number;
-  depth?: number;
-  stokes?: number;
-  dims:number;
-}
 
 export class Hdf5WorkerPool {
   readonly readers: H5Reader[];
 
-  readonly fileDims: Map<string,DimensionValues > = new Map();
 
   ready() {
     return Promise.all(this.readers.map((reader) => reader.ready()));
@@ -64,22 +56,6 @@ export class Hdf5WorkerPool {
     const uuid = uuidv4();
     const promises = this.readers.map((reader) => reader.openFile({ directory, file, hdu, uuid }));
     
-    // const extendedInfo = (await promises[0]).fileInfoExtended;
-    // if (!extendedInfo) {
-    //   //Should return false, meaning error with opening the file
-    //   throw new Error("Extended file info is undefined");
-    // }
-    
-    // const dimensionValues: DimensionValues = {
-    //   width: extendedInfo.width,
-    //   height: extendedInfo.height,
-    //   depth: extendedInfo.depth,
-    //   stokes: extendedInfo.stokes,
-    //   dims: extendedInfo.dimensions
-    // };
-    // console.log(dimensionValues);
-    // this.fileDims.set(uuid, dimensionValues);
-    
     return Promise.all(promises).then(responses => {
       return responses.every(res => res.success) ? { uuid } : undefined;
     });
@@ -101,50 +77,42 @@ export class Hdf5WorkerPool {
 
     //possbly add data type
     const promises = new Array<Promise<ImageDataResponse[]>>
-    if (count.length<=2){
+    if (count.length<=2 || count[3]==1){
+      console.log("single")
+
        promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE}));
     }
     else{
       //Handling distributed reading
-      
+      console.log("multi")
       for (let dim3 = start[2]; dim3 <start[2]+count[2]; dim3++) {
         const tempStart = [start[0],start[1],dim3]
-        const tempCount = [start[0],start[1],1]
-        console.log("Reader Pushed")
+        const tempCount = [count[0],count[1],1]
         promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}))
         
       }
     }
+  
     return promises;
 
   }
 
-  //Relook at this
-  async getSpatial(uuid:string,x:number,y:number){
-    // if (this.readers.length = 1){
-      // const promises = new Array<Promise<{xProfile:number[],yProfile:number[]}>>();
-
-      const dims =  this.fileDims.get(uuid);
-      if (!dims) {
-        //Should return false, meaning file no longer open
-        throw new Error("Extended file info is undefined");
-      }
-
-
+  
+  async getSpatial(uuid:string,x:number,y:number,width:number,height:number){
 
       const promises = new Array<Promise<ImageDataResponse[]>>
 
       if (this.readers.length==1){
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
         //x
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
       }
       else{
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,dims.height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
         //x
-        promises.push(( this.readers[1].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[dims.width,1,1,1]})))
+        promises.push(( this.readers[1].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
       }
      
 
@@ -178,7 +146,7 @@ export class Hdf5WorkerPool {
 
   //Cube Hist?? Mostly fits
   
-  async getSpectralProfileStream(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,regionType?:RegionType,diameter?:number,numWorkers?: number) {
+  async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,regionType?:RegionType,diameter?:number,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
@@ -195,8 +163,8 @@ export class Hdf5WorkerPool {
 
     }
    
-    const spectralData = new Float64Array(numPixels);
-    const statistic = new Float64Array(numPixels).fill(0);
+    const spectralData = new Float32Array(numPixels);
+    const statistic = new Float32Array(numPixels).fill(0);
     const counts = Array(numPixels).fill(0);
     return Promise.all(promises).then(res => {
       //Adding values as they come in, avoids heap error
@@ -211,8 +179,6 @@ export class Hdf5WorkerPool {
       }
 
       for (let index = 0; index < numPixels; index++) {
-          console.log(statistic);
-          console.log(counts);
         spectralData[index]=statistic[index]/counts[index]      
       }
 

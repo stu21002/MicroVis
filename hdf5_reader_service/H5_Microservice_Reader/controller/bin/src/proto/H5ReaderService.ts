@@ -167,12 +167,23 @@ export interface SpatialProfile {
 }
 
 export interface SetSpatialReq {
+  uuid: string;
   x: number;
   y: number;
 }
 
+export interface SetHistogramReq {
+  uuid: string;
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  depth: number;
+}
+
 export interface SpatialProfileData {
-  fileId: string;
+  uuid: string;
   profiles: SpatialProfile[];
 }
 
@@ -1398,16 +1409,19 @@ export const SpatialProfile = {
 };
 
 function createBaseSetSpatialReq(): SetSpatialReq {
-  return { x: 0, y: 0 };
+  return { uuid: "", x: 0, y: 0 };
 }
 
 export const SetSpatialReq = {
   encode(message: SetSpatialReq, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.uuid !== "") {
+      writer.uint32(10).string(message.uuid);
+    }
     if (message.x !== 0) {
-      writer.uint32(13).sfixed32(message.x);
+      writer.uint32(21).sfixed32(message.x);
     }
     if (message.y !== 0) {
-      writer.uint32(21).sfixed32(message.y);
+      writer.uint32(29).sfixed32(message.y);
     }
     return writer;
   },
@@ -1420,14 +1434,21 @@ export const SetSpatialReq = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          if (tag !== 13) {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.uuid = reader.string();
+          continue;
+        case 2:
+          if (tag !== 21) {
             break;
           }
 
           message.x = reader.sfixed32();
           continue;
-        case 2:
-          if (tag !== 21) {
+        case 3:
+          if (tag !== 29) {
             break;
           }
 
@@ -1444,6 +1465,7 @@ export const SetSpatialReq = {
 
   fromJSON(object: any): SetSpatialReq {
     return {
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
       x: isSet(object.x) ? globalThis.Number(object.x) : 0,
       y: isSet(object.y) ? globalThis.Number(object.y) : 0,
     };
@@ -1451,6 +1473,9 @@ export const SetSpatialReq = {
 
   toJSON(message: SetSpatialReq): unknown {
     const obj: any = {};
+    if (message.uuid !== "") {
+      obj.uuid = message.uuid;
+    }
     if (message.x !== 0) {
       obj.x = Math.round(message.x);
     }
@@ -1465,20 +1490,170 @@ export const SetSpatialReq = {
   },
   fromPartial<I extends Exact<DeepPartial<SetSpatialReq>, I>>(object: I): SetSpatialReq {
     const message = createBaseSetSpatialReq();
+    message.uuid = object.uuid ?? "";
     message.x = object.x ?? 0;
     message.y = object.y ?? 0;
     return message;
   },
 };
 
+function createBaseSetHistogramReq(): SetHistogramReq {
+  return { uuid: "", x: 0, y: 0, z: 0, width: 0, height: 0, depth: 0 };
+}
+
+export const SetHistogramReq = {
+  encode(message: SetHistogramReq, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.uuid !== "") {
+      writer.uint32(10).string(message.uuid);
+    }
+    if (message.x !== 0) {
+      writer.uint32(21).sfixed32(message.x);
+    }
+    if (message.y !== 0) {
+      writer.uint32(29).sfixed32(message.y);
+    }
+    if (message.z !== 0) {
+      writer.uint32(37).sfixed32(message.z);
+    }
+    if (message.width !== 0) {
+      writer.uint32(45).sfixed32(message.width);
+    }
+    if (message.height !== 0) {
+      writer.uint32(53).sfixed32(message.height);
+    }
+    if (message.depth !== 0) {
+      writer.uint32(61).sfixed32(message.depth);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): SetHistogramReq {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSetHistogramReq();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.uuid = reader.string();
+          continue;
+        case 2:
+          if (tag !== 21) {
+            break;
+          }
+
+          message.x = reader.sfixed32();
+          continue;
+        case 3:
+          if (tag !== 29) {
+            break;
+          }
+
+          message.y = reader.sfixed32();
+          continue;
+        case 4:
+          if (tag !== 37) {
+            break;
+          }
+
+          message.z = reader.sfixed32();
+          continue;
+        case 5:
+          if (tag !== 45) {
+            break;
+          }
+
+          message.width = reader.sfixed32();
+          continue;
+        case 6:
+          if (tag !== 53) {
+            break;
+          }
+
+          message.height = reader.sfixed32();
+          continue;
+        case 7:
+          if (tag !== 61) {
+            break;
+          }
+
+          message.depth = reader.sfixed32();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SetHistogramReq {
+    return {
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
+      x: isSet(object.x) ? globalThis.Number(object.x) : 0,
+      y: isSet(object.y) ? globalThis.Number(object.y) : 0,
+      z: isSet(object.z) ? globalThis.Number(object.z) : 0,
+      width: isSet(object.width) ? globalThis.Number(object.width) : 0,
+      height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+      depth: isSet(object.depth) ? globalThis.Number(object.depth) : 0,
+    };
+  },
+
+  toJSON(message: SetHistogramReq): unknown {
+    const obj: any = {};
+    if (message.uuid !== "") {
+      obj.uuid = message.uuid;
+    }
+    if (message.x !== 0) {
+      obj.x = Math.round(message.x);
+    }
+    if (message.y !== 0) {
+      obj.y = Math.round(message.y);
+    }
+    if (message.z !== 0) {
+      obj.z = Math.round(message.z);
+    }
+    if (message.width !== 0) {
+      obj.width = Math.round(message.width);
+    }
+    if (message.height !== 0) {
+      obj.height = Math.round(message.height);
+    }
+    if (message.depth !== 0) {
+      obj.depth = Math.round(message.depth);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SetHistogramReq>, I>>(base?: I): SetHistogramReq {
+    return SetHistogramReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SetHistogramReq>, I>>(object: I): SetHistogramReq {
+    const message = createBaseSetHistogramReq();
+    message.uuid = object.uuid ?? "";
+    message.x = object.x ?? 0;
+    message.y = object.y ?? 0;
+    message.z = object.z ?? 0;
+    message.width = object.width ?? 0;
+    message.height = object.height ?? 0;
+    message.depth = object.depth ?? 0;
+    return message;
+  },
+};
+
 function createBaseSpatialProfileData(): SpatialProfileData {
-  return { fileId: "", profiles: [] };
+  return { uuid: "", profiles: [] };
 }
 
 export const SpatialProfileData = {
   encode(message: SpatialProfileData, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.fileId !== "") {
-      writer.uint32(10).string(message.fileId);
+    if (message.uuid !== "") {
+      writer.uint32(10).string(message.uuid);
     }
     for (const v of message.profiles) {
       SpatialProfile.encode(v!, writer.uint32(18).fork()).ldelim();
@@ -1498,7 +1673,7 @@ export const SpatialProfileData = {
             break;
           }
 
-          message.fileId = reader.string();
+          message.uuid = reader.string();
           continue;
         case 2:
           if (tag !== 18) {
@@ -1518,7 +1693,7 @@ export const SpatialProfileData = {
 
   fromJSON(object: any): SpatialProfileData {
     return {
-      fileId: isSet(object.fileId) ? globalThis.String(object.fileId) : "",
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
       profiles: globalThis.Array.isArray(object?.profiles)
         ? object.profiles.map((e: any) => SpatialProfile.fromJSON(e))
         : [],
@@ -1527,8 +1702,8 @@ export const SpatialProfileData = {
 
   toJSON(message: SpatialProfileData): unknown {
     const obj: any = {};
-    if (message.fileId !== "") {
-      obj.fileId = message.fileId;
+    if (message.uuid !== "") {
+      obj.uuid = message.uuid;
     }
     if (message.profiles?.length) {
       obj.profiles = message.profiles.map((e) => SpatialProfile.toJSON(e));
@@ -1541,7 +1716,7 @@ export const SpatialProfileData = {
   },
   fromPartial<I extends Exact<DeepPartial<SpatialProfileData>, I>>(object: I): SpatialProfileData {
     const message = createBaseSpatialProfileData();
-    message.fileId = object.fileId ?? "";
+    message.uuid = object.uuid ?? "";
     message.profiles = object.profiles?.map((e) => SpatialProfile.fromPartial(e)) || [];
     return message;
   },
@@ -1845,8 +2020,8 @@ export const H5ServicesService = {
     path: "/proto.H5Services/GetHistogram",
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: HistogramRequest) => Buffer.from(HistogramRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer) => HistogramRequest.decode(value),
+    requestSerialize: (value: SetHistogramReq) => Buffer.from(SetHistogramReq.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => SetHistogramReq.decode(value),
     responseSerialize: (value: HistogramResponse) => Buffer.from(HistogramResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer) => HistogramResponse.decode(value),
   },
@@ -1860,7 +2035,7 @@ export interface H5ServicesServer extends UntypedServiceImplementation {
   getImageDataStream: handleServerStreamingCall<ImageDataRequest, ImageDataResponse>;
   getSpatialProfile: handleUnaryCall<SetSpatialReq, SpatialProfileData>;
   getSpectralProfile: handleUnaryCall<SpectralProfileRequest, SpectralProfileResponse>;
-  getHistogram: handleUnaryCall<HistogramRequest, HistogramResponse>;
+  getHistogram: handleUnaryCall<SetHistogramReq, HistogramResponse>;
 }
 
 export interface H5ServicesClient extends Client {
@@ -1964,16 +2139,16 @@ export interface H5ServicesClient extends Client {
     callback: (error: ServiceError | null, response: SpectralProfileResponse) => void,
   ): ClientUnaryCall;
   getHistogram(
-    request: HistogramRequest,
+    request: SetHistogramReq,
     callback: (error: ServiceError | null, response: HistogramResponse) => void,
   ): ClientUnaryCall;
   getHistogram(
-    request: HistogramRequest,
+    request: SetHistogramReq,
     metadata: Metadata,
     callback: (error: ServiceError | null, response: HistogramResponse) => void,
   ): ClientUnaryCall;
   getHistogram(
-    request: HistogramRequest,
+    request: SetHistogramReq,
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: HistogramResponse) => void,

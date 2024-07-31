@@ -89,36 +89,6 @@ import { promisify } from "util";
         });
       };
 
-      // this.getSpectralProfileStream = (request: SpectralProfileRequest) => {
-      //   return new Promise<{statistic:Float64Array,counts:Number[]}>((resolve, reject) => {
-      //     const call = client.getSpectralProfileStream(request);
-      //     // const responses: SpectralProfileResponse[] = [];
-      //     const statistic = new Float64Array(request.numPixels).fill(0);
-      //     const counts = Array(request.numPixels).fill(0);
-      //     call.on('data', (response: SpectralProfileResponse) => {
-      //       // responses.push(response);
-      //       response.data.forEach((value,index) =>{
-      //         if (isFinite(value)){
-      //           statistic[index]=value;
-      //         }
-      //       })
-      //       response.count.forEach((value,index) =>{
-      //         if (isFinite(value)){
-      //           counts[index]=value;
-      //         }
-      //       })
-      //     });
-  
-      //     call.on('end', () => {
-      //       resolve({statistic,counts});
-      //     });
-  
-      //     call.on('error', (err) => {
-      //       reject(err);
-      //     });
-      //   });
-      // };
-
       client.waitForReady(Date.now() + 4000, (err) => {
         if (err) {
           console.log(port + " : false")

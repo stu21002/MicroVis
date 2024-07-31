@@ -13,14 +13,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Hdf5WorkerPool = void 0;
 const uuid_1 = require("uuid");
 const H5Reader_1 = require("./H5Reader");
-const H5Readers_1 = require("../../bin/src/proto/H5Readers");
+const H5ReaderService_1 = require("../../bin/src/proto/H5ReaderService");
 const arrays_1 = require("../utils/arrays");
+// import { bytesToFloat32 } from "../utils/arrays";
 class Hdf5WorkerPool {
     ready() {
         return Promise.all(this.readers.map((reader) => reader.ready()));
     }
     constructor(numReaders = 4, address, startPort = 8080) {
-        this.fileDims = new Map();
         if (numReaders < 1) {
             throw new Error("reader count must be at least 1");
         }
@@ -55,20 +55,6 @@ class Hdf5WorkerPool {
             //TODO Create map with uuid including important headers
             const uuid = (0, uuid_1.v4)();
             const promises = this.readers.map((reader) => reader.openFile({ directory, file, hdu, uuid }));
-            const extendedInfo = (yield promises[0]).fileInfoExtended;
-            if (!extendedInfo) {
-                //Should return false, meaning error with opening the file
-                throw new Error("Extended file info is undefined");
-            }
-            const dimensionValues = {
-                width: extendedInfo.width,
-                height: extendedInfo.height,
-                depth: extendedInfo.depth,
-                stokes: extendedInfo.stokes,
-                dims: extendedInfo.dimensions
-            };
-            // console.log(dimensionValues);
-            this.fileDims.set(uuid, dimensionValues);
             return Promise.all(promises).then(responses => {
                 return responses.every(res => res.success) ? { uuid } : undefined;
             });
@@ -88,53 +74,41 @@ class Hdf5WorkerPool {
             return (_a = this.primaryreader) === null || _a === void 0 ? void 0 : _a.getFileInfo({ uuid, directory, file, hdu });
         });
     }
-    // async getImageData(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
-    //   const reader = readerIndex !== undefined ? this.readers[readerIndex] : this.randomConnectedreader;
-    //   return reader?.getRegionData({ uuid, start, count,regionType});
-    // }
     //Refine Method
     getImageDataStream(uuid, regionType, start, count, readerIndex) {
         return __awaiter(this, void 0, void 0, function* () {
             //possbly add data type
             const promises = new Array;
-            if (count.length <= 2) {
-                promises.push(this.randomConnectedreader.getImageDataStream({ uuid, start, count, regionType: H5Readers_1.RegionType.RECTANGLE }));
+            if (count.length <= 2 || count[3] == 1) {
+                console.log("single");
+                promises.push(this.randomConnectedreader.getImageDataStream({ uuid, start, count, regionType: H5ReaderService_1.RegionType.RECTANGLE }));
             }
             else {
                 //Handling distributed reading
+                console.log("multi");
                 for (let dim3 = start[2]; dim3 < start[2] + count[2]; dim3++) {
                     const tempStart = [start[0], start[1], dim3];
-                    const tempCount = [start[0], start[1], 1];
-                    console.log("Reader Pushed");
-                    promises.push(this.randomConnectedreader.getImageDataStream({ uuid, start: tempStart, count: tempCount, regionType: H5Readers_1.RegionType.RECTANGLE }));
+                    const tempCount = [count[0], count[1], 1];
+                    promises.push(this.randomConnectedreader.getImageDataStream({ uuid, start: tempStart, count: tempCount, regionType: H5ReaderService_1.RegionType.RECTANGLE }));
                 }
             }
             return promises;
-            return Promise.all(promises);
         });
     }
-    //Relook at this
-    getSpatial(uuid, x, y) {
+    getSpatial(uuid, x, y, width, height) {
         return __awaiter(this, void 0, void 0, function* () {
-            // if (this.readers.length = 1){
-            // const promises = new Array<Promise<{xProfile:number[],yProfile:number[]}>>();
-            const dims = this.fileDims.get(uuid);
-            if (!dims) {
-                //Should return false, meaning file no longer open
-                throw new Error("Extended file info is undefined");
-            }
             const promises = new Array;
             if (this.readers.length == 1) {
                 //y
-                promises.push((this.readers[0].getImageDataStream({ uuid, regionType: H5Readers_1.RegionType.LINE, start: [x, 0, 0, 0], count: [1, dims.height, 1, 1] })));
+                promises.push((this.readers[0].getImageDataStream({ uuid, regionType: H5ReaderService_1.RegionType.LINE, start: [x, 0, 0, 0], count: [1, height, 1, 1] })));
                 //x
-                promises.push((this.readers[0].getImageDataStream({ uuid, regionType: H5Readers_1.RegionType.LINE, start: [0, y, 0, 0], count: [dims.width, 1, 1, 1] })));
+                promises.push((this.readers[0].getImageDataStream({ uuid, regionType: H5ReaderService_1.RegionType.LINE, start: [0, y, 0, 0], count: [width, 1, 1, 1] })));
             }
             else {
                 //y
-                promises.push((this.readers[0].getImageDataStream({ uuid, regionType: H5Readers_1.RegionType.LINE, start: [x, 0, 0, 0], count: [1, dims.height, 1, 1] })));
+                promises.push((this.readers[0].getImageDataStream({ uuid, regionType: H5ReaderService_1.RegionType.LINE, start: [x, 0, 0, 0], count: [1, height, 1, 1] })));
                 //x
-                promises.push((this.readers[1].getImageDataStream({ uuid, regionType: H5Readers_1.RegionType.LINE, start: [0, y, 0, 0], count: [dims.width, 1, 1, 1] })));
+                promises.push((this.readers[1].getImageDataStream({ uuid, regionType: H5ReaderService_1.RegionType.LINE, start: [0, y, 0, 0], count: [width, 1, 1, 1] })));
             }
             return Promise.all(promises).then(([yImageData, xImageData]) => {
                 const profiles = [];
@@ -161,7 +135,7 @@ class Hdf5WorkerPool {
         });
     }
     //Cube Hist?? Mostly fits
-    getSpectralProfileStream(uuid_2, x_1, y_1, z_1, numPixels_1) {
+    getSpectralProfile(uuid_2, x_1, y_1, z_1, numPixels_1) {
         return __awaiter(this, arguments, void 0, function* (uuid, x, y, z, numPixels, width = 1, height = 1, regionType, diameter, numWorkers) {
             if (!numWorkers) {
                 numWorkers = this.readers.length;
@@ -173,10 +147,10 @@ class Hdf5WorkerPool {
                 const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
                 const reader = this.readers[i % this.readers.length];
                 // promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
-                promises.push(reader.getSpectralProfile({ uuid, regionType: H5Readers_1.RegionType.RECTANGLE, x: xStart, y, z, width: numPixelsInChunk, height, numPixels }));
+                promises.push(reader.getSpectralProfile({ uuid, regionType: H5ReaderService_1.RegionType.RECTANGLE, x: xStart, y, z, width: numPixelsInChunk, height, numPixels }));
             }
-            const spectralData = new Float64Array(numPixels);
-            const statistic = new Float64Array(numPixels).fill(0);
+            const spectralData = new Float32Array(numPixels);
+            const statistic = new Float32Array(numPixels).fill(0);
             const counts = Array(numPixels).fill(0);
             return Promise.all(promises).then(res => {
                 //Adding values as they come in, avoids heap error
@@ -189,8 +163,6 @@ class Hdf5WorkerPool {
                     }
                 }
                 for (let index = 0; index < numPixels; index++) {
-                    console.log(statistic);
-                    console.log(counts);
                     spectralData[index] = statistic[index] / counts[index];
                 }
                 return { spectralData };

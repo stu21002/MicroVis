@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.H5Reader = void 0;
-//adapted from https://github.com/CARTAvis/fits_reader_microservice/tree/main by Angus
-//Provides access to all endpoints of the hdf5 reader microservice 
-const H5ReaderService_1 = require("../../bin/src/proto/H5ReaderService");
+exports.Ingres = void 0;
 const grpc_js_1 = require("@grpc/grpc-js");
+const H5ReaderService_1 = require("./bin/src/proto/H5ReaderService");
 const util_1 = require("util");
-class H5Reader {
+class Ingres {
     get connected() {
         return this._connected;
     }
@@ -20,25 +18,26 @@ class H5Reader {
             this._rejectResolves.push(reject);
         });
     }
-    constructor(address, port = 8080) {
+    constructor(address, port = 8079) {
         //Spacital Profiles, getImageData for all X given a Y and visa versa...
         this._connected = false;
         this._readyResolves = [];
         this._rejectResolves = [];
-        const WORKER_URL = `${address}:${port}`;
-        const client = new H5ReaderService_1.H5ReadersClient(WORKER_URL, grpc_js_1.credentials.createInsecure());
+        const WORKER_POOL_URL = `${address}:${port}`;
+        const workerPoolConn = new H5ReaderService_1.H5ServicesClient(WORKER_POOL_URL, grpc_js_1.credentials.createInsecure());
         //Linking 
-        this.checkStatus = (0, util_1.promisify)(client.checkStatus).bind(client);
-        this.getFileInfo = (0, util_1.promisify)(client.getFileInfo).bind(client);
+        this.checkStatus = (0, util_1.promisify)(workerPoolConn.checkStatus).bind(workerPoolConn);
+        this.getFileInfo = (0, util_1.promisify)(workerPoolConn.getFileInfo).bind(workerPoolConn);
+        this.openFile = (0, util_1.promisify)(workerPoolConn.openFile).bind(workerPoolConn);
+        this.closeFile = (0, util_1.promisify)(workerPoolConn.closeFile).bind(workerPoolConn);
         // this.getRegionData = promisify<RegionDataRequest, RegionDataResponse>(client.getRegion).bind(client);
-        this.getSpectralProfile = (0, util_1.promisify)(client.getSpectralProfile).bind(client);
-        this.openFile = (0, util_1.promisify)(client.openFile).bind(client);
-        this.closeFile = (0, util_1.promisify)(client.closeFile).bind(client);
-        this.getHistogram = (0, util_1.promisify)(client.getHistogram).bind(client);
-        this.getHistogramDist = (0, util_1.promisify)(client.getHistogramDist).bind(client);
+        this.getSpectralProfile = (0, util_1.promisify)(workerPoolConn.getSpectralProfile).bind(workerPoolConn);
+        this.getSpatialProfile = (0, util_1.promisify)(workerPoolConn.getSpatialProfile).bind(workerPoolConn);
+        this.getHistogram = (0, util_1.promisify)(workerPoolConn.getHistogram).bind(workerPoolConn);
+        //   this.getHistogramDist = promisify<HistogramDistRequest, HistogramResponse>(workerPoolConn.getHistogramDist).bind(workerPoolConn);
         this.getImageDataStream = (request) => {
             return new Promise((resolve, reject) => {
-                const call = client.getImageDataStream(request);
+                const call = workerPoolConn.getImageDataStream(request);
                 const imageDataResponses = [];
                 call.on('data', (response) => {
                     //Possible Conditions
@@ -52,7 +51,7 @@ class H5Reader {
                 });
             });
         };
-        client.waitForReady(Date.now() + 4000, (err) => {
+        workerPoolConn.waitForReady(Date.now() + 4000, (err) => {
             if (err) {
                 console.log(port + " : false");
                 console.error(err);
@@ -71,4 +70,4 @@ class H5Reader {
         });
     }
 }
-exports.H5Reader = H5Reader;
+exports.Ingres = Ingres;

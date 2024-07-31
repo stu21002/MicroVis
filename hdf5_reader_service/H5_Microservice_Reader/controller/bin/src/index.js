@@ -16,8 +16,11 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const H5Readers_1 = require("./bin/src/proto/H5Readers");
+const H5ReaderService_1 = require("./bin/src/proto/H5ReaderService");
+const ingres_1 = require("./ingres");
+const H5Services_1 = require("./src/Services/H5Services");
 const Hdf5WorkerPool_1 = require("./src/Services/Hdf5WorkerPool");
+const arrays_1 = require("./src/utils/arrays");
 const coord_1 = require("./src/utils/coord");
 // const args = process.argv.slice(2); // slice(2) removes the first two elements which are 'node' and the script name
 // if (args.length === 0) {
@@ -32,13 +35,13 @@ const coord_1 = require("./src/utils/coord");
 // const arg3 = numbers[2];
 // const arg4 = numbers[3];
 // const arg5 = numbers[4];
+const { startingX, startingY, adjustedWidth, adjustedHeight } = (0, coord_1.getCoords)(600, 600, 400, 400);
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, e_1, _b, _c;
         const numWorkers = 1;
         const workerPool = new Hdf5WorkerPool_1.Hdf5WorkerPool(numWorkers, "0.0.0.0", 8080);
         yield workerPool.ready();
-        const { startingX, startingY, adjustedWidth, adjustedHeight } = (0, coord_1.getCoords)(600, 200, 2, 2);
         console.log({ startingX, startingY, adjustedWidth, adjustedHeight });
         console.log();
         console.time("getStatus");
@@ -53,18 +56,18 @@ function main() {
         }
         console.timeEnd("OpenFile");
         console.log();
-        // console.time("Hist");
-        // const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,0,0,0,800,800,0);
-        // console.timeEnd("Hist");
-        // console.log(histRes.bins.slice(0,6));
-        // console.log();
-        // console.time("Spectral Profile");
-        // const respones1 = await workerPool.getSpectralProfileStream(fileOpenResponse.uuid,startingX,startingY,0,5,adjustedWidth,adjustedHeight);
-        // console.log("First five values : " + respones1.spectralData.subarray(0,5));
-        // console.timeEnd("Spectral Profile");
-        // console.log();
+        console.time("Hist");
+        const histRes = yield workerPool.getHistogram(fileOpenResponse.uuid, startingX, startingY, 0, adjustedWidth, adjustedHeight, 0);
+        console.timeEnd("Hist");
+        console.log(histRes.bins.slice(0, 6));
+        console.log();
+        console.time("Spectral Profile");
+        const respones1 = yield workerPool.getSpectralProfile(fileOpenResponse.uuid, startingX, startingY, 0, 5, adjustedWidth, adjustedHeight);
+        // console.log("Main First five values : " + respones1.spectralData.subarray(0,5));
+        console.timeEnd("Spectral Profile");
+        console.log();
         console.time("ImageData");
-        const respones2 = yield workerPool.getImageDataStream(fileOpenResponse.uuid, H5Readers_1.RegionType.RECTANGLE, [200, 200, 0], [200, 200, 10]);
+        const respones2 = yield workerPool.getImageDataStream(fileOpenResponse.uuid, H5ReaderService_1.RegionType.RECTANGLE, [200, 200, 0], [200, 200, 10]);
         // console.log(respones2[0].rawValuesFp32.buffer)
         // console.log(bytesToFloat32(respones2[0].rawValuesFp32));
         console.timeEnd("ImageData");
@@ -92,7 +95,69 @@ function main() {
         workerPool.closeFile(fileOpenResponse.uuid);
     });
 }
-main();
+function test() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const h5Services = new H5Services_1.H5Services("0.0.0.0", 8079, 4);
+        yield h5Services.workerPool.ready();
+        const ingres = new ingres_1.Ingres("0.0.0.0", 8079);
+        const fileOpenResponse = yield ingres.openFile({ uuid: "", file: "Small.hdf5", directory: "/home/stuart/", hdu: "0" });
+        const uuid1 = fileOpenResponse.message;
+        if (!uuid1) {
+            console.error("no uuid");
+            return false;
+        }
+        const histgram_request = H5ReaderService_1.SetHistogramReq.create();
+        histgram_request.x = startingX;
+        histgram_request.y = startingY;
+        histgram_request.z = 0;
+        histgram_request.width = adjustedWidth;
+        histgram_request.height = adjustedHeight;
+        histgram_request.depth = 0;
+        histgram_request.uuid = uuid1;
+        console.time("Hist");
+        const histRes = yield ingres.getHistogram(histgram_request);
+        console.timeEnd("Hist");
+        console.log(histRes.bins.slice(0, 6));
+        console.log();
+        const spectral_request = H5ReaderService_1.SpectralProfileRequest.create();
+        spectral_request.x = startingX;
+        spectral_request.y = startingY;
+        spectral_request.z = 0;
+        spectral_request.height = adjustedHeight;
+        spectral_request.width = adjustedWidth;
+        spectral_request.numPixels = 1917;
+        spectral_request.uuid = uuid1;
+        spectral_request.regionType = H5ReaderService_1.RegionType.RECTANGLE;
+        console.time("Spectral Profile");
+        const spec_res = yield ingres.getSpectralProfile(spectral_request);
+        console.log("Ingres First five values : " + (0, arrays_1.bytesToFloat32)(spec_res.rawValuesFp32).subarray(0, 5));
+        console.timeEnd("Spectral Profile");
+        console.log();
+        const image_request = H5ReaderService_1.ImageDataRequest.create();
+        image_request.uuid = uuid1;
+        image_request.start = [400, 400, 0];
+        image_request.count = [200, 200, 4];
+        image_request.regionType = H5ReaderService_1.RegionType.RECTANGLE;
+        console.time("ImageData");
+        const image_res = yield ingres.getImageDataStream(image_request);
+        console.log(image_res);
+        // console.log(image_res(respones2[0].rawValuesFp32));
+        console.timeEnd("ImageData");
+        console.log();
+        const spatial_request = H5ReaderService_1.SetSpatialReq.create();
+        spatial_request.uuid = uuid1;
+        spatial_request.x = 200;
+        spatial_request.y = 200;
+        console.time("Spatial");
+        const respones3 = yield ingres.getSpatialProfile(spatial_request);
+        console.log(respones3);
+        console.timeEnd("Spatial");
+        console.log();
+        ingres.closeFile({ uuid: uuid1 });
+    });
+}
+// main()
+test();
 function main2() {
     const diameter = 5;
     const full = getMask(0, 0, diameter, diameter, diameter);

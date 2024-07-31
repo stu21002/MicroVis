@@ -136,7 +136,8 @@ using namespace std::chrono;
         {
             //TODO Currenty only open files Change to ICD method
 
-            std::cout << ">>Getting file info" << std::endl;
+            // std::cout << ">>Getting file info" << std::endl;
+            ServicePrint("Getting file info");
             
             H5::H5File file;
             H5::Group group;
@@ -223,6 +224,20 @@ using namespace std::chrono;
             h5_count.insert(h5_count.begin(), d < count.size() ? count[d] : 1);
             result_size *= d < count.size() ? count[d]: 1;
         }
+        // for (size_t i = 0; i < numDims; i++)
+        // {
+        //     std::cout<<h5_start[i]<<" ";
+        // }
+        // std::cout<<std::endl;
+        
+        // for (size_t i = 0; i < numDims; i++)
+        // {
+        //     std::cout<<h5_count[i]<<" ";
+        // }
+        // std::cout<<std::endl;
+
+        // std::cout<<result_size<<std::endl;
+        
 
         int num_bytes = result_size * sizeof(float);
 
@@ -249,7 +264,6 @@ using namespace std::chrono;
             float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
 
             std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
-
             writer->Write(response);
 
             offset += current_chunk_size;
