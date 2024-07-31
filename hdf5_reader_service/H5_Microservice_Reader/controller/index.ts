@@ -1,9 +1,13 @@
-import {  HistogramRequest, ImageDataRequest, RegionType, SetHistogramReq, SetSpatialReq, SpectralProfileRequest, SpectralProfileResponse } from './bin/src/proto/H5ReaderService';
+import { FileInfoRequest, FileInfoResponse } from "./bin/src/proto/FileInfo";
+import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./bin/src/proto/OpenFile";
+import { Empty, RegionType, StatusResponse } from "./bin/src/proto/defs";
+import { ImageDataRequest, ImageDataResponse } from "./bin/src/proto/ImageData";
+import { SpectralProfileRequest, SpectralProfileResponse } from "./bin/src/proto/SpectralProfile";
+import { SetSpatialReq, SpatialProfileData } from "./bin/src/proto/SpatialProfile";
+import { HistogramResponse, SetHistogramReq } from "./bin/src/proto/Histogram";
 import { Ingres } from './ingres';
-import {H5Reader} from './src/Services/H5Reader'
 import { H5Services } from './src/Services/H5Services';
 import {Hdf5WorkerPool} from './src/Services/Hdf5WorkerPool'
-import { FILEINFO } from './src/test/FILEINFO';
 import { bytesToFloat32 } from './src/utils/arrays';
 import { getCoords } from './src/utils/coord';
 
@@ -98,7 +102,7 @@ async function test(){
   const ingres = new Ingres("0.0.0.0",8079);
   
   const fileOpenResponse = await ingres.openFile({uuid:"",file:"Small.hdf5",directory:"/home/stuart/",hdu:"0"});
-  const uuid1 = fileOpenResponse.message
+  const uuid1 = fileOpenResponse.uuid;
   if (!uuid1) {
     console.error("no uuid");
     return false;
