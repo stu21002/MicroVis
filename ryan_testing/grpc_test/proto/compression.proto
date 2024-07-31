@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+message CompressionOutput {
+    string value = 1;
+}
+
+message CompressionEmpty{}
+
+service CompressionServices{
+    rpc computeCompression(CompressionEmpty) returns (CompressionOutput) {}
+    rpc computeNanEncodingsBlock(CompressionEmpty) returns (CompressionOutput) {}
+}

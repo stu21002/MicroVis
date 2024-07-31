@@ -26,6 +26,9 @@ export interface ContouringOutput {
 }
 
 export interface ContouringEmpty {
+  data: number[];
+  width: number;
+  height: number;
 }
 
 function createBaseContouringOutput(): ContouringOutput {
@@ -86,11 +89,22 @@ export const ContouringOutput = {
 };
 
 function createBaseContouringEmpty(): ContouringEmpty {
-  return {};
+  return { data: [], width: 0, height: 0 };
 }
 
 export const ContouringEmpty = {
-  encode(_: ContouringEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(message: ContouringEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    writer.uint32(10).fork();
+    for (const v of message.data) {
+      writer.float(v);
+    }
+    writer.ldelim();
+    if (message.width !== 0) {
+      writer.uint32(21).float(message.width);
+    }
+    if (message.height !== 0) {
+      writer.uint32(29).float(message.height);
+    }
     return writer;
   },
 
@@ -101,6 +115,37 @@ export const ContouringEmpty = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
+        case 1:
+          if (tag === 13) {
+            message.data.push(reader.float());
+
+            continue;
+          }
+
+          if (tag === 10) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.data.push(reader.float());
+            }
+
+            continue;
+          }
+
+          break;
+        case 2:
+          if (tag !== 21) {
+            break;
+          }
+
+          message.width = reader.float();
+          continue;
+        case 3:
+          if (tag !== 29) {
+            break;
+          }
+
+          message.height = reader.float();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -110,20 +155,36 @@ export const ContouringEmpty = {
     return message;
   },
 
-  fromJSON(_: any): ContouringEmpty {
-    return {};
+  fromJSON(object: any): ContouringEmpty {
+    return {
+      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => globalThis.Number(e)) : [],
+      width: isSet(object.width) ? globalThis.Number(object.width) : 0,
+      height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+    };
   },
 
-  toJSON(_: ContouringEmpty): unknown {
+  toJSON(message: ContouringEmpty): unknown {
     const obj: any = {};
+    if (message.data?.length) {
+      obj.data = message.data;
+    }
+    if (message.width !== 0) {
+      obj.width = message.width;
+    }
+    if (message.height !== 0) {
+      obj.height = message.height;
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<ContouringEmpty>, I>>(base?: I): ContouringEmpty {
     return ContouringEmpty.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ContouringEmpty>, I>>(_: I): ContouringEmpty {
+  fromPartial<I extends Exact<DeepPartial<ContouringEmpty>, I>>(object: I): ContouringEmpty {
     const message = createBaseContouringEmpty();
+    message.data = object.data?.map((e) => e) || [];
+    message.width = object.width ?? 0;
+    message.height = object.height ?? 0;
     return message;
   },
 };
