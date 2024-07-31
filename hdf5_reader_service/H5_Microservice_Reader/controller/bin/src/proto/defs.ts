@@ -10,6 +10,51 @@ import _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "proto";
 
+export enum RegionType {
+  POINT = 0,
+  LINE = 1,
+  RECTANGLE = 2,
+  CIRCLE = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function regionTypeFromJSON(object: any): RegionType {
+  switch (object) {
+    case 0:
+    case "POINT":
+      return RegionType.POINT;
+    case 1:
+    case "LINE":
+      return RegionType.LINE;
+    case 2:
+    case "RECTANGLE":
+      return RegionType.RECTANGLE;
+    case 3:
+    case "CIRCLE":
+      return RegionType.CIRCLE;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return RegionType.UNRECOGNIZED;
+  }
+}
+
+export function regionTypeToJSON(object: RegionType): string {
+  switch (object) {
+    case RegionType.POINT:
+      return "POINT";
+    case RegionType.LINE:
+      return "LINE";
+    case RegionType.RECTANGLE:
+      return "RECTANGLE";
+    case RegionType.CIRCLE:
+      return "CIRCLE";
+    case RegionType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export interface FileInfo {
   name: string;
   /** FileType type = 2; Assume HDF5 */
@@ -30,6 +75,14 @@ export interface FileInfoExtended {
   depth: number;
   /** Number of Stokes parameters */
   stokes: number;
+}
+
+export interface Empty {
+}
+
+export interface StatusResponse {
+  status: boolean;
+  statusMessage: string;
 }
 
 function createBaseFileInfo(): FileInfo {
@@ -251,6 +304,123 @@ export const FileInfoExtended = {
     message.height = object.height ?? 0;
     message.depth = object.depth ?? 0;
     message.stokes = object.stokes ?? 0;
+    return message;
+  },
+};
+
+function createBaseEmpty(): Empty {
+  return {};
+}
+
+export const Empty = {
+  encode(_: Empty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Empty {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEmpty();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): Empty {
+    return {};
+  },
+
+  toJSON(_: Empty): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Empty>, I>>(base?: I): Empty {
+    return Empty.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Empty>, I>>(_: I): Empty {
+    const message = createBaseEmpty();
+    return message;
+  },
+};
+
+function createBaseStatusResponse(): StatusResponse {
+  return { status: false, statusMessage: "" };
+}
+
+export const StatusResponse = {
+  encode(message: StatusResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.status !== false) {
+      writer.uint32(8).bool(message.status);
+    }
+    if (message.statusMessage !== "") {
+      writer.uint32(18).string(message.statusMessage);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): StatusResponse {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStatusResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 8) {
+            break;
+          }
+
+          message.status = reader.bool();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.statusMessage = reader.string();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): StatusResponse {
+    return {
+      status: isSet(object.status) ? globalThis.Boolean(object.status) : false,
+      statusMessage: isSet(object.statusMessage) ? globalThis.String(object.statusMessage) : "",
+    };
+  },
+
+  toJSON(message: StatusResponse): unknown {
+    const obj: any = {};
+    if (message.status !== false) {
+      obj.status = message.status;
+    }
+    if (message.statusMessage !== "") {
+      obj.statusMessage = message.statusMessage;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<StatusResponse>, I>>(base?: I): StatusResponse {
+    return StatusResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<StatusResponse>, I>>(object: I): StatusResponse {
+    const message = createBaseStatusResponse();
+    message.status = object.status ?? false;
+    message.statusMessage = object.statusMessage ?? "";
     return message;
   },
 };

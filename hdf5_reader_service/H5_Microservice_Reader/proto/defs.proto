@@ -20,5 +20,20 @@ message FileInfo {
     sfixed32 depth = 4;
     // Number of Stokes parameters
     sfixed32 stokes = 5;
-  
   }
+
+  message Empty {}
+  
+  message StatusResponse {
+    bool status = 1;
+    string statusMessage = 2;
+  }
+  
+  
+  enum RegionType {
+    POINT = 0;
+    LINE = 1;
+    RECTANGLE = 2;
+    CIRCLE = 3;
+  }
+  

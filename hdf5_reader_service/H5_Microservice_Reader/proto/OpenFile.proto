@@ -13,9 +13,10 @@ message OpenFileRequest {
 
 message OpenFileACK{
     bool success = 1;
-    string message = 2;
-    FileInfo file_info = 3;
-    FileInfoExtended file_info_extended = 4;  
+    string uuid = 2;
+    string message = 3;
+    FileInfo file_info = 4;
+    FileInfoExtended file_info_extended = 5;  
 }
   
   message FileCloseRequest {

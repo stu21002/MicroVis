@@ -10,12 +10,16 @@ import {
 } from "@grpc/grpc-js";
 
 
-import { Empty, H5ServicesServer, H5ServicesService, HistogramRequest, HistogramResponse, ImageDataRequest, ImageDataResponse, RegionType, SetHistogramReq, SetSpatialReq, SpatialProfileData, SpectralProfileRequest, SpectralProfileResponse, StatusResponse } from "../../bin/src/proto/H5ReaderService";
 import { FileInfoRequest, FileInfoResponse } from "../../bin/src/proto/FileInfo";
 import { OpenFileRequest, OpenFileACK, FileCloseRequest } from "../../bin/src/proto/OpenFile";
 import { Hdf5WorkerPool } from "./Hdf5WorkerPool";
-import { FileInfoExtended } from "../../bin/src/proto/defs";
+import { Empty, FileInfoExtended, RegionType, StatusResponse } from "../../bin/src/proto/defs";
 import { bytesToFloat32, float32ToBytes } from "../utils/arrays";
+import { H5ServicesServer, H5ServicesService } from "../../bin/src/proto/H5ReaderService";
+import { ImageDataRequest, ImageDataResponse } from "../../bin/src/proto/ImageData";
+import { SetSpatialReq, SpatialProfileData } from "../../bin/src/proto/SpatialProfile";
+import { SpectralProfileRequest, SpectralProfileResponse } from "../../bin/src/proto/SpectralProfile";
+import { HistogramResponse, SetHistogramReq } from "../../bin/src/proto/Histogram";
 
 
 interface DimensionValues {
@@ -79,7 +83,7 @@ export class H5Services {
         }else{
 
           openFileAck.success=true;
-          openFileAck.message=fileOpenResponse.uuid;
+          openFileAck.uuid=fileOpenResponse.uuid;
           openFileAck.fileInfo=fileInfoResponse.fileInfo;
           openFileAck.fileInfoExtended=fileInfoResponse.fileInfoExtended; 
 

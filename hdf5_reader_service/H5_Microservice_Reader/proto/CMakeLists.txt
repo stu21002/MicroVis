@@ -11,6 +11,10 @@ set(PROTO_FILES
         ./defs.proto
         ./FileInfo.proto
         ./OpenFile.proto
+        ./Histogram.proto
+        ./ImageData.proto 
+        ./SpatialProfile.proto 
+        ./SpectralProfile.proto
         ./H5ReaderService.proto
 )
 

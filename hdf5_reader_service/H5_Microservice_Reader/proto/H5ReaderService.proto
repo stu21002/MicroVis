@@ -3,44 +3,11 @@ package proto;
 
 import "FileInfo.proto";
 import "OpenFile.proto";
-///////TODO Clean up code, maybe seperate into different files
-message Empty {
-  
-}
-
-message StatusResponse {
-  bool status = 1;
-  string statusMessage = 2;
-}
-
-
-
-//////////////
-
-//////////////////
-
-enum RegionType {
-  POINT = 0;
-  LINE = 1;
-  RECTANGLE = 2;
-  CIRCLE = 3;
-}
-
-
-
-message ImageDataRequest{
-    string uuid = 1;
-    RegionType regionType = 2;
-    repeated int32 start = 3;
-    repeated int32 count = 4;
-}
-
-
-//Change To Bytes
-message ImageDataResponse{
-  bytes raw_values_fp32 = 1;
-  int32 num_pixels = 2;
-}
+import "defs.proto";
+import "Histogram.proto";
+import "ImageData.proto";
+import "SpectralProfile.proto";
+import "SpatialProfile.proto";
 
 message Mask{
   repeated bool mask = 1;
@@ -48,107 +15,21 @@ message Mask{
   int32 height = 3;
 }
 
-message SpectralProfileRequest {
-  string uuid = 1;
-  RegionType regionType = 2;
-  int32 x = 3;
-  int32 y = 4;
-  int32 z = 5;
-  int32 numPixels = 6;
-  int32 width = 7;
-  int32 height = 8;
-  // repeated bool mask = 9;
-}
-
-//Change TO Bytes
-message SpectralProfileResponse {
-  // repeated float data = 1;
-  // repeated int32 count = 2;
-  bytes raw_values_fp32 = 1;
-  bytes counts=2;
-}
-
-message HistogramRequest {
-  string uuid = 1;
-  // int32 x = 2;
-  // int32 y = 3;
-  // int32 width = 4;
-  // int32 height = 5;
-  repeated int32 start = 2;
-  repeated int32 count = 3;
-}
-
-message HistogramDistRequest {
-  string uuid = 1;
-  // int32 x = 2;
-  // int32 y = 3;
-  // int32 width = 4;
-  // int32 height = 5;
-  repeated int32 start = 2;
-  repeated int32 count = 3;
-  repeated float data = 4;
-  sfixed32 num_bins = 6;
-  double bin_width = 7;
-  double min_value = 8;
-  double max_value = 9;
-}
-
-message HistogramResponse {
-  sfixed32 num_bins = 1;
-  double bin_width = 2;
-  double first_bin_center = 3;
-  repeated sfixed32 bins = 4;
-  double mean = 5;
-  double std_dev = 6;
-
-}
-
-message SpatialProfile {
-  sfixed32 start = 1;
-  sfixed32 end = 2;
-  bytes raw_values_fp32 = 3;
-  // repeated double values = 3;
-  string coordinate = 4;
-  // sfixed32 mip = 5;
-}
-
 service H5Readers{
   rpc CheckStatus(Empty) returns  (StatusResponse) {}
-
-  rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
+  rpc OpenFile(OpenFileRequest) returns (StatusResponse) {}
   rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
   rpc GetImageDataStream (ImageDataRequest) returns (stream ImageDataResponse) {}
 
   rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {}
-  rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
+  // rpc GetSpectralProfileStream (SpectralProfileRequest) returns (stream SpectralProfileResponse) {}
   
   rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
   rpc GetHistogramDist (HistogramDistRequest) returns (HistogramResponse) {}
 
   // rpc GetRegion (RegionDataRequest) returns (RegionDataResponse) {}
 
-}
-
-message SetSpatialReq {
-  string uuid = 1;
-  sfixed32 x = 2;
-  sfixed32 y = 3;
-}
-message SetHistogramReq {
-  string uuid = 1;
-  sfixed32 x = 2;
-  sfixed32 y = 3;
-  sfixed32 z = 4;
-  sfixed32 width = 5;
-  sfixed32 height = 6;
-  sfixed32 depth = 7;
-
-}
-
-message SpatialProfileData{
-  string uuid = 1;
-  repeated SpatialProfile profiles = 2;
 }
 
 service H5Services{

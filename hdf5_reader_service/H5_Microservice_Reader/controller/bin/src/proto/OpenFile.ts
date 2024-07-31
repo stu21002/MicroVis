@@ -19,6 +19,7 @@ export interface OpenFileRequest {
 
 export interface OpenFileACK {
   success: boolean;
+  uuid: string;
   message: string;
   fileInfo: FileInfo | undefined;
   fileInfoExtended: FileInfoExtended | undefined;
@@ -133,7 +134,7 @@ export const OpenFileRequest = {
 };
 
 function createBaseOpenFileACK(): OpenFileACK {
-  return { success: false, message: "", fileInfo: undefined, fileInfoExtended: undefined };
+  return { success: false, uuid: "", message: "", fileInfo: undefined, fileInfoExtended: undefined };
 }
 
 export const OpenFileACK = {
@@ -141,14 +142,17 @@ export const OpenFileACK = {
     if (message.success !== false) {
       writer.uint32(8).bool(message.success);
     }
+    if (message.uuid !== "") {
+      writer.uint32(18).string(message.uuid);
+    }
     if (message.message !== "") {
-      writer.uint32(18).string(message.message);
+      writer.uint32(26).string(message.message);
     }
     if (message.fileInfo !== undefined) {
-      FileInfo.encode(message.fileInfo, writer.uint32(26).fork()).ldelim();
+      FileInfo.encode(message.fileInfo, writer.uint32(34).fork()).ldelim();
     }
     if (message.fileInfoExtended !== undefined) {
-      FileInfoExtended.encode(message.fileInfoExtended, writer.uint32(34).fork()).ldelim();
+      FileInfoExtended.encode(message.fileInfoExtended, writer.uint32(42).fork()).ldelim();
     }
     return writer;
   },
@@ -172,17 +176,24 @@ export const OpenFileACK = {
             break;
           }
 
-          message.message = reader.string();
+          message.uuid = reader.string();
           continue;
         case 3:
           if (tag !== 26) {
             break;
           }
 
-          message.fileInfo = FileInfo.decode(reader, reader.uint32());
+          message.message = reader.string();
           continue;
         case 4:
           if (tag !== 34) {
+            break;
+          }
+
+          message.fileInfo = FileInfo.decode(reader, reader.uint32());
+          continue;
+        case 5:
+          if (tag !== 42) {
             break;
           }
 
@@ -200,6 +211,7 @@ export const OpenFileACK = {
   fromJSON(object: any): OpenFileACK {
     return {
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
       message: isSet(object.message) ? globalThis.String(object.message) : "",
       fileInfo: isSet(object.fileInfo) ? FileInfo.fromJSON(object.fileInfo) : undefined,
       fileInfoExtended: isSet(object.fileInfoExtended) ? FileInfoExtended.fromJSON(object.fileInfoExtended) : undefined,
@@ -210,6 +222,9 @@ export const OpenFileACK = {
     const obj: any = {};
     if (message.success !== false) {
       obj.success = message.success;
+    }
+    if (message.uuid !== "") {
+      obj.uuid = message.uuid;
     }
     if (message.message !== "") {
       obj.message = message.message;
@@ -229,6 +244,7 @@ export const OpenFileACK = {
   fromPartial<I extends Exact<DeepPartial<OpenFileACK>, I>>(object: I): OpenFileACK {
     const message = createBaseOpenFileACK();
     message.success = object.success ?? false;
+    message.uuid = object.uuid ?? "";
     message.message = object.message ?? "";
     message.fileInfo = (object.fileInfo !== undefined && object.fileInfo !== null)
       ? FileInfo.fromPartial(object.fileInfo)

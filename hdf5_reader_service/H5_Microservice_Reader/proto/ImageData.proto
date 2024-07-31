@@ -1,2 +1,16 @@
 syntax = "proto3";
 package proto;
+
+import "defs.proto";
+
+message ImageDataRequest{
+    string uuid = 1;
+    RegionType regionType = 2;
+    repeated int32 start = 3;
+    repeated int32 count = 4;
+}
+
+message ImageDataResponse{
+  bytes raw_values_fp32 = 1;
+  int32 num_pixels = 2;
+}

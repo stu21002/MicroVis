@@ -3,8 +3,11 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { H5Reader } from "./H5Reader";
-import { HistogramResponse, ImageDataResponse, RegionType, SpatialProfile, SpectralProfileResponse } from "../../bin/src/proto/H5ReaderService";
 import { bytesToFloat32, bytesToInt32 } from "../utils/arrays";
+import { RegionType } from "../../bin/src/proto/defs";
+import { ImageDataResponse } from "../../bin/src/proto/ImageData";
+import { SpatialProfile } from "../../bin/src/proto/SpatialProfile";
+import { SpectralProfileResponse } from "../../bin/src/proto/SpectralProfile";
 // import { bytesToFloat32 } from "../utils/arrays";
 
 
@@ -57,7 +60,7 @@ export class Hdf5WorkerPool {
     const promises = this.readers.map((reader) => reader.openFile({ directory, file, hdu, uuid }));
     
     return Promise.all(promises).then(responses => {
-      return responses.every(res => res.success) ? { uuid } : undefined;
+      return responses.every(res => res.status) ? { uuid } : undefined;
     });
   }
 
@@ -185,150 +188,6 @@ export class Hdf5WorkerPool {
       return {spectralData} ;
     });
   }
-
-  
-  
-    // async getHistogramDist(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number,workers:number){
-    //   const numBins = Math.sqrt(width*height);
-    //   const {min,max} = {min:0,max:0};
-    //   const reader = this.primaryreader;
-    //   const histres = await reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
-    //   const promises = new Array<Promise<HistogramResponse>>();
-    //   const pixelsPerWorker = Math.floor((width *height)/ workers);
-    //   // console.log(pixelsPerWorker);
-    //   // console.log(width);
-    //   // console.log(height);
-    //   // console.log(width*height);
-    //   for (let index = 0; index < workers; index++) {
-    //     const yStart = x + index * pixelsPerWorker;
-    //     const numPixelsInChunk = (index === workers - 1) ? height*width - index * pixelsPerWorker : pixelsPerWorker;
-    //     const reader = this.readers[index];
-    //     // promises.push(reader.getHistogram({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1]})); 
-    //     // histres.data.slice(yStart,yStart+numPixelsInChunk)
-    //     // console.log(histres.data.slice(yStart,yStart+numPixelsInChunk));
-    //     promises.push(reader.getHistogramDist({uuid,start:[x,yStart,0,0],count:[width,numPixelsInChunk,1,1],data:histres.data.slice(yStart,yStart+numPixelsInChunk),numBins:histres.numBins,binWidth:histres.binWidth,minValue:histres.minValue,maxValue:histres.maxValue})); 
-  
-    //   }
-    //   return Promise.all(promises).then(res => {
-    //     //Adding values as they come in, avoids heap error
-    //     const hist = HistogramResponse.create();
-    //     hist.numBins = histres.numBins;
-    //     hist.binWidth = histres.binWidth;
-  
-  
-    //     for (let index = 0; index < numBins; index++) {
-    //       hist.bins.push(0)
-    //     }
-  
-    //     for (const response of res){
-    //       for (let index = 0; index < numBins; index++) {
-    //         hist.bins[index] += response.bins[index];
-    //       }
-    //       // hist.bins = hist.bins.map((value, index) => value + response.bins[index])
-    //       // console.log(hist.bins.slice(100,5))
-    //       // console.log(response.bins.slice(100,5))
-    //     }
-  
-    //     return hist;
-    //   });
-    // }
-  
-
-
-  // async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
-  //   if (!numWorkers) {
-    //     numWorkers = this.readers.length;
-  //   }
-  //   const pixelsPerWorker = Math.floor(width / numWorkers);
-  //   const promises = new Array<Promise<SpectralProfileResponse>>();
-  //   for (let i = 0; i < numWorkers; i++) {
-  //     const xStart = x + i * pixelsPerWorker;
-  //     // Last worker gets the remainder
-  //     const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
-  //     const reader = this.readers[i % this.readers.length];
-  //     // console.log(`${xStart} ${y} ${z} ${numPixelsInChunk} ${height} ${numPixels}`);
-
-  //     promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
-  //   }
-  
-  
-  //   return Promise.all(promises).then(res => {
-  //     // For Bytes
-  //     // const data = new Float64Array(numPixels*width*height);
-  //     // let offset = 0;
-  //     // for (const response of res) {
-  //     //   const chunk = bytesToFloat32(response.data);
-  //     //   data.set(chunk, offset);
-  //     //   offset += chunk.length;
-  //     // }
-  //     const numPix = numPixels*width*height;
-  //     const data = new Float64Array(numPixels*width*height);
-  //     let offset = 0;
-  //     for (const response of res) {
-
-  //         data.set(response.data,offset);
-  //         offset += response.data.length;
-  //     }
-
-  //     const spectralData = new Float64Array(numPixels);
-  //     const x_offset: number = numPixels * height;
-  
-  //     for (let z = 0; z < numPixels; z++) {
-  //         let count = 0;
-  //         let sum = 0;
-  
-  //         for (let x = 0; x < width; x++) {
-  //             let index = z + x * x_offset;
-  
-  //             for (let y = 0; y < height; y++) {
-  //                 const value = data[index];
-                  
-  //                 if (Number.isFinite(value)) {
-  //                     sum += value;
-  //                     count++;
-  //                 }
-                  
-  //                 index += numPixels;
-  //             }
-  //         }
-  
-  //         const channel_mean = count > 0 ? sum / count : NaN;
-  //         spectralData[z]=(channel_mean);
-  //     }
-
-  //     return { spectralData };
-  //   });
-  // }
-
-//   async getSpectralProfile_workLoadSplitZ(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numreaders?: number) {
-//     if (!numreaders) {
-//       numreaders = this.readers.length;
-//     }
-
-//     const pixelsPerreader = Math.floor(numPixels / numreaders);
-//     const promises = new Array<Promise<SpectralProfileResponse>>();
-//     for (let i = 0; i < numreaders; i++) {
-//       const zStart = z + i * pixelsPerreader;
-//       // Last reader gets the remainder
-//       const numPixelsInChunk = (i === numreaders - 1) ? numPixels - i * pixelsPerreader : pixelsPerreader;
-//       const reader = this.readers[i % this.readers.length];
-//       promises.push(reader.getSpectralProfile({ uuid,regionType:RegionType.RECTANGLE, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
-//     }
-
-//     // Change when using bytes
-//     return Promise.all(promises).then(res => {
-//         const data = new Float64Array(numPixels);
-//         let offset = 0;
-//         for (const response of res) {
-//             data.set(response.data,offset);
-//             offset += response.data.length;
-//         }
-//     return {data}
-//     })
-        
-
-//     };
-  
  }
 
  function getMask(startX:number,startY:number,numX:number,numY:number,diameter:number) {

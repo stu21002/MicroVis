@@ -1,8 +1,15 @@
 import { credentials } from "@grpc/grpc-js";
-import { FileInfoRequest, FileInfoResponse } from "./bin/src/proto/FileInfo";
-import { Empty, H5ServicesClient, HistogramResponse, ImageDataRequest, ImageDataResponse, SetHistogramReq, SetSpatialReq, SpatialProfileData, SpectralProfileRequest, SpectralProfileResponse, StatusResponse } from "./bin/src/proto/H5ReaderService";
-import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./bin/src/proto/OpenFile";
 import { promisify } from "util";
+
+import { H5ServicesClient } from "./bin/src/proto/H5ReaderService";
+//Protos
+import { FileInfoRequest, FileInfoResponse } from "./bin/src/proto/FileInfo";
+import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./bin/src/proto/OpenFile";
+import { Empty, StatusResponse } from "./bin/src/proto/defs";
+import { ImageDataRequest, ImageDataResponse } from "./bin/src/proto/ImageData";
+import { SpectralProfileRequest, SpectralProfileResponse } from "./bin/src/proto/SpectralProfile";
+import { SetSpatialReq, SpatialProfileData } from "./bin/src/proto/SpatialProfile";
+import { HistogramResponse, SetHistogramReq } from "./bin/src/proto/Histogram";
 export class Ingres {
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
