@@ -12,7 +12,7 @@ import {
 
 import { FileInfoRequest, FileInfoResponse } from "../../bin/src/proto/FileInfo";
 import { OpenFileRequest, OpenFileACK, FileCloseRequest } from "../../bin/src/proto/OpenFile";
-import { Hdf5WorkerPool } from "./Hdf5WorkerPool";
+import { Hdf5WorkerPool, Region } from "./Hdf5WorkerPool";
 import { Empty, FileInfoExtended, RegionType, StatusResponse } from "../../bin/src/proto/defs";
 import { bytesToFloat32, float32ToBytes } from "../utils/arrays";
 import { H5ServicesServer, H5ServicesService } from "../../bin/src/proto/H5ReaderService";
@@ -30,10 +30,14 @@ interface DimensionValues {
   dims:number;
 }
 
+
+
+
 export class H5Services {
   readonly workerPool:Hdf5WorkerPool;
   readonly fileDims: Map<string,DimensionValues > = new Map();
-  
+  readonly regions:Map<number,Region> = new Map();
+
   constructor(address:string,port: number = 8080,numWorkers=1) {
     const SERVICE_URL = `${address}:${port}`;
     this.workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);

@@ -155,8 +155,6 @@ async function test(){
   console.timeEnd("ImageData");
   console.log();
 
-
-
   const spatial_request = SetSpatialReq.create();
   spatial_request.uuid = uuid1;
   spatial_request.x = 200;

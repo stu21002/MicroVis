@@ -10,6 +10,16 @@ import { SpatialProfile } from "../../bin/src/proto/SpatialProfile";
 import { SpectralProfileResponse } from "../../bin/src/proto/SpectralProfile";
 // import { bytesToFloat32 } from "../utils/arrays";
 
+export interface Point{
+  x:number
+  y:number
+  }
+  
+export interface Region {
+    type:RegionType;
+    controlPoints:Point[]
+  
+  }
 
 export class Hdf5WorkerPool {
   readonly readers: H5Reader[];
@@ -190,21 +200,32 @@ export class Hdf5WorkerPool {
   }
  }
 
- function getMask(startX:number,startY:number,numX:number,numY:number,diameter:number) {
+ function getMask(region:Region,startX:number,startY:number,numX:number,numY:number) {
   let mask: boolean[] = [];
-  const pow_radius = Math.pow(diameter / 2.0, 2);
-  const centerX = (diameter - 1) / 2.0;
-  const centerY = (diameter - 1) / 2.0;
-  let index = 0;
-  for (let y = startY; y < startY+numY; y++) {
-      const pow_y = Math.pow(y - centerY, 2);
+  switch (region.type) {
+    case RegionType.CIRCLE:
+      //
+      const diameter = region.controlPoints[1].x;
+      const pow_radius = Math.pow(diameter / 2.0, 2);
+      const centerX = (diameter - 1) / 2.0;
+      const centerY = (diameter - 1) / 2.0;
+      let index = 0;
+      for (let y = startY; y < startY+numY; y++) {
+          const pow_y = Math.pow(y - centerY, 2);
+    
+          for (let x = startX; x < startX+numX; x++) {
+              
+              mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
+     
+          }
+      }      
+      break;
+  
+    default:
 
-      for (let x = startX; x < startX+numX; x++) {
-          
-          mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
- 
-      }
+      break;
   }
+
 
   return mask;
   

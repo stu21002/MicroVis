@@ -1,1 +1,3 @@
 node_modules
+bin/src/*js
+bin/src/proto
