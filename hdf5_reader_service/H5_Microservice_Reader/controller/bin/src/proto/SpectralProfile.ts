@@ -6,13 +6,13 @@
 
 /* eslint-disable */
 import _m0 from "protobufjs/minimal";
-import { RegionType, regionTypeFromJSON, regionTypeToJSON } from "./defs";
+import { RegionInfo } from "./defs";
 
 export const protobufPackage = "proto";
 
 export interface SpectralProfileRequest {
   uuid: string;
-  regionType: RegionType;
+  regionId: number;
   x: number;
   y: number;
   z: number;
@@ -22,13 +22,28 @@ export interface SpectralProfileRequest {
   height: number;
 }
 
-export interface SpectralProfileResponse {
+export interface SpectralProfileReaderRequest {
+  uuid: string;
+  regionInfo: RegionInfo | undefined;
+  x: number;
+  y: number;
+  z: number;
+  numPixels: number;
+  width: number;
+  height: number;
+}
+
+export interface SpectralProfileReaderResponse {
   rawValuesFp32: Uint8Array;
   counts: Uint8Array;
 }
 
+export interface SpectralProfileResponse {
+  rawValuesFp32: Uint8Array;
+}
+
 function createBaseSpectralProfileRequest(): SpectralProfileRequest {
-  return { uuid: "", regionType: 0, x: 0, y: 0, z: 0, numPixels: 0, width: 0, height: 0 };
+  return { uuid: "", regionId: 0, x: 0, y: 0, z: 0, numPixels: 0, width: 0, height: 0 };
 }
 
 export const SpectralProfileRequest = {
@@ -36,8 +51,8 @@ export const SpectralProfileRequest = {
     if (message.uuid !== "") {
       writer.uint32(10).string(message.uuid);
     }
-    if (message.regionType !== 0) {
-      writer.uint32(16).int32(message.regionType);
+    if (message.regionId !== 0) {
+      writer.uint32(21).sfixed32(message.regionId);
     }
     if (message.x !== 0) {
       writer.uint32(24).int32(message.x);
@@ -75,11 +90,11 @@ export const SpectralProfileRequest = {
           message.uuid = reader.string();
           continue;
         case 2:
-          if (tag !== 16) {
+          if (tag !== 21) {
             break;
           }
 
-          message.regionType = reader.int32() as any;
+          message.regionId = reader.sfixed32();
           continue;
         case 3:
           if (tag !== 24) {
@@ -135,7 +150,7 @@ export const SpectralProfileRequest = {
   fromJSON(object: any): SpectralProfileRequest {
     return {
       uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
-      regionType: isSet(object.regionType) ? regionTypeFromJSON(object.regionType) : 0,
+      regionId: isSet(object.regionId) ? globalThis.Number(object.regionId) : 0,
       x: isSet(object.x) ? globalThis.Number(object.x) : 0,
       y: isSet(object.y) ? globalThis.Number(object.y) : 0,
       z: isSet(object.z) ? globalThis.Number(object.z) : 0,
@@ -150,8 +165,8 @@ export const SpectralProfileRequest = {
     if (message.uuid !== "") {
       obj.uuid = message.uuid;
     }
-    if (message.regionType !== 0) {
-      obj.regionType = regionTypeToJSON(message.regionType);
+    if (message.regionId !== 0) {
+      obj.regionId = Math.round(message.regionId);
     }
     if (message.x !== 0) {
       obj.x = Math.round(message.x);
@@ -180,7 +195,7 @@ export const SpectralProfileRequest = {
   fromPartial<I extends Exact<DeepPartial<SpectralProfileRequest>, I>>(object: I): SpectralProfileRequest {
     const message = createBaseSpectralProfileRequest();
     message.uuid = object.uuid ?? "";
-    message.regionType = object.regionType ?? 0;
+    message.regionId = object.regionId ?? 0;
     message.x = object.x ?? 0;
     message.y = object.y ?? 0;
     message.z = object.z ?? 0;
@@ -191,12 +206,178 @@ export const SpectralProfileRequest = {
   },
 };
 
-function createBaseSpectralProfileResponse(): SpectralProfileResponse {
+function createBaseSpectralProfileReaderRequest(): SpectralProfileReaderRequest {
+  return { uuid: "", regionInfo: undefined, x: 0, y: 0, z: 0, numPixels: 0, width: 0, height: 0 };
+}
+
+export const SpectralProfileReaderRequest = {
+  encode(message: SpectralProfileReaderRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.uuid !== "") {
+      writer.uint32(10).string(message.uuid);
+    }
+    if (message.regionInfo !== undefined) {
+      RegionInfo.encode(message.regionInfo, writer.uint32(18).fork()).ldelim();
+    }
+    if (message.x !== 0) {
+      writer.uint32(24).int32(message.x);
+    }
+    if (message.y !== 0) {
+      writer.uint32(32).int32(message.y);
+    }
+    if (message.z !== 0) {
+      writer.uint32(40).int32(message.z);
+    }
+    if (message.numPixels !== 0) {
+      writer.uint32(48).int32(message.numPixels);
+    }
+    if (message.width !== 0) {
+      writer.uint32(56).int32(message.width);
+    }
+    if (message.height !== 0) {
+      writer.uint32(64).int32(message.height);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): SpectralProfileReaderRequest {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSpectralProfileReaderRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.uuid = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.regionInfo = RegionInfo.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag !== 24) {
+            break;
+          }
+
+          message.x = reader.int32();
+          continue;
+        case 4:
+          if (tag !== 32) {
+            break;
+          }
+
+          message.y = reader.int32();
+          continue;
+        case 5:
+          if (tag !== 40) {
+            break;
+          }
+
+          message.z = reader.int32();
+          continue;
+        case 6:
+          if (tag !== 48) {
+            break;
+          }
+
+          message.numPixels = reader.int32();
+          continue;
+        case 7:
+          if (tag !== 56) {
+            break;
+          }
+
+          message.width = reader.int32();
+          continue;
+        case 8:
+          if (tag !== 64) {
+            break;
+          }
+
+          message.height = reader.int32();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SpectralProfileReaderRequest {
+    return {
+      uuid: isSet(object.uuid) ? globalThis.String(object.uuid) : "",
+      regionInfo: isSet(object.regionInfo) ? RegionInfo.fromJSON(object.regionInfo) : undefined,
+      x: isSet(object.x) ? globalThis.Number(object.x) : 0,
+      y: isSet(object.y) ? globalThis.Number(object.y) : 0,
+      z: isSet(object.z) ? globalThis.Number(object.z) : 0,
+      numPixels: isSet(object.numPixels) ? globalThis.Number(object.numPixels) : 0,
+      width: isSet(object.width) ? globalThis.Number(object.width) : 0,
+      height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+    };
+  },
+
+  toJSON(message: SpectralProfileReaderRequest): unknown {
+    const obj: any = {};
+    if (message.uuid !== "") {
+      obj.uuid = message.uuid;
+    }
+    if (message.regionInfo !== undefined) {
+      obj.regionInfo = RegionInfo.toJSON(message.regionInfo);
+    }
+    if (message.x !== 0) {
+      obj.x = Math.round(message.x);
+    }
+    if (message.y !== 0) {
+      obj.y = Math.round(message.y);
+    }
+    if (message.z !== 0) {
+      obj.z = Math.round(message.z);
+    }
+    if (message.numPixels !== 0) {
+      obj.numPixels = Math.round(message.numPixels);
+    }
+    if (message.width !== 0) {
+      obj.width = Math.round(message.width);
+    }
+    if (message.height !== 0) {
+      obj.height = Math.round(message.height);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SpectralProfileReaderRequest>, I>>(base?: I): SpectralProfileReaderRequest {
+    return SpectralProfileReaderRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SpectralProfileReaderRequest>, I>>(object: I): SpectralProfileReaderRequest {
+    const message = createBaseSpectralProfileReaderRequest();
+    message.uuid = object.uuid ?? "";
+    message.regionInfo = (object.regionInfo !== undefined && object.regionInfo !== null)
+      ? RegionInfo.fromPartial(object.regionInfo)
+      : undefined;
+    message.x = object.x ?? 0;
+    message.y = object.y ?? 0;
+    message.z = object.z ?? 0;
+    message.numPixels = object.numPixels ?? 0;
+    message.width = object.width ?? 0;
+    message.height = object.height ?? 0;
+    return message;
+  },
+};
+
+function createBaseSpectralProfileReaderResponse(): SpectralProfileReaderResponse {
   return { rawValuesFp32: new Uint8Array(0), counts: new Uint8Array(0) };
 }
 
-export const SpectralProfileResponse = {
-  encode(message: SpectralProfileResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+export const SpectralProfileReaderResponse = {
+  encode(message: SpectralProfileReaderResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.rawValuesFp32.length !== 0) {
       writer.uint32(10).bytes(message.rawValuesFp32);
     }
@@ -206,10 +387,10 @@ export const SpectralProfileResponse = {
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): SpectralProfileResponse {
+  decode(input: _m0.Reader | Uint8Array, length?: number): SpectralProfileReaderResponse {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseSpectralProfileResponse();
+    const message = createBaseSpectralProfileReaderResponse();
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -236,14 +417,14 @@ export const SpectralProfileResponse = {
     return message;
   },
 
-  fromJSON(object: any): SpectralProfileResponse {
+  fromJSON(object: any): SpectralProfileReaderResponse {
     return {
       rawValuesFp32: isSet(object.rawValuesFp32) ? bytesFromBase64(object.rawValuesFp32) : new Uint8Array(0),
       counts: isSet(object.counts) ? bytesFromBase64(object.counts) : new Uint8Array(0),
     };
   },
 
-  toJSON(message: SpectralProfileResponse): unknown {
+  toJSON(message: SpectralProfileReaderResponse): unknown {
     const obj: any = {};
     if (message.rawValuesFp32.length !== 0) {
       obj.rawValuesFp32 = base64FromBytes(message.rawValuesFp32);
@@ -254,13 +435,72 @@ export const SpectralProfileResponse = {
     return obj;
   },
 
+  create<I extends Exact<DeepPartial<SpectralProfileReaderResponse>, I>>(base?: I): SpectralProfileReaderResponse {
+    return SpectralProfileReaderResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SpectralProfileReaderResponse>, I>>(
+    object: I,
+  ): SpectralProfileReaderResponse {
+    const message = createBaseSpectralProfileReaderResponse();
+    message.rawValuesFp32 = object.rawValuesFp32 ?? new Uint8Array(0);
+    message.counts = object.counts ?? new Uint8Array(0);
+    return message;
+  },
+};
+
+function createBaseSpectralProfileResponse(): SpectralProfileResponse {
+  return { rawValuesFp32: new Uint8Array(0) };
+}
+
+export const SpectralProfileResponse = {
+  encode(message: SpectralProfileResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.rawValuesFp32.length !== 0) {
+      writer.uint32(10).bytes(message.rawValuesFp32);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): SpectralProfileResponse {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSpectralProfileResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rawValuesFp32 = reader.bytes();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SpectralProfileResponse {
+    return { rawValuesFp32: isSet(object.rawValuesFp32) ? bytesFromBase64(object.rawValuesFp32) : new Uint8Array(0) };
+  },
+
+  toJSON(message: SpectralProfileResponse): unknown {
+    const obj: any = {};
+    if (message.rawValuesFp32.length !== 0) {
+      obj.rawValuesFp32 = base64FromBytes(message.rawValuesFp32);
+    }
+    return obj;
+  },
+
   create<I extends Exact<DeepPartial<SpectralProfileResponse>, I>>(base?: I): SpectralProfileResponse {
     return SpectralProfileResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<SpectralProfileResponse>, I>>(object: I): SpectralProfileResponse {
     const message = createBaseSpectralProfileResponse();
     message.rawValuesFp32 = object.rawValuesFp32 ?? new Uint8Array(0);
-    message.counts = object.counts ?? new Uint8Array(0);
     return message;
   },
 };

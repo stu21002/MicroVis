@@ -24,8 +24,14 @@ import { FileInfoRequest, FileInfoResponse } from "./FileInfo";
 import { HistogramDistRequest, HistogramRequest, HistogramResponse, SetHistogramReq } from "./Histogram";
 import { ImageDataRequest, ImageDataResponse } from "./ImageData";
 import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./OpenFile";
+import { SetRegion, SetRegionAck } from "./Region";
 import { SetSpatialReq, SpatialProfileData } from "./SpatialProfile";
-import { SpectralProfileRequest, SpectralProfileResponse } from "./SpectralProfile";
+import {
+  SpectralProfileReaderRequest,
+  SpectralProfileReaderResponse,
+  SpectralProfileRequest,
+  SpectralProfileResponse,
+} from "./SpectralProfile";
 import { Empty, StatusResponse } from "./defs";
 
 export const protobufPackage = "proto";
@@ -188,10 +194,12 @@ export const H5ReadersService = {
     path: "/proto.H5Readers/GetSpectralProfile",
     requestStream: false,
     responseStream: false,
-    requestSerialize: (value: SpectralProfileRequest) => Buffer.from(SpectralProfileRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer) => SpectralProfileRequest.decode(value),
-    responseSerialize: (value: SpectralProfileResponse) => Buffer.from(SpectralProfileResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer) => SpectralProfileResponse.decode(value),
+    requestSerialize: (value: SpectralProfileReaderRequest) =>
+      Buffer.from(SpectralProfileReaderRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => SpectralProfileReaderRequest.decode(value),
+    responseSerialize: (value: SpectralProfileReaderResponse) =>
+      Buffer.from(SpectralProfileReaderResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer) => SpectralProfileReaderResponse.decode(value),
   },
   getHistogram: {
     path: "/proto.H5Readers/GetHistogram",
@@ -219,7 +227,7 @@ export interface H5ReadersServer extends UntypedServiceImplementation {
   closeFile: handleUnaryCall<FileCloseRequest, StatusResponse>;
   getFileInfo: handleUnaryCall<FileInfoRequest, FileInfoResponse>;
   getImageDataStream: handleServerStreamingCall<ImageDataRequest, ImageDataResponse>;
-  getSpectralProfile: handleUnaryCall<SpectralProfileRequest, SpectralProfileResponse>;
+  getSpectralProfile: handleUnaryCall<SpectralProfileReaderRequest, SpectralProfileReaderResponse>;
   getHistogram: handleUnaryCall<HistogramRequest, HistogramResponse>;
   getHistogramDist: handleUnaryCall<HistogramDistRequest, HistogramResponse>;
 }
@@ -295,19 +303,19 @@ export interface H5ReadersClient extends Client {
     options?: Partial<CallOptions>,
   ): ClientReadableStream<ImageDataResponse>;
   getSpectralProfile(
-    request: SpectralProfileRequest,
-    callback: (error: ServiceError | null, response: SpectralProfileResponse) => void,
+    request: SpectralProfileReaderRequest,
+    callback: (error: ServiceError | null, response: SpectralProfileReaderResponse) => void,
   ): ClientUnaryCall;
   getSpectralProfile(
-    request: SpectralProfileRequest,
+    request: SpectralProfileReaderRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SpectralProfileResponse) => void,
+    callback: (error: ServiceError | null, response: SpectralProfileReaderResponse) => void,
   ): ClientUnaryCall;
   getSpectralProfile(
-    request: SpectralProfileRequest,
+    request: SpectralProfileReaderRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SpectralProfileResponse) => void,
+    callback: (error: ServiceError | null, response: SpectralProfileReaderResponse) => void,
   ): ClientUnaryCall;
   getHistogram(
     request: HistogramRequest,
@@ -385,6 +393,15 @@ export const H5ServicesService = {
     responseSerialize: (value: FileInfoResponse) => Buffer.from(FileInfoResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer) => FileInfoResponse.decode(value),
   },
+  createRegion: {
+    path: "/proto.H5Services/CreateRegion",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: SetRegion) => Buffer.from(SetRegion.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => SetRegion.decode(value),
+    responseSerialize: (value: SetRegionAck) => Buffer.from(SetRegionAck.encode(value).finish()),
+    responseDeserialize: (value: Buffer) => SetRegionAck.decode(value),
+  },
   getImageDataStream: {
     path: "/proto.H5Services/GetImageDataStream",
     requestStream: false,
@@ -428,6 +445,7 @@ export interface H5ServicesServer extends UntypedServiceImplementation {
   openFile: handleUnaryCall<OpenFileRequest, OpenFileACK>;
   closeFile: handleUnaryCall<FileCloseRequest, StatusResponse>;
   getFileInfo: handleUnaryCall<FileInfoRequest, FileInfoResponse>;
+  createRegion: handleUnaryCall<SetRegion, SetRegionAck>;
   getImageDataStream: handleServerStreamingCall<ImageDataRequest, ImageDataResponse>;
   getSpatialProfile: handleUnaryCall<SetSpatialReq, SpatialProfileData>;
   getSpectralProfile: handleUnaryCall<SpectralProfileRequest, SpectralProfileResponse>;
@@ -494,6 +512,21 @@ export interface H5ServicesClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: FileInfoResponse) => void,
+  ): ClientUnaryCall;
+  createRegion(
+    request: SetRegion,
+    callback: (error: ServiceError | null, response: SetRegionAck) => void,
+  ): ClientUnaryCall;
+  createRegion(
+    request: SetRegion,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SetRegionAck) => void,
+  ): ClientUnaryCall;
+  createRegion(
+    request: SetRegion,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SetRegionAck) => void,
   ): ClientUnaryCall;
   getImageDataStream(
     request: ImageDataRequest,
