@@ -118,14 +118,14 @@ async function test(){
   histgram_request.depth = 0;
   histgram_request.uuid = uuid1;
   
-  console.time("Hist");
-  const histRes = await ingres.getHistogram(histgram_request);
-  console.timeEnd("Hist");
-  console.log(histRes.bins.slice(0,6));
-  console.log();
+  // console.time("Hist");
+  // const histRes = await ingres.getHistogram(histgram_request);
+  // console.timeEnd("Hist");
+  // console.log(histRes.bins.slice(0,6));
+  // console.log();
 
   const region_info = RegionInfo.create();
-  region_info.regionType = RegionType.RECTANGLE;
+  region_info.regionType = RegionType.CIRCLE;
   region_info.controlPoints.push({x:200,y:200});
   region_info.controlPoints.push({x:200,y:200});
 
@@ -166,23 +166,23 @@ async function test(){
   image_request.count = [200,200,4];
   image_request.regionType = RegionType.RECTANGLE;
 
-  console.time("ImageData");
-  const image_res = await ingres.getImageDataStream(image_request);
-  console.log(image_res)
-  // console.log(image_res(respones2[0].rawValuesFp32));
-  console.timeEnd("ImageData");
-  console.log();
+  // console.time("ImageData");
+  // const image_res = await ingres.getImageDataStream(image_request);
+  // console.log(image_res)
+  // // console.log(image_res(respones2[0].rawValuesFp32));
+  // console.timeEnd("ImageData");
+  // console.log();
 
   const spatial_request = SetSpatialReq.create();
   spatial_request.uuid = uuid1;
   spatial_request.x = 200;
   spatial_request.y = 200;
 
-  console.time("Spatial");
-  const respones3 = await ingres.getSpatialProfile(spatial_request);
-  console.log(respones3);
-  console.timeEnd("Spatial");
-  console.log();
+  // console.time("Spatial");
+  // const respones3 = await ingres.getSpatialProfile(spatial_request);
+  // console.log(respones3);
+  // console.timeEnd("Spatial");
+  // console.log();
   
   ingres.closeFile({uuid:uuid1});
   

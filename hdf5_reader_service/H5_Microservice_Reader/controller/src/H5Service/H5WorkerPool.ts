@@ -164,7 +164,6 @@ export class Hdf5WorkerPool {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
-
     const pixelsPerWorker = Math.floor(width / numWorkers);
     const promises = new Array<Promise<SpectralProfileReaderResponse>>();
     for (let i = 0; i < numWorkers; i++) {
@@ -179,6 +178,7 @@ export class Hdf5WorkerPool {
     const spectralData = new Float32Array(numPixels);
     const statistic = new Float32Array(numPixels).fill(0);
     const counts = Array(numPixels).fill(0);
+ 
     return Promise.all(promises).then(res => {
       //Adding values as they come in, avoids heap error
       for (const response of res) {

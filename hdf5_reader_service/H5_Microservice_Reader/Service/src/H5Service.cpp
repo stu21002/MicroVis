@@ -289,7 +289,6 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         }
         
         ServicePrint("Spectral Profile Request");
-
         std::vector<float> result;
         const hsize_t x = request->x();
         const hsize_t y = request->y();
@@ -331,6 +330,13 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         
         int index = 0;
         int maskIndex=0;
+
+        for (size_t i = 0; i < mask.size(); i++)
+        {
+            std::cout<<mask[i]<<std::endl;
+        }
+        
+
         for (size_t xpos = 0; xpos < width; xpos++) {
             for (size_t ypos = 0; ypos < height; ypos++) {
                 if (mask[maskIndex++]){
@@ -341,6 +347,9 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
                             counts[zpos]+=1;
                         }
                     }
+                }
+                else{
+                    index+=num_pixels;
                 }
             }
         }
@@ -495,22 +504,32 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
 
     std::vector<bool> H5Service::getMask(RegionInfo region_info,int startX,int startY,int numX, int numY){
         std::vector<bool> mask(numX*numY,true);
+        for (size_t i = 0; i < mask.size(); i++)
+        {
+            std::cout<<mask[i]<<std::endl;
+        }
         switch (region_info.regiontype())
         {
         case RegionType::CIRCLE:{
-            int diameter = region_info.controlpoints().Get(1).x();
+            int radi = region_info.controlpoints().Get(1).x();
+            int centerX = region_info.controlpoints().Get(0).x();
+            int centerY = region_info.controlpoints().Get(0).y();
             int index = 0;
-            double pow_radius = pow(diameter/2.0,2);
-            float center = (diameter-1)/2.0;
+            double pow_radius = pow(radi,2);
+            // float center = (diameter-1)/2.0;
             // float centerY = (diameter-1)/2.0;
+
             for (int x = startX; x < startX+numX; x++) {
                 //part of circle calculation
-                double pow_x = pow(x-center,2);
+                double pow_x = pow(x-centerX,2);
                 for (int y = startY; y < startY+numY; y++) {
                     //if point is inside the circle
-                    if (pow_x + pow(y-center,2) > pow_radius){
-                        mask[index++] = false;
+                    if (pow_x + pow(y-centerY,2) > pow_radius){
+
+
+                        mask[index] = false;
                     }
+                    index++;
                 }
             }
             break;

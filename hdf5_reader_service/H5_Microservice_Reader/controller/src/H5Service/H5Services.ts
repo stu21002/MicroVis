@@ -20,7 +20,7 @@ import { SetSpatialReq, SpatialProfileData } from "../../bin/src/proto/SpatialPr
 import { SpectralProfileRequest, SpectralProfileResponse } from "../../bin/src/proto/SpectralProfile";
 import { HistogramResponse, SetHistogramReq } from "../../bin/src/proto/Histogram";
 import { SetRegion, SetRegionAck } from "../../bin/src/proto/Region";
-import { getCoords } from "../utils/coord";
+import { getCircleCoords, getCoords } from "../utils/coord";
 
 
 interface DimensionValues {
@@ -199,33 +199,33 @@ export class H5Services {
       }
       //This will only work for circles and rectangles
       const points = region_info.controlPoints;
-      const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y)
-      const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
-      const spectral_profile_response = SpectralProfileResponse.create();
-      spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
-      callback(null, spectral_profile_response);
+      // const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
+          // console.log({startingX,startingY,adjustedWidth,adjustedHeight})
+      
 
-      // switch (region_info.regionType) {
-      //   case RegionType.CIRCLE:
-      //     const points = region_info.controlPoints;
-      //     const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y)
-      //     const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
-      //     const spectral_profile_response = SpectralProfileResponse.create();
-      //     spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
-      //     callback(null, spectral_profile_response);
-      //     break;
+      if (region_info.regionType == RegionType.CIRCLE){
+            const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);
+               console.log({startingX,startingY,adjustedWidth,adjustedHeight})
+       
+            const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
+            const spectral_profile_response = SpectralProfileResponse.create();
+            spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+            callback(null, spectral_profile_response);
+            return;
+      }
+      else if(region_info.regionType == RegionType.RECTANGLE){
+        
+        const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
+        console.log({startingX,startingY,adjustedWidth,adjustedHeight})
+          const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
+          const spectral_profile_response = SpectralProfileResponse.create();
+          spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+          callback(null, spectral_profile_response);
+          return;
+      }
+        
 
-      //   case RegionType.RECTANGLE:
-      //     points = region_info.controlPoints;
-      //     const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y)
-      //     const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
-      //     const spectral_profile_response = SpectralProfileResponse.create();
-      //     spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
-      //     callback(null, spectral_profile_response);
-      //     break;
-      //   default:
-      //     break;
-      // }
+
       const error = {
         code: status.UNIMPLEMENTED,
         message: "Region Type Not Implemented" + region_info.regionType.toString()
