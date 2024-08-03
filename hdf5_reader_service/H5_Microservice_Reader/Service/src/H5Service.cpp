@@ -279,7 +279,7 @@ using namespace std::chrono;
         ServicePrint("Region Request Complete");
         return grpc::Status::OK;
     };
-grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const ::proto::SpectralProfileRequest* request, ::proto::SpectralProfileResponse* response){
+grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const ::proto::SpectralProfileReaderRequest* request, ::proto::SpectralProfileReaderResponse* response){
                 if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         }
@@ -288,26 +288,6 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
         
-
-        // bool hasMask = false;//!request->mask().empty();
-        // std::vector<bool> mask_vector;
-
-
-        // if (hasMask){
-        //     // const google::protobuf::RepeatedField<bool>& mask_values  = request->mask();
-        //     // mask_vector.assign(mask_values.begin(), mask_values.end());
-        //     // // int16_t mask_width = mask.width();
-        //     // // int16_t mask_height = mask.height();
-
-
-        //     // for (size_t i = 0; i < mask_vector.size(); i++)
-        //     // {
-        //     //     std::cout<<mask_vector[i]<<" ";
-        //     //     /* code */
-        //     // }
-        //     std::cout<<std::endl;
-        //}
-
         ServicePrint("Spectral Profile Request");
 
         std::vector<float> result;
@@ -331,6 +311,10 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         std::vector<hsize_t> start = {0,x,y,z};
         std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
         result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
+
+      
+        std::vector<bool> mask = getMask(request->region_info(),x,y,width,height);
+ 
         
         const auto num_bytes_sum = num_pixels * sizeof(float);
         const auto num_bytes_count = num_pixels * sizeof(int);
@@ -340,54 +324,28 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
 
         float* sum = reinterpret_cast<float*>(response->mutable_raw_values_fp32()->data());
         int* counts = reinterpret_cast<int*>(response->mutable_counts()->data());
+
         // std::vector<float> sum(num_pixels,0);
         // std::vector<int> counts(num_pixels,0);
         // int xoffset = num_pixels*height;
         
         int index = 0;
-
-        // for (size_t i = 0; i < num_pixels; i++)
-        // {
-        //     sum[i]=0;
-        //     counts[i]=0;
-        // }
-
+        int maskIndex=0;
         for (size_t xpos = 0; xpos < width; xpos++) {
             for (size_t ypos = 0; ypos < height; ypos++) {
-                for (size_t zpos = 0; zpos < num_pixels; zpos++) {
-                    float val = result[index++];
-                    if (std::isfinite(val)) {
-                        sum[zpos] += val;
-                        counts[zpos]+=1;
+                if (mask[maskIndex++]){
+                    for (size_t zpos = 0; zpos < num_pixels; zpos++) {
+                        float val = result[index++];
+                        if (std::isfinite(val)) {
+                            sum[zpos] += val;
+                            counts[zpos]+=1;
+                        }
                     }
                 }
             }
         }
 
-        // auto mid = std::chrono::high_resolution_clock::now();
-
-        // ::SpectralProfileResponse response;
-        // for (size_t i = 0; i < num_pixels; i++){
-
-        //     response.add_count(counts[i]);
-        //     response.add_data(sum[i]);
-
-        // }
-        // auto mid2 = std::chrono::high_resolution_clock::now();
-      
-        // writer->Write(response);
-        
-        // auto end = std::chrono::high_resolution_clock::now();
-     
-        // auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(mid - st);
-        // auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(mid2 - mid);
-        // auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end - mid2);
-
-        // std::cout << "Cal " <<duration1.count() << std::endl;
-        // std::cout << "App " <<duration2.count() << std::endl;
-        // std::cout << "Write " <<duration3.count() << std::endl;
-
-        // ServicePrint("Spectral Profile Stream Complete");
+        ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
 
@@ -484,43 +442,6 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         return grpc::Status::OK;
     }
 
-    //For later if needed
-    grpc::Status H5Service::GetHistogramDist(::grpc::ServerContext* context, const ::proto::HistogramDistRequest* request, ::proto::HistogramResponse* response){
-        
-        ServicePrint("Histogram Request");
-        // const size_t num_bins = request->num_bins();
-        // const float bin_width = request->bin_width();
-        // const std::vector<float> data(request->data().begin(),request->data().end());
-        // const size_t result_size = data.size();
-        // std::vector<int64_t> bins(num_bins);
-        // const float min_val = request->min_value();
-        // const float max_val = request->max_value(); 
-        // // for (int64_t i = 0; i < result_size; i++) {
-        // //     auto val = data[i];
-        // //     if (min_val <= val && val <= max_val) {
-        // //         size_t bin_number = std::clamp((size_t)((val - min_val) / bin_width), (size_t)0, num_bins - 1);
-        // //         bins[bin_number]++;
-        // //     }
-        // // }
-
-        // // #pragma omp for
-        // //         for (int64_t i = 0; i < num_bins; i++) {
-        // //             for (int t = 0; t < num_threads; t++) {
-        // //                 _histogram_bins[i] += temp_bins[num_bins * t + i];
-        // //             }
-        // //         }
-        // // }  
-
-        // response->set_bin_width(bin_width);
-        // response->set_num_bins(num_bins);
-        // for (size_t i = 0; i < num_bins; i++)
-        // {
-        //     response->add_bins(bins[i]);
-        // }
-         
-            
-        return grpc::Status::OK;
-    }
 
 
 
@@ -572,23 +493,23 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
     };
 
 
-    //Old Methods
-    std::vector<std::vector<bool>> H5Service::getMask(RegionType regionType,int width){
-        std::vector<std::vector<bool>> mask;
-        switch (regionType)
+    std::vector<bool> H5Service::getMask(RegionInfo region_info,int startX,int startY,int numX, int numY){
+        std::vector<bool> mask(numX*numY,true);
+        switch (region_info.regiontype())
         {
         case RegionType::CIRCLE:{
-            mask.resize(width, std::vector<bool>(width, false));
-            double pow_radius = pow(width/2.0,2);
-            float centerX = (width-1)/2.0;
-            float centerY = (width-1)/2.0;
-            for (int x = 0; x < width; x++) {
+            int diameter = region_info.controlpoints().Get(1).x();
+            int index = 0;
+            double pow_radius = pow(diameter/2.0,2);
+            float center = (diameter-1)/2.0;
+            // float centerY = (diameter-1)/2.0;
+            for (int x = startX; x < startX+numX; x++) {
                 //part of circle calculation
-                double pow_x = pow(x-centerX,2);
-                for (int y = 0; y < width; y++) {
+                double pow_x = pow(x-center,2);
+                for (int y = startY; y < startY+numY; y++) {
                     //if point is inside the circle
-                    if (pow_x + pow(y-centerY,2) <= pow_radius){
-                        mask[x][y] = true;
+                    if (pow_x + pow(y-center,2) > pow_radius){
+                        mask[index++] = false;
                     }
                 }
             }
@@ -599,6 +520,7 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         }
         return mask;
     }
+    //Old Methods
 
     std::vector<float> H5Service::readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &dimCount,std::vector<hsize_t> &start,hsize_t totalPixels){
         
@@ -617,7 +539,7 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
     }
 
 //old
-    grpc::Status H5Service::GetSpectralProfileStream(::grpc::ServerContext* context, const ::proto::SpectralProfileRequest* request, ::grpc::ServerWriter< ::proto::SpectralProfileResponse>* writer){
+    grpc::Status H5Service::GetSpectralProfileStream(::grpc::ServerContext* context, const ::proto::SpectralProfileReaderRequest* request, ::grpc::ServerWriter< ::proto::SpectralProfileReaderResponse>* writer){
         //         if (request->uuid().empty()) {
         //     return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         // }
@@ -721,5 +643,42 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         // // std::cout << "Write " <<duration3.count() << std::endl;
 
         // // ServicePrint("Spectral Profile Stream Complete");
+        return grpc::Status::OK;
+    }
+    //For later if needed
+    grpc::Status H5Service::GetHistogramDist(::grpc::ServerContext* context, const ::proto::HistogramDistRequest* request, ::proto::HistogramResponse* response){
+        
+        ServicePrint("Histogram Request");
+        // const size_t num_bins = request->num_bins();
+        // const float bin_width = request->bin_width();
+        // const std::vector<float> data(request->data().begin(),request->data().end());
+        // const size_t result_size = data.size();
+        // std::vector<int64_t> bins(num_bins);
+        // const float min_val = request->min_value();
+        // const float max_val = request->max_value(); 
+        // // for (int64_t i = 0; i < result_size; i++) {
+        // //     auto val = data[i];
+        // //     if (min_val <= val && val <= max_val) {
+        // //         size_t bin_number = std::clamp((size_t)((val - min_val) / bin_width), (size_t)0, num_bins - 1);
+        // //         bins[bin_number]++;
+        // //     }
+        // // }
+
+        // // #pragma omp for
+        // //         for (int64_t i = 0; i < num_bins; i++) {
+        // //             for (int t = 0; t < num_threads; t++) {
+        // //                 _histogram_bins[i] += temp_bins[num_bins * t + i];
+        // //             }
+        // //         }
+        // // }  
+
+        // response->set_bin_width(bin_width);
+        // response->set_num_bins(num_bins);
+        // for (size_t i = 0; i < num_bins; i++)
+        // {
+        //     response->add_bins(bins[i]);
+        // }
+         
+            
         return grpc::Status::OK;
     }

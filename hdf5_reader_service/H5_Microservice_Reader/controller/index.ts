@@ -1,15 +1,16 @@
 import { FileInfoRequest, FileInfoResponse } from "./bin/src/proto/FileInfo";
 import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./bin/src/proto/OpenFile";
-import { Empty, RegionType, StatusResponse } from "./bin/src/proto/defs";
+import { Empty, RegionInfo, RegionType, StatusResponse } from "./bin/src/proto/defs";
 import { ImageDataRequest, ImageDataResponse } from "./bin/src/proto/ImageData";
 import { SpectralProfileRequest, SpectralProfileResponse } from "./bin/src/proto/SpectralProfile";
 import { SetSpatialReq, SpatialProfileData } from "./bin/src/proto/SpatialProfile";
 import { HistogramResponse, SetHistogramReq } from "./bin/src/proto/Histogram";
 import { Ingres } from './ingres';
-import { H5Services } from './src/Services/H5Services';
-import {Hdf5WorkerPool} from './src/Services/Hdf5WorkerPool'
+import { H5Services } from './src/H5Service/H5Services';
+import {Hdf5WorkerPool} from './src/H5Service/H5WorkerPool'
 import { bytesToFloat32 } from './src/utils/arrays';
 import { getCoords } from './src/utils/coord';
+import { SetRegion } from "./bin/src/proto/Region";
 
 
 // const args = process.argv.slice(2); // slice(2) removes the first two elements which are 'node' and the script name
@@ -31,73 +32,73 @@ import { getCoords } from './src/utils/coord';
 
 const {startingX,startingY,adjustedWidth,adjustedHeight} = getCoords(600,600,400,400);
 
- async function main() {
+//  async function main() {
 
-    const numWorkers = 1;
-    const workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);
+//     const numWorkers = 1;
+//     const workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);
   
-    await workerPool.ready();
+//     await workerPool.ready();
 
-    console.log({startingX,startingY,adjustedWidth,adjustedHeight})
-    console.log();
+//     console.log({startingX,startingY,adjustedWidth,adjustedHeight})
+//     console.log();
 
-    console.time("getStatus");
-    await workerPool.checkStatus();
-    console.timeEnd("getStatus");
+//     console.time("getStatus");
+//     await workerPool.checkStatus();
+//     console.timeEnd("getStatus");
  
-    console.log();
+//     console.log();
 
     
-    console.time("OpenFile");
-    let fileOpenResponse = await workerPool.openFile("/home/stuart/","Small.hdf5", "0");
-    if (!fileOpenResponse?.uuid) {
-      console.error("no uuid");
-      return false;
-    }
-    console.timeEnd("OpenFile");
+//     console.time("OpenFile");
+//     let fileOpenResponse = await workerPool.openFile("/home/stuart/","Small.hdf5", "0");
+//     if (!fileOpenResponse?.uuid) {
+//       console.error("no uuid");
+//       return false;
+//     }
+//     console.timeEnd("OpenFile");
 
-    console.log();
-
-
-    console.time("Hist");
-    const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,startingX,startingY,0,adjustedWidth,adjustedHeight,0);
-    console.timeEnd("Hist");
-    console.log(histRes.bins.slice(0,6));
-    console.log();
+//     console.log();
 
 
-
-    console.time("Spectral Profile");
-    const respones1 = await workerPool.getSpectralProfile(fileOpenResponse.uuid,startingX,startingY,0,5,adjustedWidth,adjustedHeight);
-    // console.log("Main First five values : " + respones1.spectralData.subarray(0,5));
-    console.timeEnd("Spectral Profile");
-    console.log();
-
-    console.time("ImageData");
-    const respones2 = await workerPool.getImageDataStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[200,200,0],[200,200,10]);
-    // console.log(respones2[0].rawValuesFp32.buffer)
-    // console.log(bytesToFloat32(respones2[0].rawValuesFp32));
-    console.timeEnd("ImageData");
-    console.log();
-    for await (const iterator of respones2) {
-      console.log(await iterator);
-    }
+//     console.time("Hist");
+//     const histRes = await workerPool.getHistogram(fileOpenResponse.uuid,startingX,startingY,0,adjustedWidth,adjustedHeight,0);
+//     console.timeEnd("Hist");
+//     console.log(histRes.bins.slice(0,6));
+//     console.log();
 
 
-    // console.time("Spatial");
-    // const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
-    // // console.log(respones3);
-    // console.timeEnd("Spatial");
-    // console.log();
+
+//     console.time("Spectral Profile");
+//     const respones1 = await workerPool.getSpectralProfile(fileOpenResponse.uuid,startingX,startingY,0,5,adjustedWidth,adjustedHeight);
+//     // console.log("Main First five values : " + respones1.spectralData.subarray(0,5));
+//     console.timeEnd("Spectral Profile");
+//     console.log();
+
+//     console.time("ImageData");
+//     const respones2 = await workerPool.getImageDataStream(fileOpenResponse.uuid,RegionType.RECTANGLE,[200,200,0],[200,200,10]);
+//     // console.log(respones2[0].rawValuesFp32.buffer)
+//     // console.log(bytesToFloat32(respones2[0].rawValuesFp32));
+//     console.timeEnd("ImageData");
+//     console.log();
+//     for await (const iterator of respones2) {
+//       console.log(await iterator);
+//     }
 
 
-    workerPool.closeFile(fileOpenResponse.uuid);
-}
+//     // console.time("Spatial");
+//     // const respones3 = await workerPool.getSpatial(fileOpenResponse.uuid,400,400);
+//     // // console.log(respones3);
+//     // console.timeEnd("Spatial");
+//     // console.log();
+
+
+//     workerPool.closeFile(fileOpenResponse.uuid);
+// }
 
 async function test(){
   
   
-  const h5Services = new H5Services("0.0.0.0",8079,4);
+  const h5Services = new H5Services("0.0.0.0",8079,1);
   await h5Services.workerPool.ready();
   const ingres = new Ingres("0.0.0.0",8079);
   
@@ -122,7 +123,24 @@ async function test(){
   console.timeEnd("Hist");
   console.log(histRes.bins.slice(0,6));
   console.log();
-  
+
+  const region_info = RegionInfo.create();
+  region_info.regionType = RegionType.RECTANGLE;
+  region_info.controlPoints.push({x:200,y:200});
+  region_info.controlPoints.push({x:200,y:200});
+
+
+  const set_region = SetRegion.create();
+  set_region.fileId=uuid1;
+  set_region.regionId=0;
+  set_region.regionInfo=region_info;
+
+  console.time("Region");
+  const region_res =  await ingres.CreateRegion(set_region);
+  console.log(region_res);
+  console.timeEnd("Region");
+  console.log();
+
   
   const spectral_request = SpectralProfileRequest.create();
   spectral_request.x = startingX;
@@ -132,7 +150,7 @@ async function test(){
   spectral_request.width = adjustedWidth;
   spectral_request.numPixels = 1917;
   spectral_request.uuid = uuid1;
-  spectral_request.regionType = RegionType.RECTANGLE;
+  spectral_request.regionId = region_res.regionId;
   
   
   console.time("Spectral Profile");

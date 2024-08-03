@@ -12,7 +12,8 @@ set(PROTO_FILES
         ./FileInfo.proto
         ./OpenFile.proto
         ./Histogram.proto
-        ./ImageData.proto 
+        ./ImageData.proto
+        ./Region.proto  
         ./SpatialProfile.proto 
         ./SpectralProfile.proto
         ./H5ReaderService.proto

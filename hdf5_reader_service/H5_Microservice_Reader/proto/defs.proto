@@ -29,11 +29,20 @@ message FileInfo {
     string statusMessage = 2;
   }
   
-  
   enum RegionType {
     POINT = 0;
     LINE = 1;
     RECTANGLE = 2;
     CIRCLE = 3;
+  }
+
+  message Point{
+    sfixed32 x = 1;
+    sfixed32 y = 2;
+  }
+
+  message RegionInfo {
+    RegionType regionType = 1;
+    repeated Point controlPoints = 2;
   }
   

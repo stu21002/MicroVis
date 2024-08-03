@@ -1,5 +1,5 @@
 import { FileInfoRequest, FileInfoResponse } from '../../bin/src/proto/FileInfo';
-import {Hdf5WorkerPool} from '../Services/Hdf5WorkerPool';
+import {Hdf5WorkerPool} from '../H5Service/H5WorkerPool';
 import config from "./config.json";
 
 
