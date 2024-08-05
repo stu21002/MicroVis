@@ -185,7 +185,7 @@ using namespace std::chrono;
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
 
-        ServicePrint("Region Request");
+        ServicePrint("Image Data Request");
       
 
         Hdf5_File &h5file = hdf5_files[request->uuid()];
@@ -244,13 +244,22 @@ using namespace std::chrono;
 
         while (offset < buffer.size()) {
             size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
+            auto begin = std::chrono::high_resolution_clock::now();
+
             ImageDataResponse response;
             response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
+        
             response.set_num_pixels(current_chunk_size);
             float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
 
             std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
             writer->Write(response);
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+            
+            std::cout<<duration1.count()<<std::endl;
+
 
             offset += current_chunk_size;
         }
@@ -276,7 +285,7 @@ using namespace std::chrono;
         // //For loop to write chunks of the read into the response var
         // writer->Write(response);
         
-        ServicePrint("Region Request Complete");
+        ServicePrint("ImageData Request Complete");
         return grpc::Status::OK;
     };
 grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const ::proto::SpectralProfileReaderRequest* request, ::proto::SpectralProfileReaderResponse* response){
@@ -314,7 +323,6 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
       
         std::vector<bool> mask = getMask(request->region_info(),x,y,width,height);
  
-        
         const auto num_bytes_sum = num_pixels * sizeof(float);
         const auto num_bytes_count = num_pixels * sizeof(int);
     
@@ -331,13 +339,7 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         int index = 0;
         int maskIndex=0;
 
-        for (size_t i = 0; i < mask.size(); i++)
-        {
-            std::cout<<mask[i]<<std::endl;
-        }
-        
-
-        for (size_t xpos = 0; xpos < width; xpos++) {
+          for (size_t xpos = 0; xpos < width; xpos++) {
             for (size_t ypos = 0; ypos < height; ypos++) {
                 if (mask[maskIndex++]){
                     for (size_t zpos = 0; zpos < num_pixels; zpos++) {
@@ -504,10 +506,7 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
 
     std::vector<bool> H5Service::getMask(RegionInfo region_info,int startX,int startY,int numX, int numY){
         std::vector<bool> mask(numX*numY,true);
-        for (size_t i = 0; i < mask.size(); i++)
-        {
-            std::cout<<mask[i]<<std::endl;
-        }
+
         switch (region_info.regiontype())
         {
         case RegionType::CIRCLE:{

@@ -204,9 +204,7 @@ export class H5Services {
       
 
       if (region_info.regionType == RegionType.CIRCLE){
-            const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-               console.log({startingX,startingY,adjustedWidth,adjustedHeight})
-       
+            const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
             const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
             const spectral_profile_response = SpectralProfileResponse.create();
             spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
@@ -216,7 +214,6 @@ export class H5Services {
       else if(region_info.regionType == RegionType.RECTANGLE){
         
         const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-        console.log({startingX,startingY,adjustedWidth,adjustedHeight})
           const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
           const spectral_profile_response = SpectralProfileResponse.create();
           spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);

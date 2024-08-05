@@ -125,9 +125,9 @@ async function test(){
   // console.log();
 
   const region_info = RegionInfo.create();
-  region_info.regionType = RegionType.CIRCLE;
+  region_info.regionType = RegionType.RECTANGLE;
   region_info.controlPoints.push({x:200,y:200});
-  region_info.controlPoints.push({x:200,y:200});
+  region_info.controlPoints.push({x:400,y:400});
 
 
   const set_region = SetRegion.create();
@@ -189,66 +189,14 @@ async function test(){
 }
 
 // main()
-test()
+// test()
 
+const args = process.argv.slice(2); // slice(2) removes the first two elements which are 'node' and the script name
+let numWorkers = 1;
+if (args.length > 0) {
+  numWorkers = Number(args[0]);
+} 
 
+const h5Services = new H5Services("0.0.0.0",8079,numWorkers);
+async()=>{await h5Services.workerPool.ready};
 
-
-function main2(){
-  
-  
-  const diameter = 5;
-  const full = getMask(0,0,diameter,diameter,diameter);
-  console.log(full)
-  // let space = "";
-  
-  // for (let i = 0; i < 5; i++) {
-//   const length = 2;
-//   const diameter = 30;
-//   const mask = getMask(i*2,0,2,10,10);
-//   const full = getMask(0,0,diameter,diameter,diameter);
-
-
-  // console.log(mask);
-  // for (let i = 0; i < mask.length; i += length) {
-  //   const row = mask.slice(i, i + length);
-  //   // console.log(row.length);
-  //   console.log(space+ row.join(' '));
-  // }
-
-  // for (let i = 0; i < full.length; i += diameter) {
-  //   const row = full.slice(i, i + diameter);
-  //   console.log(row.join(' '));
-  // }
-  // space=space+"    ";
-  // for (let y = 0; y < diameter; y++) {
-    
-  //   for (let x = 0; x < diameter; x++) {
-  //     const index = y * diameter + x;
-  //     console.log(mask[index]);
-  //   }
-  // }
-// }
-
-}
-function getMask(startX:number,startY:number,numX:number,numY:number,diameter:number) {
-  let mask: boolean[] = [];
-  const pow_radius = Math.pow(diameter / 2.0, 2);
-  const centerX = (diameter - 1) / 2.0;
-  const centerY = (diameter - 1) / 2.0;
-  let index = 0;
-  for (let y = startY; y < startY+numY; y++) {
-      const pow_y = Math.pow(y - centerY, 2);
-
-      for (let x = startX; x < startX+numX; x++) {
-          
-          mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
- 
-      }
-  }
-
-  return mask;
-  
-}
-// main2()
- 

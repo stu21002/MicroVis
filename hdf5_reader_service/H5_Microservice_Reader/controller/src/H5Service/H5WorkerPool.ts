@@ -92,14 +92,16 @@ export class Hdf5WorkerPool {
     //possbly add data type
     const promises = new Array<Promise<ImageDataResponse[]>>
     if (count.length<=2 || count[3]==1){
+      
       console.log("single")
+      promises.push(this.primaryreader.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE}));
 
-       promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE}));
     }
     else{
       //Handling distributed reading
       console.log("multi")
       for (let dim3 = start[2]; dim3 <start[2]+count[2]; dim3++) {
+
         const tempStart = [start[0],start[1],dim3]
         const tempCount = [count[0],count[1],1]
         promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}))

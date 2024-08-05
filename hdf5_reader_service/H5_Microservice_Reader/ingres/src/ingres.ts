@@ -1,17 +1,18 @@
 import { credentials } from "@grpc/grpc-js";
 import { promisify } from "util";
 
-import { H5ServicesClient } from "./bin/src/proto/H5ReaderService";
+import { H5ServicesClient } from "../bin/proto/H5ReaderService";
 //Protos
-import { FileInfoRequest, FileInfoResponse } from "./bin/src/proto/FileInfo";
-import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./bin/src/proto/OpenFile";
-import { Empty, StatusResponse } from "./bin/src/proto/defs";
-import { ImageDataRequest, ImageDataResponse } from "./bin/src/proto/ImageData";
-import { SpectralProfileRequest, SpectralProfileResponse } from "./bin/src/proto/SpectralProfile";
-import { SetSpatialReq, SpatialProfileData } from "./bin/src/proto/SpatialProfile";
-import { HistogramResponse, SetHistogramReq } from "./bin/src/proto/Histogram";
-import { SetRegion, SetRegionAck } from "./bin/src/proto/Region";
+import { FileInfoRequest, FileInfoResponse } from "../bin/proto/FileInfo";
+import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "../bin/proto/OpenFile";
+import { Empty, StatusResponse } from "../bin/proto/defs";
+import { ImageDataRequest, ImageDataResponse } from "../bin/proto/ImageData";
+import { SpectralProfileRequest, SpectralProfileResponse } from "../bin/proto/SpectralProfile";
+import { SetSpatialReq, SpatialProfileData } from "../bin/proto/SpatialProfile";
+import { HistogramResponse, SetHistogramReq } from "../bin/proto/Histogram";
+import { SetRegion, SetRegionAck } from "../bin/proto/Region";
 export class Ingres {
+
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
     readonly getImageDataStream: (request: ImageDataRequest) => Promise<ImageDataResponse[]>;
@@ -89,11 +90,17 @@ export class Ingres {
           }
         } else {
           this._connected = true;
+          console.log("Connected to workerpool");
+
           for (const resolve of this._readyResolves) {
             resolve();
           }
         }
       });
+
+///contouring
+///Reading requests////
+///Countring...//
 
 
       //Add other services...
