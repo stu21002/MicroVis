@@ -29,6 +29,8 @@ export interface ContouringEmpty {
   data: number[];
   width: number;
   height: number;
+  offset: number;
+  scale: number;
 }
 
 function createBaseContouringOutput(): ContouringOutput {
@@ -89,7 +91,7 @@ export const ContouringOutput = {
 };
 
 function createBaseContouringEmpty(): ContouringEmpty {
-  return { data: [], width: 0, height: 0 };
+  return { data: [], width: 0, height: 0, offset: 0, scale: 0 };
 }
 
 export const ContouringEmpty = {
@@ -104,6 +106,12 @@ export const ContouringEmpty = {
     }
     if (message.height !== 0) {
       writer.uint32(29).float(message.height);
+    }
+    if (message.offset !== 0) {
+      writer.uint32(37).float(message.offset);
+    }
+    if (message.scale !== 0) {
+      writer.uint32(45).float(message.scale);
     }
     return writer;
   },
@@ -146,6 +154,20 @@ export const ContouringEmpty = {
 
           message.height = reader.float();
           continue;
+        case 4:
+          if (tag !== 37) {
+            break;
+          }
+
+          message.offset = reader.float();
+          continue;
+        case 5:
+          if (tag !== 45) {
+            break;
+          }
+
+          message.scale = reader.float();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -160,6 +182,8 @@ export const ContouringEmpty = {
       data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => globalThis.Number(e)) : [],
       width: isSet(object.width) ? globalThis.Number(object.width) : 0,
       height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+      offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
+      scale: isSet(object.scale) ? globalThis.Number(object.scale) : 0,
     };
   },
 
@@ -174,6 +198,12 @@ export const ContouringEmpty = {
     if (message.height !== 0) {
       obj.height = message.height;
     }
+    if (message.offset !== 0) {
+      obj.offset = message.offset;
+    }
+    if (message.scale !== 0) {
+      obj.scale = message.scale;
+    }
     return obj;
   },
 
@@ -185,6 +215,8 @@ export const ContouringEmpty = {
     message.data = object.data?.map((e) => e) || [];
     message.width = object.width ?? 0;
     message.height = object.height ?? 0;
+    message.offset = object.offset ?? 0;
+    message.scale = object.scale ?? 0;
     return message;
   },
 };

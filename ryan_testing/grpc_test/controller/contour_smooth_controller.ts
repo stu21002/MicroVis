@@ -1,59 +1,6 @@
-
-// const emptyRequest: SmoothingEmpty = {};
-
-// const clients = [
-//     new SmoothingServicesClient("localhost:9994", grpc.credentials.createInsecure()),
-//     new SmoothingServicesClient("localhost:9993", grpc.credentials.createInsecure()),
-//     new SmoothingServicesClient("localhost:9992", grpc.credentials.createInsecure()),
-//     new SmoothingServicesClient("localhost:9991", grpc.credentials.createInsecure()),
-//     new SmoothingServicesClient("localhost:9990", grpc.credentials.createInsecure()),
-// ];
-
-// function computeGaussianBlur() {
-//     clients.forEach((client, index) => {
-//         client.computeGuassianBlur(emptyRequest, (error, response: SmoothingOutput) => {
-//             if (error) {
-//                 console.error(`Error: ${error}`);
-//             } else {
-//                 console.log(`Smoothing Output ${index + 1}: ${response?.value}`);
-//             }
-//         });
-//     });
-// }
-
-// function computeBlockSmoothing() {
-//     clients.forEach((client, index) => {
-//         client.computeBlockSmoothing(emptyRequest, (error, response: SmoothingOutput) => {
-//             if (error) {
-//                 console.error(`Error: ${error}`);
-//             } else {
-//                 console.log(`Smoothing Output ${index + 1}: ${response?.value}`);
-//             }
-//         });
-//     });
-// }
-
-// function main() {
-//     const args = process.argv.slice(2);
-//     if (args.length !== 1) {
-//         console.error("Usage: node smoothing_controller.js <0|1> for GuassianBlur and BlockSmoothing");
-//         process.exit(1);
-//     }
-
-//     const command = args[0];
-//     if (command === "0") {
-//         computeGaussianBlur();
-//     } else if (command === "1") {
-//         computeBlockSmoothing();
-//     } else {
-//         console.error("Invalid command. Use either '0' or '1' for GuassianBlur and BlockSmoothing");
-//         process.exit(1);
-//     }
-// }
-
-// main();
-
 import * as grpc from "@grpc/grpc-js";
+import { ContouringOutput } from "./proto/contouring";
+import { ContourServicesClient } from "./proto/contouring";
 import { SmoothingOutput } from "./proto/smoothing";
 import { SmoothingServicesClient } from "./proto/smoothing";
 
@@ -64,7 +11,6 @@ import { SmoothingServicesClient } from "./proto/smoothing";
     const startTime = new Date().getTime();
 
     const file = new h5wasm.File("/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5", "r");
-    const keys = file.keys();
 
     const datasetName = '0/DATA';
     const dataset = file.get(datasetName);
@@ -100,14 +46,15 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
             const options = {
                 'grpc.max_send_message_length': 15 * 1024 * 1024, // 15MB
-                'grpc.max_receive_message_length': 15 * 1024 * 1024 // 5MB
+                'grpc.max_receive_message_length': 15 * 1024 * 1024, // 5MB
+                'grpc.request_timeout_ms': 60000
             };
 
-            const clients = [
-                new SmoothingServicesClient("localhost:9999", grpc.credentials.createInsecure(), options),
-                // new SmoothingServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
-                // new SmoothingServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
-                // new SmoothingServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
+            const contourClients = [
+                new ContourServicesClient("localhost:9999", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9995", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9994", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9993", grpc.credentials.createInsecure(), options),
@@ -120,6 +67,10 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                 // new ContourServicesClient("localhost:9986", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9985", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9984", grpc.credentials.createInsecure(), options),
+            ];
+
+            const smoothingClients = [
+                new SmoothingServicesClient("localhost:9983", grpc.credentials.createInsecure(), options)
             ];
 
             slices.forEach((slice, index) => {
@@ -139,24 +90,55 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                         return;
                     }
 
-                    console.log(flatArray.length)
-
-                    const requestData = {
+                    const smoothingData = {
                         data: flatArray,
                         width: width,
                         height: height
                     };
+                    
+                    const grpcSmoothStartTime = new Date().getTime();
 
-                    const grpcStartTime = new Date().getTime();
+                    let contouringArray;
+                    let offsetContour;
+                    let scaleContour = 1;
+                    let dest_width;
+                    let dest_height;
 
-                    clients[index].computeGuassianBlur(requestData, (error, response: SmoothingOutput) => {
+                    smoothingClients[index].computeGuassianBlur(smoothingData, (error, response: SmoothingOutput) => {
                         if (error) {
                             console.error(`Error for client ${index}:`, error);
                         } else {
-                            //console.log(`Completed GaussianBlur for client ${index}: ${response?.value}`);
+                            console.log(`Smoothing Output for client ${index}: ${response?.smoothingFactor}`);
+
+                            const grpcSmoothEndTime = new Date().getTime();
+                            console.log(`Time taken for Smooth gRPC request ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms`);
+
+                            contouringArray = response.data;
+                            offsetContour = response.smoothingFactor - 1;
+                            dest_width = response.destWidth;
+                            dest_height = response.destHeight;
+
+                            const contouringData = {
+                                data: contouringArray,
+                                width: dest_width,
+                                height: dest_height,
+                                offset: offsetContour,
+                                scale: scaleContour
+                            };
+
+                            const grpcContourStartTime = new Date().getTime();
+
+                            contourClients[index].computeContour(contouringData, (error, response: ContouringOutput) => {
+                                if (error) {
+                                    console.error(`Error for client ${index}:`, error);
+                                } else {
+                                    console.log(`Contouring Output for client ${index}: ${response?.value}`);
+                                }
+                                const grpcContourEndTime = new Date().getTime();
+                                console.log(`Time taken for Contour gRPC request ${index}: ${grpcContourEndTime - grpcContourStartTime} ms`);
+                            });
                         }
-                        const grpcEndTime = new Date().getTime();
-                        console.log(`Time taken for gRPC request ${index}: ${grpcEndTime - grpcStartTime} ms`);
+                        
                     });
 
                 } catch (error) {
@@ -176,4 +158,3 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
     file.close();
 })();
-

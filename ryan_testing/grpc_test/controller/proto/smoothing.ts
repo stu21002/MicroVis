@@ -22,20 +22,37 @@ import * as _m0 from "protobufjs/minimal";
 export const protobufPackage = "";
 
 export interface SmoothingOutput {
-  value: string;
+  data: number[];
+  smoothingFactor: number;
+  destWidth: number;
+  destHeight: number;
 }
 
 export interface SmoothingEmpty {
+  data: number[];
+  width: number;
+  height: number;
 }
 
 function createBaseSmoothingOutput(): SmoothingOutput {
-  return { value: "" };
+  return { data: [], smoothingFactor: 0, destWidth: 0, destHeight: 0 };
 }
 
 export const SmoothingOutput = {
   encode(message: SmoothingOutput, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.value !== "") {
-      writer.uint32(10).string(message.value);
+    writer.uint32(10).fork();
+    for (const v of message.data) {
+      writer.float(v);
+    }
+    writer.ldelim();
+    if (message.smoothingFactor !== 0) {
+      writer.uint32(21).float(message.smoothingFactor);
+    }
+    if (message.destWidth !== 0) {
+      writer.uint32(29).float(message.destWidth);
+    }
+    if (message.destHeight !== 0) {
+      writer.uint32(37).float(message.destHeight);
     }
     return writer;
   },
@@ -48,11 +65,42 @@ export const SmoothingOutput = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          if (tag !== 10) {
+          if (tag === 13) {
+            message.data.push(reader.float());
+
+            continue;
+          }
+
+          if (tag === 10) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.data.push(reader.float());
+            }
+
+            continue;
+          }
+
+          break;
+        case 2:
+          if (tag !== 21) {
             break;
           }
 
-          message.value = reader.string();
+          message.smoothingFactor = reader.float();
+          continue;
+        case 3:
+          if (tag !== 29) {
+            break;
+          }
+
+          message.destWidth = reader.float();
+          continue;
+        case 4:
+          if (tag !== 37) {
+            break;
+          }
+
+          message.destHeight = reader.float();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -64,13 +112,27 @@ export const SmoothingOutput = {
   },
 
   fromJSON(object: any): SmoothingOutput {
-    return { value: isSet(object.value) ? globalThis.String(object.value) : "" };
+    return {
+      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => globalThis.Number(e)) : [],
+      smoothingFactor: isSet(object.smoothingFactor) ? globalThis.Number(object.smoothingFactor) : 0,
+      destWidth: isSet(object.destWidth) ? globalThis.Number(object.destWidth) : 0,
+      destHeight: isSet(object.destHeight) ? globalThis.Number(object.destHeight) : 0,
+    };
   },
 
   toJSON(message: SmoothingOutput): unknown {
     const obj: any = {};
-    if (message.value !== "") {
-      obj.value = message.value;
+    if (message.data?.length) {
+      obj.data = message.data;
+    }
+    if (message.smoothingFactor !== 0) {
+      obj.smoothingFactor = message.smoothingFactor;
+    }
+    if (message.destWidth !== 0) {
+      obj.destWidth = message.destWidth;
+    }
+    if (message.destHeight !== 0) {
+      obj.destHeight = message.destHeight;
     }
     return obj;
   },
@@ -80,17 +142,31 @@ export const SmoothingOutput = {
   },
   fromPartial<I extends Exact<DeepPartial<SmoothingOutput>, I>>(object: I): SmoothingOutput {
     const message = createBaseSmoothingOutput();
-    message.value = object.value ?? "";
+    message.data = object.data?.map((e) => e) || [];
+    message.smoothingFactor = object.smoothingFactor ?? 0;
+    message.destWidth = object.destWidth ?? 0;
+    message.destHeight = object.destHeight ?? 0;
     return message;
   },
 };
 
 function createBaseSmoothingEmpty(): SmoothingEmpty {
-  return {};
+  return { data: [], width: 0, height: 0 };
 }
 
 export const SmoothingEmpty = {
-  encode(_: SmoothingEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(message: SmoothingEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    writer.uint32(10).fork();
+    for (const v of message.data) {
+      writer.float(v);
+    }
+    writer.ldelim();
+    if (message.width !== 0) {
+      writer.uint32(21).float(message.width);
+    }
+    if (message.height !== 0) {
+      writer.uint32(29).float(message.height);
+    }
     return writer;
   },
 
@@ -101,6 +177,37 @@ export const SmoothingEmpty = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
+        case 1:
+          if (tag === 13) {
+            message.data.push(reader.float());
+
+            continue;
+          }
+
+          if (tag === 10) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.data.push(reader.float());
+            }
+
+            continue;
+          }
+
+          break;
+        case 2:
+          if (tag !== 21) {
+            break;
+          }
+
+          message.width = reader.float();
+          continue;
+        case 3:
+          if (tag !== 29) {
+            break;
+          }
+
+          message.height = reader.float();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -110,20 +217,36 @@ export const SmoothingEmpty = {
     return message;
   },
 
-  fromJSON(_: any): SmoothingEmpty {
-    return {};
+  fromJSON(object: any): SmoothingEmpty {
+    return {
+      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => globalThis.Number(e)) : [],
+      width: isSet(object.width) ? globalThis.Number(object.width) : 0,
+      height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+    };
   },
 
-  toJSON(_: SmoothingEmpty): unknown {
+  toJSON(message: SmoothingEmpty): unknown {
     const obj: any = {};
+    if (message.data?.length) {
+      obj.data = message.data;
+    }
+    if (message.width !== 0) {
+      obj.width = message.width;
+    }
+    if (message.height !== 0) {
+      obj.height = message.height;
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<SmoothingEmpty>, I>>(base?: I): SmoothingEmpty {
     return SmoothingEmpty.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SmoothingEmpty>, I>>(_: I): SmoothingEmpty {
+  fromPartial<I extends Exact<DeepPartial<SmoothingEmpty>, I>>(object: I): SmoothingEmpty {
     const message = createBaseSmoothingEmpty();
+    message.data = object.data?.map((e) => e) || [];
+    message.width = object.width ?? 0;
+    message.height = object.height ?? 0;
     return message;
   },
 };

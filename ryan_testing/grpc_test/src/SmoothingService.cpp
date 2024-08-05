@@ -12,45 +12,59 @@ class ProcessingImpl : public SmoothingServices::Service {
 ::grpc::Status computeGuassianBlur(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
     std::cout << "Called GuassianBlur" << std::endl;
 
-    std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
-        std::string datasetName = "DATA";                                                                  
+//     std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
+//         std::string datasetName = "DATA";                                                                  
 
-        H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
-        H5::Group group = file.openGroup("0");
+//         H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
+//         H5::Group group = file.openGroup("0");
 
-        // Open the dataset
-        H5::DataSet dataset = group.openDataSet(datasetName);
+//         // Open the dataset
+//         H5::DataSet dataset = group.openDataSet(datasetName);
 
-        // Get the dataspace of the dataset
-        H5::DataSpace dataspace = dataset.getSpace();
+//         // Get the dataspace of the dataset
+//         H5::DataSpace dataspace = dataset.getSpace();
 
-        // Get the dimensions of the dataset
-        hsize_t dims[4];
-        dataspace.getSimpleExtentDims(dims, NULL);
-        int64_t dim1 = dims[0];
-        int64_t dim2 = dims[1];
-        int64_t width = dims[2];
-        int64_t height = dims[3];
+//         // Get the dimensions of the dataset
+//         hsize_t dims[4];
+//         dataspace.getSimpleExtentDims(dims, NULL);
+//         int64_t dim1 = dims[0];
+//         int64_t dim2 = dims[1];
+//         int64_t width = dims[2];
+//         int64_t height = dims[3];
 
-        int target_slice = 1;
+//         int target_slice = 1;
 
-        hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-        H5::DataSpace memspace(2, slice_dims);
+//         hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+//         H5::DataSpace memspace(2, slice_dims);
 
-        // Create a buffer to hold the data for the entire slice
-        std::vector<float> slice_buffer(width * height);
+//         // Create a buffer to hold the data for the entire slice
+//         std::vector<float> slice_buffer(width * height);
 
-        // Define hyperslab in the dataset
-        hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
-        hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-        dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
+//         // Define hyperslab in the dataset
+//         hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
+//         hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+//         dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
-        try {
-            dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
-        } catch (H5::Exception& e) {
-            std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
-            return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
-        }
+//         try {
+//             dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
+//         } catch (H5::Exception& e) {
+//             std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
+//             return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
+//         }
+
+    const google::protobuf::RepeatedField<float>& data = request->data();
+
+    int width = request->width();
+    int height = request->height();
+
+    auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
+
+        // Convert to std::vector<float>
+    std::vector<float> vectorData(data.begin(), data.end());
+
+    auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
+    std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
 
     int smoothing_factor = 3;
     
@@ -65,22 +79,34 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    carta::GaussianSmooth(slice_buffer.data(), dest_array.get(), source_width, source_height, dest_width, dest_height, smoothing_factor);
+    carta::GaussianSmooth(vectorData.data(), dest_array.get(), source_width, source_height, dest_width, dest_height, smoothing_factor);
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
     std::cout << "GaussianSmooth took " << duration.count() << " seconds." << std::endl;
 
-    std::ostringstream oss;
-        oss << "Completed Gaussian Blur: First 5 values: ";
-        for (int i = 0; i < 5 && i < dest_width * dest_height; ++i) {
-            oss << dest_array[i];
-            if (i < 4) {
-                oss << ", ";
-            }
-        }
+    // std::ostringstream oss;
+    //     oss << "Completed Gaussian Blur: First 5 values: ";
+    //     for (int i = 0; i < 5 && i < dest_width * dest_height; ++i) {
+    //         oss << dest_array[i];
+    //         if (i < 4) {
+    //             oss << ", ";
+    //         }
+    //     }
 
-    response->set_value(oss.str());
+    auto startConversionDest = std::chrono::high_resolution_clock::now();
+    
+    for (int64_t i = 0; i < dest_width * dest_height; ++i) {
+        response->add_data(dest_array[i]);
+    }
+
+    auto endConversionDest = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> durationConversionDest = endConversionDest - startConversionDest;
+    std::cout << "Coversion to send data took " << durationConversionDest.count() << " seconds." << std::endl;
+
+    response->set_smoothingfactor(smoothing_factor);
+    response->set_dest_width(dest_width);
+    response->set_dest_height(dest_height);
 
     return grpc::Status::OK;
 }
@@ -88,45 +114,59 @@ class ProcessingImpl : public SmoothingServices::Service {
 ::grpc::Status computeBlockSmoothing(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
     std::cout << "Called Block Smoothing" << std::endl;
 
-    std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
-        std::string datasetName = "DATA";                                                                  
+//     std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
+//         std::string datasetName = "DATA";                                                                  
 
-        H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
-        H5::Group group = file.openGroup("0");
+//         H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
+//         H5::Group group = file.openGroup("0");
 
-        // Open the dataset
-        H5::DataSet dataset = group.openDataSet(datasetName);
+//         // Open the dataset
+//         H5::DataSet dataset = group.openDataSet(datasetName);
 
-        // Get the dataspace of the dataset
-        H5::DataSpace dataspace = dataset.getSpace();
+//         // Get the dataspace of the dataset
+//         H5::DataSpace dataspace = dataset.getSpace();
 
-        // Get the dimensions of the dataset
-        hsize_t dims[4];
-        dataspace.getSimpleExtentDims(dims, NULL);
-        int64_t dim1 = dims[0];
-        int64_t dim2 = dims[1];
-        int64_t width = dims[2];
-        int64_t height = dims[3];
+//         // Get the dimensions of the dataset
+//         hsize_t dims[4];
+//         dataspace.getSimpleExtentDims(dims, NULL);
+//         int64_t dim1 = dims[0];
+//         int64_t dim2 = dims[1];
+//         int64_t width = dims[2];
+//         int64_t height = dims[3];
 
-        int target_slice = 1;
+//         int target_slice = 1;
 
-        hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-        H5::DataSpace memspace(2, slice_dims);
+//         hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+//         H5::DataSpace memspace(2, slice_dims);
 
-        // Create a buffer to hold the data for the entire slice
-        std::vector<float> slice_buffer(width * height);
+//         // Create a buffer to hold the data for the entire slice
+//         std::vector<float> slice_buffer(width * height);
 
-        // Define hyperslab in the dataset
-        hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
-        hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-        dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
+//         // Define hyperslab in the dataset
+//         hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
+//         hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+//         dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
 
-        try {
-            dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
-        } catch (H5::Exception& e) {
-            std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
-            return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
-        }
+//         try {
+//             dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
+//         } catch (H5::Exception& e) {
+//             std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
+//             return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
+//         }
+
+    const google::protobuf::RepeatedField<float>& data = request->data();
+
+    int width = request->width();
+    int height = request->height();
+
+    auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
+
+        // Convert to std::vector<float>
+    std::vector<float> vectorData(data.begin(), data.end());
+
+    auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
+    std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
     
     int smoothing_factor = 4;
 
@@ -149,10 +189,10 @@ class ProcessingImpl : public SmoothingServices::Service {
     if (mean_filter && smoothing_factor > 1) {
         // Perform down-sampling by calculating the mean for each MIPxMIP block
         carta::BlockSmooth(
-            slice_buffer.data(), dest_array.get(), num_image_columns, num_image_rows, row_length_region, num_rows_region, x, y, smoothing_factor);
+            vectorData.data(), dest_array.get(), num_image_columns, num_image_rows, row_length_region, num_rows_region, x, y, smoothing_factor);
     } else {
         // Nearest neighbour filtering
-        carta::NearestNeighbor(slice_buffer.data(), dest_array.get(), num_image_columns, row_length_region, num_rows_region, x, y, smoothing_factor);
+        carta::NearestNeighbor(vectorData.data(), dest_array.get(), num_image_columns, row_length_region, num_rows_region, x, y, smoothing_factor);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -168,7 +208,7 @@ class ProcessingImpl : public SmoothingServices::Service {
             }
         }
 
-    response->set_value(oss.str());
+    // response->set_value(oss.str());
 
     return grpc::Status::OK;
 }   
@@ -177,6 +217,10 @@ void StartServer(int port){
     std::string server_address = "0.0.0.0:" + std::to_string(port);
     ProcessingImpl service;
     grpc::ServerBuilder builder;
+
+    builder.SetMaxSendMessageSize(15 * 1024 * 1024); // 15MB
+    builder.SetMaxReceiveMessageSize(15 * 1024 * 1024); // 15MB
+
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
 
