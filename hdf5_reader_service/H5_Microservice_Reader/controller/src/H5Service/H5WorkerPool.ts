@@ -100,12 +100,26 @@ export class Hdf5WorkerPool {
     else{
       //Handling distributed reading
       console.log("multi")
-      for (let dim3 = start[2]; dim3 <start[2]+count[2]; dim3++) {
+      let workerIndex=0;
+      // for (let dim3 = start[2]; dim3 <start[2]+count[2]; dim3++) {
 
-        const tempStart = [start[0],start[1],dim3]
-        const tempCount = [count[0],count[1],1]
-        promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}))
+      //   const tempStart = [start[0],start[1],dim3]
+      //   const tempCount = [count[0],count[1],1]
+      //   promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}))
         
+      // }
+      const numWorkers = this.readers.length;
+      const pixelsPerWorker = Math.floor(count[2] / numWorkers);
+      for (let i = 0; i < this.readers.length; i++) {
+  
+        const zStart = start[2] + i * pixelsPerWorker;
+        const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
+        const reader = this.readers[i % this.readers.length];
+        const tempStart = [start[0],start[1],numPixelsInChunk]
+        const tempCount = [count[0],count[1],zStart]
+      
+        promises.push(reader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+  
       }
     }
   
@@ -174,13 +188,15 @@ export class Hdf5WorkerPool {
       const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
       const reader = this.readers[i % this.readers.length];
       // promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
+      console.log(xStart + " " + numPixelsInChunk + " " + pixelsPerWorker);
+
       promises.push(reader.getSpectralProfile({ uuid,regionInfo:region_info, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
 
     }
     const spectralData = new Float32Array(numPixels);
     const statistic = new Float32Array(numPixels).fill(0);
     const counts = Array(numPixels).fill(0);
- 
+    
     return Promise.all(promises).then(res => {
       //Adding values as they come in, avoids heap error
       for (const response of res) {

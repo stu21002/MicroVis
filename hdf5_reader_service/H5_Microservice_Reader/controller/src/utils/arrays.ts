@@ -7,6 +7,8 @@ export function bytesToFloat32(bytes: Uint8Array) {
       return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.length / 4);
     }
   }
+
+  
 export function float32ToBytes(float32Array: Float32Array): Uint8Array {
     if (float32Array.byteOffset % 4 !== 0) {
         const copy = float32Array.buffer.slice(float32Array.byteOffset, float32Array.byteOffset + float32Array.byteLength);

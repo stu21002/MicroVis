@@ -253,6 +253,7 @@ using namespace std::chrono;
             float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
 
             std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+            
             writer->Write(response);
             auto end = std::chrono::high_resolution_clock::now();
             auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);

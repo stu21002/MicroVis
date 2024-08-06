@@ -3,11 +3,17 @@ package proto;
 
 import "defs.proto";
 
+enum DataSet {
+  XYZ = 0;
+  ZYX = 1;
+}
+
 message ImageDataRequest{
     string uuid = 1;
-    RegionType regionType = 2;
-    repeated int32 start = 3;
-    repeated int32 count = 4;
+    // DataSet dataset = 2;
+    RegionType regionType = 3;
+    repeated int32 start = 4;
+    repeated int32 count = 5;
 }
 
 message ImageDataResponse{

@@ -15,7 +15,7 @@ async function spectral(){
     const region_info = RegionInfo.create();
     region_info.regionType = RegionType.RECTANGLE;
     region_info.controlPoints.push({x:200,y:200});
-    region_info.controlPoints.push({x:400,y:400});
+    region_info.controlPoints.push({x:1,y:1});
 
     const set_region = SetRegion.create();
     set_region.fileId=open_file_res.uuid;
@@ -111,5 +111,5 @@ async function ImageData() {
     ingres.closeFile({uuid:open_file_res.uuid});
 
 }
-// spectral();
-ImageData();
+spectral();
+// ImageData();
