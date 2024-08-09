@@ -1,0 +1,49 @@
+syntax = "proto3";
+package fits_proto;
+
+
+message HistogramRequest {
+    string uuid = 1;
+    // int32 x = 2;
+    // int32 y = 3;
+    // int32 width = 4;
+    // int32 height = 5;
+    repeated int32 start = 2;
+    repeated int32 count = 3;
+  }
+  
+  message HistogramDistRequest {
+    string uuid = 1;
+    // int32 x = 2;
+    // int32 y = 3;
+    // int32 width = 4;
+    // int32 height = 5;
+    repeated int32 start = 2;
+    repeated int32 count = 3;
+    repeated float data = 4;
+    sfixed32 num_bins = 6;
+    double bin_width = 7;
+    double min_value = 8;
+    double max_value = 9;
+  }
+  
+  message HistogramResponse {
+    sfixed32 num_bins = 1;
+    double bin_width = 2;
+    double first_bin_center = 3;
+    repeated sfixed32 bins = 4;
+    double mean = 5;
+    double std_dev = 6;
+  
+  }
+  
+  message SetHistogramReq {
+    string uuid = 1;
+    sfixed32 x = 2;
+    sfixed32 y = 3;
+    sfixed32 z = 4;
+    sfixed32 width = 5;
+    sfixed32 height = 6;
+    sfixed32 depth = 7;
+  
+  }

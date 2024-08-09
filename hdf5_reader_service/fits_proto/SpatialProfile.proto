@@ -1,0 +1,24 @@
+syntax = "proto3";
+package fits_proto;
+
+
+message SetSpatialReq {
+    string uuid = 1;
+    sfixed32 x = 2;
+    sfixed32 y = 3;
+  }
+  
+  
+message SpatialProfile {
+    sfixed32 start = 1;
+    sfixed32 end = 2;
+    bytes raw_values_fp32 = 3;
+    // repeated double values = 3;
+    string coordinate = 4;
+    // sfixed32 mip = 5;
+  }
+  
+  message SpatialProfileData{
+    string uuid = 1;
+    repeated SpatialProfile profiles = 2;
+  }

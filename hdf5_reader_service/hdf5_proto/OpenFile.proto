@@ -1,0 +1,24 @@
+syntax = "proto3";
+package hdf5_proto;
+
+import "defs.proto";
+
+message OpenFileRequest {
+    string uuid = 1;
+    string file = 2;
+    string directory = 3;
+    string hdu = 4;
+  
+  }
+
+message OpenFileACK{
+    bool success = 1;
+    string uuid = 2;
+    string message = 3;
+    FileInfo file_info = 4;
+    FileInfoExtended file_info_extended = 5;  
+}
+  
+  message FileCloseRequest {
+    string uuid = 1;
+  }
