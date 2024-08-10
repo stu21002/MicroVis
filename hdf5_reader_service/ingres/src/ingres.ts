@@ -5,7 +5,7 @@ import { promisify } from "util";
 //Protos
 import { FileInfoRequest, FileInfoResponse } from "./proto/FileInfo";
 import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./proto/OpenFile";
-import { Empty, StatusResponse } from "./proto/defs";
+import { Empty, FileType, StatusResponse } from "./proto/defs";
 import { ImageDataRequest, ImageDataResponse } from "./proto/ImageData";
 import { SpectralProfileRequest, SpectralProfileResponse } from "./proto/SpectralProfile";
 import { SetSpatialReq, SpatialProfileData } from "./proto/SpatialProfile";
@@ -13,6 +13,7 @@ import { HistogramResponse, SetHistogramReq } from "./proto/Histogram";
 import { SetRegion, SetRegionAck } from "./proto/Region";
 import { FileSerivceClient } from "./proto/FileService";
 import { FileServiceConn } from "./FileServiceConn";
+import { error } from "console";
 // import { FitsServicesClient } from "./proto/FitsReaderService";
 export class Ingres {
 
@@ -32,7 +33,7 @@ export class Ingres {
     private _readyResolves: (() => void)[] = [];
     private _rejectResolves: ((err: Error) => void)[] = [];
 
-    private readerConnections: FileServiceConn[] = [];
+    private readerConnections:FileServiceConn;
     get connected() {
       return this._connected;
     }
@@ -52,101 +53,60 @@ export class Ingres {
     constructor(address:string,port: number = 8079) {
 
         //Connection to HDF5 File reading services
-        const H5_WORKER_POOL_URL = `${address}:${port}`;
-        
-        this.readerConnections.push(new FileServiceConn("0.0.0.0",8079));
-        // const h5WorkerPoolConn = new FitsServicesClient(H5_WORKER_POOL_URL, credentials.createInsecure());
-      //   const h5WorkerPoolConn = new FileSerivceClient(H5_WORKER_POOL_URL, credentials.createInsecure());
-        // this.checkStatus = promisify<Empty, StatusResponse>();
-        // this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(h5WorkerPoolConn.getFileInfo);
-        // this.openFile = promisify<OpenFileRequest, OpenFileACK>(h5WorkerPoolConn.openFile);
-        // this.closeFile = promisify<FileCloseRequest, StatusResponse>(h5WorkerPoolConn.closeFile);
-        // this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(h5WorkerPoolConn.getSpectralProfile);
-        // this.getSpatialProfile = promisify<SetSpatialReq, SpatialProfileData>(h5WorkerPoolConn.getSpatialProfile);
-        // this.getHistogram = promisify<SetHistogramReq, HistogramResponse>(h5WorkerPoolConn.getHistogram);
-        // this.CreateRegion = promisify<SetRegion,SetRegionAck>(h5WorkerPoolConn.createRegion);
-        //   this.getHistogramDist = promisify<HistogramDistRequest, HistogramResponse>(h5WorkerPoolConn.getHistogramDist).bind(h5WorkerPoolConn);
-
-      //   this.getImageDataStream = (request: ImageDataRequest) => {
-      //     return new Promise<ImageDataResponse[]>((resolve, reject) => {
-      //       const call = h5WorkerPoolConn.getImageDataStream(request);
-      //       const imageDataResponses:ImageDataResponse[] = [];
-      //       call.on('data', (response: ImageDataResponse) => {
-      //         //Possible Conditions
-      //           imageDataResponses.push(response)
-              
-      //       });
-        
-      //       call.on('end', () => {
-      //         resolve(imageDataResponses);
-      //       });
-        
-      //       call.on('error', (err) => {
-      //         reject(err);
-      //       });
-      //     });
-      //   };
-
-      // h5WorkerPoolConn.waitForReady(Date.now() + 4000, (err) => {
-      //   if (err) {
-      //     console.log(port + " : false")
-      //     console.error(err);
-      //     this._connected = false;
-      //     for (const reject of this._rejectResolves) {
-      //       reject(err);
-      //     }
-      //   } else {
-      //     this._connected = true;
-      //     console.log("Connected to workerpool");
-
-      //     for (const resolve of this._readyResolves) {
-      //       resolve();
-      //     }
-      //   }
-      // });
+        const reader_url = `${address}:${port}`;
+        this.readerConnections=new FileServiceConn(address,port);
+   
 
 ///contouring
 ///Reading requests////
 ///Countring...//
 
 
-      //Add other services...
-      //
+     
     }
 
     public checkStatus(request:Empty):Promise<StatusResponse>{
-      return this.readerConnections[0].checkStatus(request);
+      
+      return this.readerConnections.checkStatus(request);
         
   }
   public getFileInfo(request:FileInfoRequest):Promise<FileInfoResponse>{
-      return this.readerConnections[0].getFileInfo(request);
+   
+      return this.readerConnections.getFileInfo(request);
   }
 
   public openFile(request:OpenFileRequest):Promise<OpenFileACK>{
-      return this.readerConnections[0].openFile(request);
+   
+      return this.readerConnections.openFile(request);
   }
 
   public closeFile(request:FileCloseRequest):Promise<StatusResponse>{
-      return this.readerConnections[0].closeFile(request);
+   
+      return this.readerConnections.closeFile(request);
   }
 
   public getSpectralProfile(request:SpectralProfileRequest):Promise<SpectralProfileResponse>{
-      return this.readerConnections[0].getSpectralProfile(request);
+   
+      return this.readerConnections.getSpectralProfile(request);
   }
 
   public getSpatialProfile(request:SetSpatialReq):Promise<SpatialProfileData>{
-      return this.readerConnections[0].getSpatialProfile(request);
+   
+      return this.readerConnections.getSpatialProfile(request);
   }
 
   public getHistogram(request:SetHistogramReq):Promise<HistogramResponse>{
-      return this.readerConnections[0].getHistogram(request);
+   
+      return this.readerConnections.getHistogram(request);
   }
 
   public regionCreate(request:SetRegion):Promise<SetRegionAck>{
-      return this.readerConnections[0].regionCreate(request);
+   
+      return this.readerConnections.regionCreate(request);
   }
 
   public getImageDataStream(request: ImageDataRequest): Promise<ImageDataResponse[]> {
-      return this.readerConnections[0].getImageDataStream(request);
+   
+      return this.readerConnections.getImageDataStream(request);
   }
 }

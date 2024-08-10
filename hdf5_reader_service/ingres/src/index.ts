@@ -14,7 +14,7 @@ async function spectral(){
     console.log("Ingres Connected");
 
     console.log(await ingres.checkStatus({}));
-    const open_file_res =  await ingres.openFile({directory:"/home/stuart/",file:"Small.hdf5",hdu:"0",uuid:""});
+    const open_file_res =  await ingres.openFile({directory:"/home/stuart/",file:"Small.fits",hdu:"0",uuid:""});
     // console.log(open_file_res);
     const region_info = RegionInfo.create();
     region_info.regionType = RegionType.RECTANGLE;

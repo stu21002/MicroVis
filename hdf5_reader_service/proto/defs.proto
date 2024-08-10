@@ -21,8 +21,17 @@ message FileInfo {
     // Number of Stokes parameters
     sfixed32 stokes = 5;
   }
-
+  
+  enum FileType {
+    NOT_SUPPORTED=0; 
+    HDF5=1;
+    FITS=2;
+  }
   message Empty {}
+
+  message EmptyService {
+    FileType fileType = 1;
+  }
   
   message StatusResponse {
     bool status = 1;
