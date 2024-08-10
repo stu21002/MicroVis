@@ -16,26 +16,27 @@ set(PROTO_FILES
         ./Region.proto  
         ./SpatialProfile.proto 
         ./SpectralProfile.proto
+        ./FitsReaderService.proto
         ./H5ReaderService.proto
 )
 
 # Add Library target with protobuf sources
-add_library(h5proto ${PROTO_FILES})
-target_link_libraries(h5proto
+add_library(proto_files ${PROTO_FILES})
+target_link_libraries(proto_files
         PUBLIC
         protobuf::libprotobuf
         grpc
         grpc++
 )
 
-target_include_directories(h5proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(proto_files PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-protobuf_generate(TARGET h5proto LANGUAGE cpp)
+protobuf_generate(TARGET proto_files LANGUAGE cpp)
 # Old method with manual builds
 # get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
 
 protobuf_generate(
-        TARGET h5proto 
+        TARGET proto_files 
         LANGUAGE grpc
         GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
         PLUGIN "protoc-gen-grpc=/usr/bin/grpc_cpp_plugin")

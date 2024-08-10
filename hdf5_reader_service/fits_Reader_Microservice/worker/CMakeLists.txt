@@ -35,5 +35,5 @@ add_executable(fits_read
 
 target_link_libraries(fits_read
         ${LINK_LIBS}
-        fitsReaderProto
+        proto_files
 )

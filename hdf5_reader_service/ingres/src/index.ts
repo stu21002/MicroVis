@@ -10,16 +10,16 @@ import { ImageDataRequest } from "./proto/ImageData";
 async function spectral(){
     const ingres = new Ingres("0.0.0.0",8079);
     console.log("Ingres Created");
-    await ingres.ready();
+    // await ingres.ready();
     console.log("Ingres Connected");
 
     console.log(await ingres.checkStatus({}));
-    const open_file_res =  await ingres.openFile({directory:"/home/stuart/",file:"Big.fits",hdu:"0",uuid:""});
+    const open_file_res =  await ingres.openFile({directory:"/home/stuart/",file:"Small.hdf5",hdu:"0",uuid:""});
     // console.log(open_file_res);
     const region_info = RegionInfo.create();
     region_info.regionType = RegionType.RECTANGLE;
-    region_info.controlPoints.push({x:800,y:800});
-    region_info.controlPoints.push({x:2,y:2});
+    region_info.controlPoints.push({x:600,y:600});
+    region_info.controlPoints.push({x:400,y:400});
 
     const set_region = SetRegion.create();
     set_region.fileId=open_file_res.uuid;
@@ -27,7 +27,7 @@ async function spectral(){
     set_region.regionInfo=region_info;
   
     console.time("Region");
-    const region_res =  await ingres.CreateRegion(set_region);
+    const region_res =  await ingres.regionCreate(set_region);
     console.log(region_res);
     console.timeEnd("Region");
     console.log();
@@ -66,7 +66,7 @@ async function spectralMask(){
     set_region.regionInfo=region_info;
   
     console.time("Region");
-    const region_res =  await ingres.CreateRegion(set_region);
+    const region_res =  await ingres.regionCreate(set_region);
     console.log(region_res);
     console.timeEnd("Region");
     console.log();

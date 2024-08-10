@@ -99,7 +99,7 @@ describe("PERF_LOAD_IMAGE",()=>{
             // }, openFileTimeout);
 
             test(`(Step 2)"${assertItem.fileOpen.file}" SET_REGION_ACK should arrive within ${readRegionTimeout} ms`, async () => {
-                let setRegionAckResponse = await ingres.CreateRegion({fileId:file_uuid,regionId:assertItem.setRegion.regionId,regionInfo:assertItem.setRegion.regionInfo});
+                let setRegionAckResponse = await ingres.regionCreate({fileId:file_uuid,regionId:assertItem.setRegion.regionId,regionInfo:assertItem.setRegion.regionInfo});
                 console.log(setRegionAckResponse.regionId);
                 expect(setRegionAckResponse.regionId).toEqual(1);
                 expect(setRegionAckResponse.success).toEqual(true);

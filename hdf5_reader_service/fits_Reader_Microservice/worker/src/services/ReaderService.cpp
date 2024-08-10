@@ -6,18 +6,18 @@
 
 #include "../util/fits_util.h"
 
+using namespace proto;
     ReaderService::ReaderService(int port) : port(port) {}
 
-
-grpc::Status ReaderService::CheckStatus(grpc::ServerContext* context, const fits_proto::Empty* request,
-                                        fits_proto::StatusResponse* response) {
+grpc::Status ReaderService::CheckStatus(grpc::ServerContext* context, const ::Empty* request,
+                                        ::StatusResponse* response) {
   ServicePrint("Status");
   response->set_status(true);
   response->set_statusmessage("OK");
   return grpc::Status::OK;
 }
-grpc::Status ReaderService::OpenFile(grpc::ServerContext* context, const fits_proto::OpenFileRequest* request,
-                                     fits_proto::StatusResponse* response) {
+grpc::Status ReaderService::OpenFile(grpc::ServerContext* context, const ::OpenFileRequest* request,
+                                     ::StatusResponse* response) {
   ServicePrint("Opening File");
   fitsfile* fits_ptr = nullptr;
   int fits_status_code = 0;
@@ -43,8 +43,8 @@ grpc::Status ReaderService::OpenFile(grpc::ServerContext* context, const fits_pr
   return grpc::Status::OK;
 }
 
-grpc::Status ReaderService::CloseFile(grpc::ServerContext* context, const fits_proto::FileCloseRequest* request,
-                                      fits_proto::StatusResponse* response) {
+grpc::Status ReaderService::CloseFile(grpc::ServerContext* context, const ::FileCloseRequest* request,
+                                      ::StatusResponse* response) {
   ServicePrint("Closing File");
   if (request->uuid().empty()) {
     return {grpc::StatusCode::INVALID_ARGUMENT, "UUID must be specified"};
@@ -65,8 +65,8 @@ grpc::Status ReaderService::CloseFile(grpc::ServerContext* context, const fits_p
   return grpc::Status::OK;
 }
 
-grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const fits_proto::FileInfoRequest* request,
-                                        fits_proto::FileInfoResponse* response) {
+grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const ::FileInfoRequest* request,
+                                        ::FileInfoResponse* response) {
   ServicePrint("File info");
 
   if (request->uuid().empty()) {
@@ -139,7 +139,7 @@ grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const fits
   return grpc::Status::OK;
 }
 
-grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, const ::fits_proto::ImageDataRequest* request,
+grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request,
                                       ::grpc::ServerWriter< ::ImageDataResponse>* writer) {
   ServicePrint("Image Data");
 
@@ -208,7 +208,7 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
   return grpc::Status::OK;
 }
 
-::grpc::Status ReaderService::GetSpectralProfile(::grpc::ServerContext* context, const ::fits_proto::SpectralProfileReaderRequest* request, ::fits_proto::SpectralProfileResponse* response) {
+::grpc::Status ReaderService::GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileResponse* response) {
   
   ServicePrint("Spectral");
 

@@ -2,12 +2,12 @@
 #define H5SERVICE_H
 
 #include <grpcpp/grpcpp.h> 
-#include "./../hdf5_proto/H5ReaderService.grpc.pb.h"
-#include "./../hdf5_proto/H5ReaderService.pb.h"
+#include "./../proto/H5ReaderService.grpc.pb.h"
+#include "./../proto/H5ReaderService.pb.h"
 #include <H5Cpp.h>
 #include <vector>
 
-using namespace hdf5_proto;
+using namespace proto;
 
 class H5Service final : public H5Readers::Service
 {

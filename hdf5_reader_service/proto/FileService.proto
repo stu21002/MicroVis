@@ -1,5 +1,5 @@
 syntax = "proto3";
-package fits_proto;
+package proto;
 
 import "FileInfo.proto";
 import "OpenFile.proto";

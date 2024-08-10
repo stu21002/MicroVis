@@ -12,25 +12,27 @@ import { SetSpatialReq, SpatialProfileData } from "./proto/SpatialProfile";
 import { HistogramResponse, SetHistogramReq } from "./proto/Histogram";
 import { SetRegion, SetRegionAck } from "./proto/Region";
 import { FileSerivceClient } from "./proto/FileService";
+import { FileServiceConn } from "./FileServiceConn";
 // import { FitsServicesClient } from "./proto/FitsReaderService";
 export class Ingres {
 
-    readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
-    readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
-    readonly getImageDataStream: (request: ImageDataRequest) => Promise<ImageDataResponse[]>;
+    // readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
+    // readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
+    // // readonly getImageDataStream: (request: ImageDataRequest) => Promise<ImageDataResponse[]>;
     
-    readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
-    readonly getSpatialProfile:(request:SetSpatialReq)=> Promise<SpatialProfileData>;
-    readonly getHistogram: (request: SetHistogramReq) =>Promise<HistogramResponse>;
-    // readonly getHistogramDist: (request: HistogramDistRequest) =>Promise<HistogramResponse>;
+    // readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
+    // readonly getSpatialProfile:(request:SetSpatialReq)=> Promise<SpatialProfileData>;
+    // readonly getHistogram: (request: SetHistogramReq) =>Promise<HistogramResponse>;
+    // // readonly getHistogramDist: (request: HistogramDistRequest) =>Promise<HistogramResponse>;
 
-    readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
-    readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
-    readonly CreateRegion:(Request:SetRegion)=>Promise<SetRegionAck>;
+    // readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
+    // readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
+    // readonly CreateRegion:(Request:SetRegion)=>Promise<SetRegionAck>;
     private _connected = false;
     private _readyResolves: (() => void)[] = [];
     private _rejectResolves: ((err: Error) => void)[] = [];
-  
+
+    private readerConnections: FileServiceConn[] = [];
     get connected() {
       return this._connected;
     }
@@ -51,55 +53,57 @@ export class Ingres {
 
         //Connection to HDF5 File reading services
         const H5_WORKER_POOL_URL = `${address}:${port}`;
+        
+        this.readerConnections.push(new FileServiceConn("0.0.0.0",8079));
         // const h5WorkerPoolConn = new FitsServicesClient(H5_WORKER_POOL_URL, credentials.createInsecure());
-        const h5WorkerPoolConn = new FileSerivceClient(H5_WORKER_POOL_URL, credentials.createInsecure());
-        this.checkStatus = promisify<Empty, StatusResponse>(h5WorkerPoolConn.checkStatus).bind(h5WorkerPoolConn);
-        this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(h5WorkerPoolConn.getFileInfo).bind(h5WorkerPoolConn);
-        this.openFile = promisify<OpenFileRequest, OpenFileACK>(h5WorkerPoolConn.openFile).bind(h5WorkerPoolConn);
-        this.closeFile = promisify<FileCloseRequest, StatusResponse>(h5WorkerPoolConn.closeFile).bind(h5WorkerPoolConn);
-        this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(h5WorkerPoolConn.getSpectralProfile).bind(h5WorkerPoolConn);
-        this.getSpatialProfile = promisify<SetSpatialReq, SpatialProfileData>(h5WorkerPoolConn.getSpatialProfile).bind(h5WorkerPoolConn);
-        this.getHistogram = promisify<SetHistogramReq, HistogramResponse>(h5WorkerPoolConn.getHistogram).bind(h5WorkerPoolConn);
-        this.CreateRegion = promisify<SetRegion,SetRegionAck>(h5WorkerPoolConn.createRegion).bind(h5WorkerPoolConn);
+      //   const h5WorkerPoolConn = new FileSerivceClient(H5_WORKER_POOL_URL, credentials.createInsecure());
+        // this.checkStatus = promisify<Empty, StatusResponse>();
+        // this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(h5WorkerPoolConn.getFileInfo);
+        // this.openFile = promisify<OpenFileRequest, OpenFileACK>(h5WorkerPoolConn.openFile);
+        // this.closeFile = promisify<FileCloseRequest, StatusResponse>(h5WorkerPoolConn.closeFile);
+        // this.getSpectralProfile = promisify<SpectralProfileRequest, SpectralProfileResponse>(h5WorkerPoolConn.getSpectralProfile);
+        // this.getSpatialProfile = promisify<SetSpatialReq, SpatialProfileData>(h5WorkerPoolConn.getSpatialProfile);
+        // this.getHistogram = promisify<SetHistogramReq, HistogramResponse>(h5WorkerPoolConn.getHistogram);
+        // this.CreateRegion = promisify<SetRegion,SetRegionAck>(h5WorkerPoolConn.createRegion);
         //   this.getHistogramDist = promisify<HistogramDistRequest, HistogramResponse>(h5WorkerPoolConn.getHistogramDist).bind(h5WorkerPoolConn);
 
-        this.getImageDataStream = (request: ImageDataRequest) => {
-          return new Promise<ImageDataResponse[]>((resolve, reject) => {
-            const call = h5WorkerPoolConn.getImageDataStream(request);
-            const imageDataResponses:ImageDataResponse[] = [];
-            call.on('data', (response: ImageDataResponse) => {
-              //Possible Conditions
-                imageDataResponses.push(response)
+      //   this.getImageDataStream = (request: ImageDataRequest) => {
+      //     return new Promise<ImageDataResponse[]>((resolve, reject) => {
+      //       const call = h5WorkerPoolConn.getImageDataStream(request);
+      //       const imageDataResponses:ImageDataResponse[] = [];
+      //       call.on('data', (response: ImageDataResponse) => {
+      //         //Possible Conditions
+      //           imageDataResponses.push(response)
               
-            });
+      //       });
         
-            call.on('end', () => {
-              resolve(imageDataResponses);
-            });
+      //       call.on('end', () => {
+      //         resolve(imageDataResponses);
+      //       });
         
-            call.on('error', (err) => {
-              reject(err);
-            });
-          });
-        };
+      //       call.on('error', (err) => {
+      //         reject(err);
+      //       });
+      //     });
+      //   };
 
-      h5WorkerPoolConn.waitForReady(Date.now() + 4000, (err) => {
-        if (err) {
-          console.log(port + " : false")
-          console.error(err);
-          this._connected = false;
-          for (const reject of this._rejectResolves) {
-            reject(err);
-          }
-        } else {
-          this._connected = true;
-          console.log("Connected to workerpool");
+      // h5WorkerPoolConn.waitForReady(Date.now() + 4000, (err) => {
+      //   if (err) {
+      //     console.log(port + " : false")
+      //     console.error(err);
+      //     this._connected = false;
+      //     for (const reject of this._rejectResolves) {
+      //       reject(err);
+      //     }
+      //   } else {
+      //     this._connected = true;
+      //     console.log("Connected to workerpool");
 
-          for (const resolve of this._readyResolves) {
-            resolve();
-          }
-        }
-      });
+      //     for (const resolve of this._readyResolves) {
+      //       resolve();
+      //     }
+      //   }
+      // });
 
 ///contouring
 ///Reading requests////
@@ -109,4 +113,40 @@ export class Ingres {
       //Add other services...
       //
     }
+
+    public checkStatus(request:Empty):Promise<StatusResponse>{
+      return this.readerConnections[0].checkStatus(request);
+        
+  }
+  public getFileInfo(request:FileInfoRequest):Promise<FileInfoResponse>{
+      return this.readerConnections[0].getFileInfo(request);
+  }
+
+  public openFile(request:OpenFileRequest):Promise<OpenFileACK>{
+      return this.readerConnections[0].openFile(request);
+  }
+
+  public closeFile(request:FileCloseRequest):Promise<StatusResponse>{
+      return this.readerConnections[0].closeFile(request);
+  }
+
+  public getSpectralProfile(request:SpectralProfileRequest):Promise<SpectralProfileResponse>{
+      return this.readerConnections[0].getSpectralProfile(request);
+  }
+
+  public getSpatialProfile(request:SetSpatialReq):Promise<SpatialProfileData>{
+      return this.readerConnections[0].getSpatialProfile(request);
+  }
+
+  public getHistogram(request:SetHistogramReq):Promise<HistogramResponse>{
+      return this.readerConnections[0].getHistogram(request);
+  }
+
+  public regionCreate(request:SetRegion):Promise<SetRegionAck>{
+      return this.readerConnections[0].regionCreate(request);
+  }
+
+  public getImageDataStream(request: ImageDataRequest): Promise<ImageDataResponse[]> {
+      return this.readerConnections[0].getImageDataStream(request);
+  }
 }

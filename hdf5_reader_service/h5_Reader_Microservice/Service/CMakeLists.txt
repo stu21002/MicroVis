@@ -18,7 +18,7 @@ set(LINK_LIBS
         ${LINK_LIBS}
         ${HDF5_LIBRARIES}
         fmt
-        h5proto
+        proto_files
         
         
 )
