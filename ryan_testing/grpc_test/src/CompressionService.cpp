@@ -50,12 +50,13 @@ class ProcessingImpl : public CompressionServices::Service {
     //         std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
     //         return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
     //     }
+
+        auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
+
         int width = request->width();
         int height = request->height();
         int precision = request->precision();
         int offset = request->offset();
-
-        auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
 
         const std::string& raw_values = request->data();
 
@@ -171,7 +172,7 @@ class ProcessingImpl : public CompressionServices::Service {
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = end - start;
-        std::cout << responseArray.size() << ":" << width * height << std::endl;
+        //std::cout << responseArray.size() << ":" << width * height << std::endl;
         
         std::cout << "Getting NanEncodingsBlock took " << duration.count() << " seconds." << std::endl;
 

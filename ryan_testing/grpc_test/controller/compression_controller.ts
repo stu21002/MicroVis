@@ -91,22 +91,36 @@ import { NanEncodingResponse } from "./proto/compression";
                         offset: 0
                     }
 
-                    
-                    compressionClients[index].computeCompression(compressionRequest, (error, response: CompressionOutput) => {
-                        if (error) {
-                            console.error(`Error: ${error}`);
-                        } else {
-                            console.log(`Compression Output ${index + 1}:`);
-                        }
-                    });
+                    let compressionMode = 0;
 
-                    compressionClients[index].computeNanEncodingsBlock(NanEncodingrequest, (error, response: NanEncodingResponse) => {
-                        if (error) {
-                            console.error(`Error: ${error}`);
-                        } else {
-                            console.log(`NanEncoding Output ${index + 1}: ${response?.success}`);
-                        }
-                    });
+                    if(compressionMode == 0){
+
+                        const grpcCompressionStartTime = new Date().getTime();
+
+                        compressionClients[index].computeCompression(compressionRequest, (error, response: CompressionOutput) => {
+                            if (error) {
+                                console.error(`Error: ${error}`);
+                            } else {
+                                console.log(`Compression Output ${index + 1}:`);
+                            }
+                            const grpcCompressionEndTime = new Date().getTime();
+                            console.log(`Time taken for Compression gRPC request ${index}: ${grpcCompressionEndTime - grpcCompressionStartTime} ms`);
+                        });
+                    }
+                    else if(compressionMode == 1){
+
+                        const grpcNanEncodingStartTime = new Date().getTime();
+
+                        compressionClients[index].computeNanEncodingsBlock(NanEncodingrequest, (error, response: NanEncodingResponse) => {
+                            if (error) {
+                                console.error(`Error: ${error}`);
+                            } else {
+                                console.log(`NanEncoding Output ${index + 1}: ${response?.success}`);
+                            }
+                            const grpcNanEncodingEndTime = new Date().getTime();
+                            console.log(`Time taken for Compression gRPC request ${index}: ${grpcNanEncodingEndTime - grpcNanEncodingStartTime} ms`);
+                        });
+                    }
 
                 } catch (error) {
                     console.error(`Error processing slice for client ${index}:`, error);
