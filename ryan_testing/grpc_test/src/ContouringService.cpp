@@ -7,26 +7,43 @@
 
 #include "Contouring.h"
 
-void ContourCallback(double scale, double offset, const std::vector<float> &partial_vertex_data, const std::vector<int> &partial_index_data)
+void ContourCallback(double level, double progress, const std::vector<float> &partial_vertex_data, const std::vector<int> &partial_index_data)
     {
-        // std::cout << "Scale: " << scale << ", Offset: " << offset << std::endl;
-        // std::cout << "Partial vertex data size: " << partial_vertex_data.size() << std::endl;
-        // std::cout << "Partial index data size: " << partial_index_data.size() << std::endl;
+        static std::map<double, int> vertex_count_map;
+
+        // Add the number of vertices for this callback invocation
+        vertex_count_map[level] += partial_vertex_data.size() / 2; // Each vertex has two coordinates (x, y)
+
+        // If the progress is 1.0, we have completed this level
+        if (progress == 1.0)
+        {
+            std::cout << "Level: " << level << " Total Vertices: " << vertex_count_map[level] << std::endl;
+
+            // Optionally, clear the entry for this level if you don't need it afterward
+            vertex_count_map.erase(level);
+        }
     }
 
 class ProcessingImpl : public ContourServices::Service {
 ::grpc::Status computeContour(::grpc::ServerContext* context, const ::ContouringEmpty *request, ::ContouringOutput *response){
-    std::cout << "Called Contouring Service" << std::endl;
+    //std::cout << "Called Contouring Service" << std::endl;
 
-        const google::protobuf::RepeatedField<float>& data = request->data();
+        //const google::protobuf::RepeatedField<float>& data = request->data();
 
         int width = request->width();
         int height = request->height();
 
         auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
 
+        const std::string& raw_values = request->data();
+
+        size_t num_floats = raw_values.size() / sizeof(float);
+
+        std::vector<float> float_values(num_floats);
+        std:memcpy(float_values.data(), raw_values.data(), raw_values.size());
+
         // Convert to std::vector<float>
-        std::vector<float> vectorData(data.begin(), data.end());
+        //std::vector<float> vectorData(data.begin(), data.end());
 
         auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
@@ -37,15 +54,17 @@ class ProcessingImpl : public ContourServices::Service {
         std::vector<std::vector<float>> vertex_data;
         std::vector<std::vector<int32_t>> index_data;
 
-        int chunk_size = 10;
+        int chunk_size = 100;
         float scale = request->scale();
         float offset = request->offset();
 
         carta::ContourCallback callback = ContourCallback;
 
+        //std::cout << float_values.size() << std::endl;
+
         auto start = std::chrono::high_resolution_clock::now();
 
-        carta::TraceContours(vectorData.data(), width, height, scale, offset, levels, vertex_data, index_data, chunk_size, callback);
+        carta::TraceContours(float_values.data(), width, height, scale, offset, levels, vertex_data, index_data, chunk_size, callback);
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = end - start;

@@ -64,7 +64,6 @@ import { SmoothingServicesClient } from "./proto/smoothing";
     const startTime = new Date().getTime();
 
     const file = new h5wasm.File("/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5", "r");
-    const keys = file.keys();
 
     const datasetName = '0/DATA';
     const dataset = file.get(datasetName);
@@ -104,7 +103,7 @@ import { SmoothingServicesClient } from "./proto/smoothing";
             };
 
             const clients = [
-                new SmoothingServicesClient("localhost:9999", grpc.credentials.createInsecure(), options),
+                new SmoothingServicesClient("localhost:9983", grpc.credentials.createInsecure(), options),
                 // new SmoothingServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
                 // new SmoothingServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
                 // new SmoothingServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
@@ -131,9 +130,9 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                         return;
                     }
 
-                    let flatArray: number[] = [];
+                    let flatArray;
                     if (sliceData instanceof Float32Array) {
-                        flatArray = Array.from(sliceData);
+                        flatArray = Buffer.from(sliceData.buffer);
                     } else {
                         console.error('Unsupported sliceData format:', typeof sliceData);
                         return;
@@ -141,7 +140,7 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
                     console.log(flatArray.length)
 
-                    const requestData = {
+                    let requestData = {
                         data: flatArray,
                         width: width,
                         height: height
@@ -153,7 +152,8 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                         if (error) {
                             console.error(`Error for client ${index}:`, error);
                         } else {
-                            //console.log(`Completed GaussianBlur for client ${index}: ${response?.value}`);
+                            console.log(`Completed GaussianBlur for client ${index}: ${response.smoothingFactor}`);
+                            console.log(`Size of response: `, response.data.length / 4)
                         }
                         const grpcEndTime = new Date().getTime();
                         console.log(`Time taken for gRPC request ${index}: ${grpcEndTime - grpcStartTime} ms`);

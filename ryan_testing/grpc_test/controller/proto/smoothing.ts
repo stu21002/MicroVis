@@ -22,29 +22,27 @@ import * as _m0 from "protobufjs/minimal";
 export const protobufPackage = "";
 
 export interface SmoothingOutput {
-  data: number[];
+  data: Uint8Array;
   smoothingFactor: number;
   destWidth: number;
   destHeight: number;
 }
 
 export interface SmoothingEmpty {
-  data: number[];
+  data: Uint8Array;
   width: number;
   height: number;
 }
 
 function createBaseSmoothingOutput(): SmoothingOutput {
-  return { data: [], smoothingFactor: 0, destWidth: 0, destHeight: 0 };
+  return { data: new Uint8Array(0), smoothingFactor: 0, destWidth: 0, destHeight: 0 };
 }
 
 export const SmoothingOutput = {
   encode(message: SmoothingOutput, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    writer.uint32(10).fork();
-    for (const v of message.data) {
-      writer.float(v);
+    if (message.data.length !== 0) {
+      writer.uint32(10).bytes(message.data);
     }
-    writer.ldelim();
     if (message.smoothingFactor !== 0) {
       writer.uint32(21).float(message.smoothingFactor);
     }
@@ -65,22 +63,12 @@ export const SmoothingOutput = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          if (tag === 13) {
-            message.data.push(reader.float());
-
-            continue;
+          if (tag !== 10) {
+            break;
           }
 
-          if (tag === 10) {
-            const end2 = reader.uint32() + reader.pos;
-            while (reader.pos < end2) {
-              message.data.push(reader.float());
-            }
-
-            continue;
-          }
-
-          break;
+          message.data = reader.bytes();
+          continue;
         case 2:
           if (tag !== 21) {
             break;
@@ -113,7 +101,7 @@ export const SmoothingOutput = {
 
   fromJSON(object: any): SmoothingOutput {
     return {
-      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => globalThis.Number(e)) : [],
+      data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0),
       smoothingFactor: isSet(object.smoothingFactor) ? globalThis.Number(object.smoothingFactor) : 0,
       destWidth: isSet(object.destWidth) ? globalThis.Number(object.destWidth) : 0,
       destHeight: isSet(object.destHeight) ? globalThis.Number(object.destHeight) : 0,
@@ -122,8 +110,8 @@ export const SmoothingOutput = {
 
   toJSON(message: SmoothingOutput): unknown {
     const obj: any = {};
-    if (message.data?.length) {
-      obj.data = message.data;
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data);
     }
     if (message.smoothingFactor !== 0) {
       obj.smoothingFactor = message.smoothingFactor;
@@ -142,7 +130,7 @@ export const SmoothingOutput = {
   },
   fromPartial<I extends Exact<DeepPartial<SmoothingOutput>, I>>(object: I): SmoothingOutput {
     const message = createBaseSmoothingOutput();
-    message.data = object.data?.map((e) => e) || [];
+    message.data = object.data ?? new Uint8Array(0);
     message.smoothingFactor = object.smoothingFactor ?? 0;
     message.destWidth = object.destWidth ?? 0;
     message.destHeight = object.destHeight ?? 0;
@@ -151,16 +139,14 @@ export const SmoothingOutput = {
 };
 
 function createBaseSmoothingEmpty(): SmoothingEmpty {
-  return { data: [], width: 0, height: 0 };
+  return { data: new Uint8Array(0), width: 0, height: 0 };
 }
 
 export const SmoothingEmpty = {
   encode(message: SmoothingEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    writer.uint32(10).fork();
-    for (const v of message.data) {
-      writer.float(v);
+    if (message.data.length !== 0) {
+      writer.uint32(10).bytes(message.data);
     }
-    writer.ldelim();
     if (message.width !== 0) {
       writer.uint32(21).float(message.width);
     }
@@ -178,22 +164,12 @@ export const SmoothingEmpty = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          if (tag === 13) {
-            message.data.push(reader.float());
-
-            continue;
+          if (tag !== 10) {
+            break;
           }
 
-          if (tag === 10) {
-            const end2 = reader.uint32() + reader.pos;
-            while (reader.pos < end2) {
-              message.data.push(reader.float());
-            }
-
-            continue;
-          }
-
-          break;
+          message.data = reader.bytes();
+          continue;
         case 2:
           if (tag !== 21) {
             break;
@@ -219,7 +195,7 @@ export const SmoothingEmpty = {
 
   fromJSON(object: any): SmoothingEmpty {
     return {
-      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => globalThis.Number(e)) : [],
+      data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0),
       width: isSet(object.width) ? globalThis.Number(object.width) : 0,
       height: isSet(object.height) ? globalThis.Number(object.height) : 0,
     };
@@ -227,8 +203,8 @@ export const SmoothingEmpty = {
 
   toJSON(message: SmoothingEmpty): unknown {
     const obj: any = {};
-    if (message.data?.length) {
-      obj.data = message.data;
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data);
     }
     if (message.width !== 0) {
       obj.width = message.width;
@@ -244,7 +220,7 @@ export const SmoothingEmpty = {
   },
   fromPartial<I extends Exact<DeepPartial<SmoothingEmpty>, I>>(object: I): SmoothingEmpty {
     const message = createBaseSmoothingEmpty();
-    message.data = object.data?.map((e) => e) || [];
+    message.data = object.data ?? new Uint8Array(0);
     message.width = object.width ?? 0;
     message.height = object.height ?? 0;
     return message;
@@ -319,6 +295,31 @@ export const SmoothingServicesClient = makeGenericClientConstructor(
   service: typeof SmoothingServicesService;
   serviceName: string;
 };
+
+function bytesFromBase64(b64: string): Uint8Array {
+  if ((globalThis as any).Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+  } else {
+    const bin = globalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+}
+
+function base64FromBytes(arr: Uint8Array): string {
+  if ((globalThis as any).Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
+  } else {
+    const bin: string[] = [];
+    arr.forEach((byte) => {
+      bin.push(globalThis.String.fromCharCode(byte));
+    });
+    return globalThis.btoa(bin.join(""));
+  }
+}
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 

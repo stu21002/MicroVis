@@ -1,14 +1,14 @@
 syntax = "proto3";
 
 message SmoothingOutput {
-    repeated float data = 1;
+    bytes data = 1;
     float smoothingFactor = 2;
     float dest_width = 3;
     float dest_height = 4;
 }
 
 message SmoothingEmpty{
-    repeated float data = 1;
+    bytes data = 1;
     float width = 2;
     float height = 3;
 }

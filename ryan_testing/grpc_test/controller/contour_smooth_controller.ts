@@ -33,13 +33,13 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
             const slices: [number, number | null, number | null][][] = [];
 
-            for (let row = 0; row < 1; row++) {
-                for (let col = 0; col < 1; col++) {
+            for (let row = 0; row < 2; row++) {
+                for (let col = 0; col < 2; col++) {
                     slices.push([
                         [0, 1, null], 
                         [0, 1, null],
-                        [col * width, (col + 1) * width, null],
-                        [row * height, (row + 1) * height, null]
+                        [col * halfWidth, (col + 1) * halfWidth, null],
+                        [row * halfHeight, (row + 1) * halfHeight, null]
                     ]);
                 }
             }
@@ -52,9 +52,9 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
             const contourClients = [
                 new ContourServicesClient("localhost:9999", grpc.credentials.createInsecure(), options),
-                // new ContourServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
-                // new ContourServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
-                // new ContourServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
+                new ContourServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
+                new ContourServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
+                new ContourServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9995", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9994", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9993", grpc.credentials.createInsecure(), options),
@@ -70,8 +70,13 @@ import { SmoothingServicesClient } from "./proto/smoothing";
             ];
 
             const smoothingClients = [
-                new SmoothingServicesClient("localhost:9983", grpc.credentials.createInsecure(), options)
+                new SmoothingServicesClient("localhost:9983", grpc.credentials.createInsecure(), options),
+                new SmoothingServicesClient("localhost:9982", grpc.credentials.createInsecure(), options),
+                new SmoothingServicesClient("localhost:9981", grpc.credentials.createInsecure(), options),
+                new SmoothingServicesClient("localhost:9980", grpc.credentials.createInsecure(), options)
             ];
+
+            let smoothingMode = 1;
 
             slices.forEach((slice, index) => {
                 try {
@@ -82,9 +87,9 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                         return;
                     }
 
-                    let flatArray: number[] = [];
+                    let flatArray;
                     if (sliceData instanceof Float32Array) {
-                        flatArray = Array.from(sliceData);
+                        flatArray = Buffer.from(sliceData.buffer);
                     } else {
                         console.error('Unsupported sliceData format:', typeof sliceData);
                         return;
@@ -92,55 +97,134 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
                     const smoothingData = {
                         data: flatArray,
-                        width: width,
-                        height: height
+                        width: halfWidth,
+                        height: halfHeight
                     };
                     
-                    const grpcSmoothStartTime = new Date().getTime();
-
                     let contouringArray;
                     let offsetContour;
-                    let scaleContour = 1;
+                    let scaleContour;
                     let dest_width;
                     let dest_height;
 
-                    smoothingClients[index].computeGuassianBlur(smoothingData, (error, response: SmoothingOutput) => {
-                        if (error) {
-                            console.error(`Error for client ${index}:`, error);
-                        } else {
-                            console.log(`Smoothing Output for client ${index}: ${response?.smoothingFactor}`);
+                    //console.log("Before Smoothing: ", grpcSmoothStartTime)
 
-                            const grpcSmoothEndTime = new Date().getTime();
-                            console.log(`Time taken for Smooth gRPC request ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms`);
+                    if(smoothingMode == 0){
 
-                            contouringArray = response.data;
-                            offsetContour = response.smoothingFactor - 1;
-                            dest_width = response.destWidth;
-                            dest_height = response.destHeight;
+                        const contouringData = {
+                            data: flatArray,
+                            width: halfWidth,
+                            height: halfHeight,
+                            offset: 0,
+                            scale: 1
+                        };
 
-                            const contouringData = {
-                                data: contouringArray,
-                                width: dest_width,
-                                height: dest_height,
-                                offset: offsetContour,
-                                scale: scaleContour
-                            };
+                        const grpcContourStartTime = new Date().getTime();
 
-                            const grpcContourStartTime = new Date().getTime();
+                        contourClients[index].computeContour(contouringData, (error, response: ContouringOutput) => {
+                            if (error) {
+                                console.error(`Error for client ${index}:`, error);
+                            } else {
+                                console.log(`Contouring Output for client ${index}: ${response?.value}`);
+                                
+                            }
+                            const grpcContourEndTime = new Date().getTime();
+                            console.log(`Time taken for Contour gRPC request ${index}: ${grpcContourEndTime - grpcContourStartTime} ms`);
+                        });
+                    }
+                    else if(smoothingMode == 1){
 
-                            contourClients[index].computeContour(contouringData, (error, response: ContouringOutput) => {
-                                if (error) {
-                                    console.error(`Error for client ${index}:`, error);
-                                } else {
-                                    console.log(`Contouring Output for client ${index}: ${response?.value}`);
-                                }
-                                const grpcContourEndTime = new Date().getTime();
-                                console.log(`Time taken for Contour gRPC request ${index}: ${grpcContourEndTime - grpcContourStartTime} ms`);
-                            });
-                        }
-                        
-                    });
+                        const grpcSmoothStartTime = new Date().getTime();
 
+                        smoothingClients[index].computeGuassianBlur(smoothingData, (error, response: SmoothingOutput) => {
+                            if (error) {
+                                console.error(`Error for client ${index}:`, error);
+                            } else {
+                                console.log(`Gaussian Smoothing Output for client ${index}: ${response?.smoothingFactor}`);
+                                //console.log(`Size of response: `, response.data.length / 4);
+    
+                                const grpcSmoothEndTime = new Date().getTime();
+                                console.log(`Time taken for Smooth gRPC request ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms`);
+    
+                                contouringArray = response.data;
+                                offsetContour = response.smoothingFactor - 1;
+                                dest_width = response.destWidth;
+                                dest_height = response.destHeight;
+                                scaleContour = 1;
+    
+                                const contouringData = {
+                                    data: contouringArray,
+                                    width: dest_width,
+                                    height: dest_height,
+                                    offset: offsetContour,
+                                    scale: scaleContour
+                                };
+    
+                                const grpcContourStartTime = new Date().getTime();
+                                //console.log("Before Contour: ", grpcContourStartTime);
+                                //console.log("Size of array: ", contouringArray.length / 4)
+    
+                                contourClients[index].computeContour(contouringData, (error, response: ContouringOutput) => {
+                                    if (error) {
+                                        console.error(`Error for client ${index}:`, error);
+                                    } else {
+                                        console.log(`Contouring Output for client ${index}: ${response?.value}`);
+                                        
+                                    }
+                                    const grpcContourEndTime = new Date().getTime();
+                                    console.log(`Time taken for Contour gRPC request ${index}: ${grpcContourEndTime - grpcContourStartTime} ms`);
+                                });
+    
+                            }
+                            
+                        });
+                    }
+                    else{
+
+                        const grpcSmoothStartTime = new Date().getTime();
+
+                        smoothingClients[index].computeBlockSmoothing(smoothingData, (error, response: SmoothingOutput) => {
+                            if(error){
+                                console.error(`Error for client ${index}:`, error);
+                            }
+                            else{
+                                console.log(`Block Smoothing Output for client ${index}: ${response?.smoothingFactor}`);
+                                //console.log(`Size of response: `, response.data.length / 4);
+    
+                                const grpcSmoothEndTime = new Date().getTime();
+                                console.log(`Time taken for Smooth gRPC request ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms`);
+    
+                                contouringArray = response.data;
+                                offsetContour = 0;
+                                dest_width = response.destWidth;
+                                dest_height = response.destHeight;
+                                scaleContour = response.smoothingFactor
+    
+                                const contouringData = {
+                                    data: contouringArray,
+                                    width: dest_width,
+                                    height: dest_height,
+                                    offset: offsetContour,
+                                    scale: scaleContour
+                                };
+    
+                                const grpcContourStartTime = new Date().getTime();
+                                //console.log("Before Contour: ", grpcContourStartTime);
+                                //console.log("Size of array: ", contouringArray.length / 4)
+    
+                                contourClients[index].computeContour(contouringData, (error, response: ContouringOutput) => {
+                                    if (error) {
+                                        console.error(`Error for client ${index}:`, error);
+                                    } else {
+                                        console.log(`Contouring Output for client ${index}: ${response?.value}`);
+                                        
+                                    }
+                                    const grpcContourEndTime = new Date().getTime();
+                                    console.log(`Time taken for Contour gRPC request ${index}: ${grpcContourEndTime - grpcContourStartTime} ms`);
+                                });
+                            }
+                        });
+                    }
                 } catch (error) {
                     console.error(`Error processing slice for client ${index}:`, error);
                 }

@@ -9,7 +9,6 @@ import { ContourServicesClient } from "./proto/contouring";
     const startTime = new Date().getTime();
 
     const file = new h5wasm.File("/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5", "r");
-    const keys = file.keys();
 
     const datasetName = '0/DATA';
     const dataset = file.get(datasetName);
@@ -32,13 +31,13 @@ import { ContourServicesClient } from "./proto/contouring";
 
             const slices: [number, number | null, number | null][][] = [];
 
-            for (let row = 0; row < 2; row++) {
-                for (let col = 0; col < 2; col++) {
+            for (let row = 0; row < 1; row++) {
+                for (let col = 0; col < 1; col++) {
                     slices.push([
                         [0, 1, null], 
                         [0, 1, null],
-                        [col * halfWidth, (col + 1) * halfWidth, null],
-                        [row * halfHeight, (row + 1) * halfHeight, null]
+                        [col * width, (col + 1) * width, null],
+                        [row * height, (row + 1) * height, null]
                     ]);
                 }
             }
@@ -50,9 +49,9 @@ import { ContourServicesClient } from "./proto/contouring";
 
             const clients = [
                 new ContourServicesClient("localhost:9999", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9995", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9994", grpc.credentials.createInsecure(), options),
                 // new ContourServicesClient("localhost:9993", grpc.credentials.createInsecure(), options),
@@ -76,31 +75,35 @@ import { ContourServicesClient } from "./proto/contouring";
                         return;
                     }
 
-                    let flatArray: number[] = [];
+                    let flatArray;
                     if (sliceData instanceof Float32Array) {
-                        flatArray = Array.from(sliceData);
+                        flatArray = Buffer.from(sliceData.buffer);
                     } else {
                         console.error('Unsupported sliceData format:', typeof sliceData);
                         return;
                     }
 
+                    console.log(flatArray.length)
+
                     const requestData = {
                         data: flatArray,
-                        width: halfWidth,
-                        height: halfHeight
+                        width: width,
+                        height: height,
+                        offset: 0,
+                        scale: 1
                     };
 
                     const grpcStartTime = new Date().getTime();
 
-                    // clients[index].computeContour(requestData, (error, response: ContouringOutput) => {
-                    //     if (error) {
-                    //         console.error(`Error for client ${index}:`, error);
-                    //     } else {
-                    //         console.log(`Contouring Output for client ${index}: ${response?.value}`);
-                    //     }
-                    //     const grpcEndTime = new Date().getTime();
-                    //     console.log(`Time taken for gRPC request ${index}: ${grpcEndTime - grpcStartTime} ms`);
-                    // });
+                    clients[index].computeContour(requestData, (error, response: ContouringOutput) => {
+                        if (error) {
+                            console.error(`Error for client ${index}:`, error);
+                        } else {
+                            console.log(`Contouring Output for client ${index}: ${response?.value}`);
+                        }
+                        const grpcEndTime = new Date().getTime();
+                        console.log(`Time taken for gRPC request ${index}: ${grpcEndTime - grpcStartTime} ms`);
+                    });
 
                 } catch (error) {
                     console.error(`Error processing slice for client ${index}:`, error);

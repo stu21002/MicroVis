@@ -145,6 +145,7 @@ bool GaussianSmooth(const float* src_data, float* dest_data, int64_t src_width, 
 
     int64_t line_offset = 0;
     //Timer t;
+
     std::unique_ptr<float[]> temp_array(new float[dest_width * buffer_height]);
     auto source_ptr = src_data;
     auto dest_ptr = dest_data;

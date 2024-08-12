@@ -26,7 +26,7 @@ export interface ContouringOutput {
 }
 
 export interface ContouringEmpty {
-  data: number[];
+  data: Uint8Array;
   width: number;
   height: number;
   offset: number;
@@ -91,16 +91,14 @@ export const ContouringOutput = {
 };
 
 function createBaseContouringEmpty(): ContouringEmpty {
-  return { data: [], width: 0, height: 0, offset: 0, scale: 0 };
+  return { data: new Uint8Array(0), width: 0, height: 0, offset: 0, scale: 0 };
 }
 
 export const ContouringEmpty = {
   encode(message: ContouringEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    writer.uint32(10).fork();
-    for (const v of message.data) {
-      writer.float(v);
+    if (message.data.length !== 0) {
+      writer.uint32(10).bytes(message.data);
     }
-    writer.ldelim();
     if (message.width !== 0) {
       writer.uint32(21).float(message.width);
     }
@@ -124,22 +122,12 @@ export const ContouringEmpty = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          if (tag === 13) {
-            message.data.push(reader.float());
-
-            continue;
+          if (tag !== 10) {
+            break;
           }
 
-          if (tag === 10) {
-            const end2 = reader.uint32() + reader.pos;
-            while (reader.pos < end2) {
-              message.data.push(reader.float());
-            }
-
-            continue;
-          }
-
-          break;
+          message.data = reader.bytes();
+          continue;
         case 2:
           if (tag !== 21) {
             break;
@@ -179,7 +167,7 @@ export const ContouringEmpty = {
 
   fromJSON(object: any): ContouringEmpty {
     return {
-      data: globalThis.Array.isArray(object?.data) ? object.data.map((e: any) => globalThis.Number(e)) : [],
+      data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0),
       width: isSet(object.width) ? globalThis.Number(object.width) : 0,
       height: isSet(object.height) ? globalThis.Number(object.height) : 0,
       offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
@@ -189,8 +177,8 @@ export const ContouringEmpty = {
 
   toJSON(message: ContouringEmpty): unknown {
     const obj: any = {};
-    if (message.data?.length) {
-      obj.data = message.data;
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data);
     }
     if (message.width !== 0) {
       obj.width = message.width;
@@ -212,7 +200,7 @@ export const ContouringEmpty = {
   },
   fromPartial<I extends Exact<DeepPartial<ContouringEmpty>, I>>(object: I): ContouringEmpty {
     const message = createBaseContouringEmpty();
-    message.data = object.data?.map((e) => e) || [];
+    message.data = object.data ?? new Uint8Array(0);
     message.width = object.width ?? 0;
     message.height = object.height ?? 0;
     message.offset = object.offset ?? 0;
@@ -264,6 +252,31 @@ export const ContourServicesClient = makeGenericClientConstructor(
   service: typeof ContourServicesService;
   serviceName: string;
 };
+
+function bytesFromBase64(b64: string): Uint8Array {
+  if ((globalThis as any).Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+  } else {
+    const bin = globalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+}
+
+function base64FromBytes(arr: Uint8Array): string {
+  if ((globalThis as any).Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
+  } else {
+    const bin: string[] = [];
+    arr.forEach((byte) => {
+      bin.push(globalThis.String.fromCharCode(byte));
+    });
+    return globalThis.btoa(bin.join(""));
+  }
+}
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
