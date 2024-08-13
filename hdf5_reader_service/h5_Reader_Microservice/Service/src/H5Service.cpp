@@ -362,13 +362,9 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         H5::DataSet dataset = permGroup.openDataSet("ZYXW");
 
         const hsize_t resultSize = width*height*num_pixels;
-
-        std::vector<hsize_t> start = {0,x,y,z};
-        std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
-        result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
-
-      
+        int maskIndex=0;
         std::vector<bool> mask = getMask(request->region_info(),x,y,width,height);
+
  
         const auto num_bytes_sum = num_pixels * sizeof(float);
         const auto num_bytes_count = num_pixels * sizeof(int);
@@ -379,14 +375,29 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         float* sum = reinterpret_cast<float*>(response->mutable_raw_values_fp32()->data());
         int* counts = reinterpret_cast<int*>(response->mutable_counts()->data());
 
+        for (size_t i = x; i < x+width; i++)
+        {
+        
+        std::vector<hsize_t> start = {0,i,y,z};
+        std::vector<hsize_t> dimCount = {1,1,height,num_pixels};
+        hsize_t res_size = 1;
+        for (size_t i = 0; i < dimCount.size(); i++)
+        {
+            res_size *= dimCount[i];
+        }
+        
+        result = H5Service::readRegion(dataset,dimCount,start,res_size);
+
+      
+
         // std::vector<float> sum(num_pixels,0);
         // std::vector<int> counts(num_pixels,0);
         // int xoffset = num_pixels*height;
         
         int index = 0;
-        int maskIndex=0;
+        // int maskIndex=0;
 
-          for (size_t xpos = 0; xpos < width; xpos++) {
+        //   for (size_t xpos = 0; xpos < width; xpos++) {
             for (size_t ypos = 0; ypos < height; ypos++) {
                 if (mask[maskIndex++]){
                     for (size_t zpos = 0; zpos < num_pixels; zpos++) {
@@ -401,8 +412,10 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
                     index+=num_pixels;
                 }
             }
-        }
+        // }
 
+            /* code */
+        }
         ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }

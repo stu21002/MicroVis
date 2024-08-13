@@ -11,7 +11,7 @@ import { SpectralProfileRequest, SpectralProfileResponse } from "./proto/Spectra
 import { SetSpatialReq, SpatialProfileData } from "./proto/SpatialProfile";
 import { HistogramResponse, SetHistogramReq } from "./proto/Histogram";
 import { SetRegion, SetRegionAck } from "./proto/Region";
-import { FileSerivceClient } from "./proto/FileService";
+import { FileServiceClient } from "./proto/FileService";
 import { FileServiceConn } from "./FileServiceConn";
 import { error } from "console";
 // import { FitsServicesClient } from "./proto/FitsReaderService";

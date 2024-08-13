@@ -1,5 +1,5 @@
 import { credentials, ServiceError } from "@grpc/grpc-js";
-import { FileSerivceClient } from "./proto/FileService";
+import { FileServiceClient } from "./proto/FileService";
 import { promisify } from "util";
 import { Empty, StatusResponse } from "./proto/defs";
 import { resolve } from "path";
@@ -14,7 +14,7 @@ import { ImageDataRequest, ImageDataResponse } from "./proto/ImageData";
 
 
 export class FileServiceConn{
-    private client:FileSerivceClient;
+    private client:FileServiceClient;
     public _connected = false;
     private _readyResolves: (() => void)[] = [];
     private _rejectResolves: ((err: Error) => void)[] = [];
@@ -22,7 +22,7 @@ export class FileServiceConn{
     constructor(address:string,port: number = 8079){
         
         const READER_SERVICE_URL = `${address}:${port}`;
-        this.client = new FileSerivceClient(READER_SERVICE_URL,credentials.createInsecure());
+        this.client = new FileServiceClient(READER_SERVICE_URL,credentials.createInsecure());
         
         this.client.waitForReady(Date.now() + 4000, (err) => {
             if (err) {
