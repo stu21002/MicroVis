@@ -21,7 +21,7 @@ import { SpectralProfileRequest, SpectralProfileResponse } from "../proto/Spectr
 import { HistogramResponse, SetHistogramReq } from "../proto/Histogram";
 import { SetRegion, SetRegionAck } from "../proto/Region";
 import { getCircleCoords, getCoords } from "../utils/coord";
-import { FileSerivceServer, FileSerivceService } from "../proto/FileService";
+import { FileServiceServer, FileServiceService } from "../proto/FileService";
 
 
 interface DimensionValues {
@@ -43,7 +43,7 @@ export class H5Services {
     this.workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);
     this.regionId = 0;
     const server = new Server();
-    server.addService(FileSerivceService,this.serviceImp);
+    server.addService(FileServiceService,this.serviceImp);
     server.bindAsync(
       SERVICE_URL,
       ServerCredentials.createInsecure(),
@@ -58,7 +58,7 @@ export class H5Services {
   }
 
 
-  public serviceImp:FileSerivceServer={
+  public serviceImp:FileServiceServer={
 
     openFile: async (call:ServerUnaryCall<OpenFileRequest, OpenFileACK>,callback:sendUnaryData<OpenFileACK>):Promise<void> => {
       // Implement your logic here
@@ -124,16 +124,40 @@ export class H5Services {
     },
 
     getImageDataStream: async (call:ServerWritableStream<ImageDataRequest, ImageDataResponse>):Promise<void> => {
-      let {uuid,start,count,regionType} = call.request;
+      let {uuid,start,count,regionType,permData} = call.request;
       if (!regionType){
         regionType=RegionType.RECTANGLE;
       }
-      const responses =  this.workerPool.getImageDataStream(uuid,regionType,start,count)
+
+      // if (count[0]==-1){
+      //   let width = this.fileDims.get(uuid)?.width;
+      //   if (!width){
+      //     width=1;
+      //   }
+      //   count[0] = width;
+      // }
+
+      // if (count[1]==-1){
+      //   let height = this.fileDims.get(uuid)?.height;
+      //   if (!height){
+      //     height=1;
+      //   }
+      //   count[1] = height;
+      // }
+
+      // if (count[2]==-1){
+      //   let depth = this.fileDims.get(uuid)?.depth;
+      //   if (!depth){
+      //     depth=1;
+      //   }
+      //   count[2] = depth;
+      // }
+
+      const responses =  this.workerPool.getImageDataStream(uuid,permData,regionType,start,count)
  
       for (const response of (await responses)) {
 
           for  (const chunk of (await response)) {
-
             call.write( chunk)
           }
       }

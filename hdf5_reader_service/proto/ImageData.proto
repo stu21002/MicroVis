@@ -11,6 +11,8 @@ enum DataSet {
 message ImageDataRequest{
     string uuid = 1;
     // DataSet dataset = 2;
+    bool perm_data = 2;
+
     RegionType regionType = 3;
     repeated int32 start = 4;
     repeated int32 count = 5;

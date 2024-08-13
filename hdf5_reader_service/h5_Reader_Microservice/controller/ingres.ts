@@ -11,7 +11,7 @@ import { SpectralProfileRequest, SpectralProfileResponse } from "./src/proto/Spe
 import { SetSpatialReq, SpatialProfileData } from "./src/proto/SpatialProfile";
 import { HistogramResponse, SetHistogramReq } from "./src/proto/Histogram";
 import { SetRegion, SetRegionAck } from "./src/proto/Region";
-import { FileSerivceClient } from "./src/proto/FileService";
+import { FileServiceClient } from "./src/proto/FileService";
 export class Ingres {
     readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
@@ -49,7 +49,7 @@ export class Ingres {
 
         //Connection to HDF5 File reading services
         const H5_WORKER_POOL_URL = `${address}:${port}`;
-        const h5WorkerPoolConn = new FileSerivceClient(H5_WORKER_POOL_URL, credentials.createInsecure());
+        const h5WorkerPoolConn = new FileServiceClient(H5_WORKER_POOL_URL, credentials.createInsecure());
         this.checkStatus = promisify<Empty, StatusResponse>(h5WorkerPoolConn.checkStatus).bind(h5WorkerPoolConn);
         this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(h5WorkerPoolConn.getFileInfo).bind(h5WorkerPoolConn);
         this.openFile = promisify<OpenFileRequest, OpenFileACK>(h5WorkerPoolConn.openFile).bind(h5WorkerPoolConn);

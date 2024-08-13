@@ -12,7 +12,7 @@ import "Region.proto";
 
 
 
-service FileSerivce{
+service FileService{
     rpc CheckStatus(Empty) returns  (StatusResponse) {}
     rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
     rpc CloseFile(FileCloseRequest) returns (StatusResponse) {}

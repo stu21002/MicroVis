@@ -117,5 +117,19 @@ async function ImageData() {
     ingres.closeFile({uuid:open_file_res.uuid});
 
 }
-spectral();
+
+
+async function openFile() {
+    const ingres = new Ingres("0.0.0.0",8079);
+    console.log("Ingres Created");
+    ingres.checkStatus({});
+    const open_file_res =  await ingres.openFile({directory:"/home/stuart/",file:"Small.hdf5",hdu:"",uuid:""});
+    console.log(open_file_res.uuid);
+    // const open_file_res =  await ingres.openFile({directory:"/media/stuart/Elements/",file:"Big.hdf5",hdu:"",uuid:""});
+
+    // ingres.closeFile({uuid:open_file_res.uuid});
+
+}
+// spectral();
+openFile();
 // ImageData();

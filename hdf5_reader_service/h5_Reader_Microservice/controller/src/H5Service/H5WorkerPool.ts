@@ -73,14 +73,17 @@ export class Hdf5WorkerPool {
   }
   
   //Refine Method
-  async getImageDataStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
+  async getImageDataStream(uuid: string,permData:boolean,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
 
     //possbly add data type
     const promises = new Array<Promise<ImageDataResponse[]>>
-    if (count.length<=2 || count[3]==1){
+    console.log("start : ",start);
+    console.log("count : ",count);
+    
+    if (this.connectedreaders.length==1){
       
       console.log("single")
-      promises.push(this.primaryreader.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE}));
+      promises.push(this.primaryreader.getImageDataStream({ uuid,permData,start, count,regionType:RegionType.RECTANGLE}));
 
     }
     else{
@@ -104,7 +107,7 @@ export class Hdf5WorkerPool {
         const tempStart = [start[0],start[1],numPixelsInChunk]
         const tempCount = [count[0],count[1],zStart]
       
-        promises.push(reader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+        promises.push(reader.getImageDataStream({ uuid,permData,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
   
       }
     }
@@ -120,15 +123,15 @@ export class Hdf5WorkerPool {
 
       if (this.readers.length==1){
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({uuid,permData:false,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
         //x
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({uuid,permData:false,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
       }
       else{
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({uuid,permData:false,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
         //x
-        promises.push(( this.readers[1].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
+        promises.push(( this.readers[1].getImageDataStream({uuid,permData:false,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
       }
      
 

@@ -1,0 +1,14 @@
+syntax = "proto3";
+package proto;
+// import "defs.proto";
+import "SpectralProfile.proto";
+
+
+
+message SpectralServiceResponse{
+    bytes raw_values_fp32 = 1;
+}
+
+service SpectralService {
+    rpc GetSpectralProfile (SpectralServiceRequest) returns (SpectralServiceResponse) {} 
+}

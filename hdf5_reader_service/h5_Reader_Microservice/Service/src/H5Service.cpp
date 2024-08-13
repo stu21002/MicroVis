@@ -185,106 +185,152 @@ using namespace std::chrono;
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
 
-        ServicePrint("Image Data Request");
+        // ServicePrint("Image Data Request");
       
 
         Hdf5_File &h5file = hdf5_files[request->uuid()];
-        H5::DataSet dataset = h5file._group.openDataSet("DATA");  
-        auto data_space = dataset.getSpace();
 
-        // std::vector<float> result;
+        H5::DataSet dataset;
+        H5::Group permGroup; 
+        H5::DataSpace data_space;
 
-        std::vector<hsize_t> h5_start;
-        std::vector<hsize_t> h5_count;
-
-        hsize_t result_size = 1;
-
-        std::vector<hsize_t> start(request->start().begin(), request->start().end());
-        std::vector<hsize_t> count(request->count().begin(), request->count().end());
-
-        int numDims = data_space.getSimpleExtentNdims();
-
-        for (int d = 0; d < numDims; d++)
+        if (request->perm_data())
         {
-            h5_start.insert(h5_start.begin(), d < start.size() ? start[d] : 0);
-            h5_count.insert(h5_count.begin(), d < count.size() ? count[d] : 1);
-            result_size *= d < count.size() ? count[d]: 1;
-        }
-        // for (size_t i = 0; i < numDims; i++)
-        // {
-        //     std::cout<<h5_start[i]<<" ";
-        // }
-        // std::cout<<std::endl;
-        
-        // for (size_t i = 0; i < numDims; i++)
-        // {
-        //     std::cout<<h5_count[i]<<" ";
-        // }
-        // std::cout<<std::endl;
+        ServicePrint("Image Data Request Perm Data");
 
-        // std::cout<<result_size<<std::endl;
-        
-
-        int num_bytes = result_size * sizeof(float);
-
-        std::vector<float> buffer(result_size);
-
-        H5::DataSpace mem_space(1, &result_size);
-
-        data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
-
-        dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
-        data_space.close();
-        dataset.close();
-
-        const size_t MAX_CHUNK_SIZE = 2000* 2000;
-
-        size_t offset = 0;
-        size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
-
-        while (offset < buffer.size()) {
-            size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
-            auto begin = std::chrono::high_resolution_clock::now();
-
-            ImageDataResponse response;
-            response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
-        
-            response.set_num_pixels(current_chunk_size);
-            float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
-
-            std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+            permGroup = h5file._group.openGroup("PermutedData");
+            dataset = permGroup.openDataSet("ZYXW");
+            std::vector<hsize_t> start(request->start().begin(), request->start().end());
+            std::vector<hsize_t> count(request->count().begin(), request->count().end());
+            hsize_t total_pixels=1;
             
-            writer->Write(response);
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+            for (size_t i = 0; i < count.size(); i++)
+            {
+                total_pixels *= count[i];
+            }
+            data_space = dataset.getSpace();
+            int numDims = data_space.getSimpleExtentNdims();
 
+            //change start 4th pos for stokes values, assuming 0
+            std::vector<hsize_t> h5_start(numDims,0);
+            std::vector<hsize_t> h5_count(numDims,1);
+
+            for (size_t i = 1; i < numDims; i++)
+            {
+                h5_start[i]=start[i-1];
+                h5_count[i]=count[i-1];
+            }
+
+            //Investigate this
+            // const size_t MAX_CHUNK_SIZE = 2000* 2000;
+            // int CHUNK_PIXELS = MAX_CHUNK_SIZE/sizeof(float);
+            // int num_stream_pixels = total_pixels/CHUNK_PIXELS;
+            // int zy_num_pixels = count[1]*count[2];
+            // int x_step = num_stream_pixels = 0 ? count[0] : ceil(num_stream_pixels/zy_num_pixels); 
+
+            int num_bytes = total_pixels * sizeof(float);    
+
+            std::vector<float> buffer(total_pixels);
+
+            H5::DataSpace mem_space(1, &total_pixels);
+
+            data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+            dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+            data_space.close();
+            dataset.close();
+
+            const size_t MAX_CHUNK_SIZE = 2000* 2000;
+
+            size_t offset = 0;
+            size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
+
+            while (offset < buffer.size()) {
+                size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
+                auto begin = std::chrono::high_resolution_clock::now();
+
+                ImageDataResponse response;
+                response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
             
-            std::cout<<duration1.count()<<std::endl;
+                response.set_num_pixels(current_chunk_size);
+                float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+
+                std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+                
+                writer->Write(response);
+                auto end = std::chrono::high_resolution_clock::now();
+                auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+                
+                // std::cout<<duration1.count()<<std::endl;
 
 
-            offset += current_chunk_size;
+                offset += current_chunk_size;
+            }
+        }else{
+            ServicePrint("Image Data Request Fits Data");
+
+            dataset= h5file._group.openDataSet("DATA");  
+            data_space = dataset.getSpace();
+
+            // std::vector<float> result;
+
+            std::vector<hsize_t> h5_start;
+            std::vector<hsize_t> h5_count;
+
+            hsize_t result_size = 1;
+
+            std::vector<hsize_t> start(request->start().begin(), request->start().end());
+            std::vector<hsize_t> count(request->count().begin(), request->count().end());
+
+            int numDims = data_space.getSimpleExtentNdims();
+
+            for (int d = 0; d < numDims; d++)
+            {
+                h5_start.insert(h5_start.begin(), d < start.size() ? start[d] : 0);
+                h5_count.insert(h5_count.begin(), d < count.size() ? count[d] : 1);
+                result_size *= d < count.size() ? count[d]: 1;
+            }
+
+            int num_bytes = result_size * sizeof(float);
+
+            std::vector<float> buffer(result_size);
+
+            H5::DataSpace mem_space(1, &result_size);
+
+            data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+            dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+            data_space.close();
+            dataset.close();
+
+            const size_t MAX_CHUNK_SIZE = 2000* 2000;
+
+            size_t offset = 0;
+            size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
+
+            while (offset < buffer.size()) {
+                size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
+                auto begin = std::chrono::high_resolution_clock::now();
+
+                ImageDataResponse response;
+                response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
+            
+                response.set_num_pixels(current_chunk_size);
+                float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+
+                std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+                
+                writer->Write(response);
+                auto end = std::chrono::high_resolution_clock::now();
+                auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+                
+                // std::cout<<duration1.count()<<std::endl;
+
+
+                offset += current_chunk_size;
+            }
+
         }
-
-
-        // int num_bytes = result_size * sizeof(float);
-        // std::cout<<sizeof(float)<<std::endl; 
-        // //Create a bytes var
-        //         ImageDataResponse response;    
-
-        // //Fix this to not use the response var
-        // response.mutable_raw_values_fp32()->resize(num_bytes);
-
-        // H5::DataSpace mem_space(1, &result_size);
-
-        // data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
-
-        // //Read data into the bytes var
-        // dataset.read(response.mutable_raw_values_fp32()->data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
-        
-        // ImageDataResponse response;    
-     
-        // //For loop to write chunks of the read into the response var
-        // writer->Write(response);
         
         ServicePrint("ImageData Request Complete");
         return grpc::Status::OK;

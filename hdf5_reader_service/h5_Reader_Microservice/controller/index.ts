@@ -20,9 +20,10 @@ if (args.length > 0) {
 } 
 
 const h5Services = new H5Services("0.0.0.0",8079,numWorkers);
-async()=>{await h5Services.workerPool.ready()
-  console.log("Connected!")
-};
+// async()=>{
+//   await h5Services.workerPool.ready()
+//   console.log("Connected!")
+// };
 
 
 

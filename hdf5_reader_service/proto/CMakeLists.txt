@@ -16,7 +16,9 @@ set(PROTO_FILES
         ./Region.proto  
         ./SpatialProfile.proto 
         ./SpectralProfile.proto
+        ./SpectralProfileService.proto
         ./FitsReaderService.proto
+        ./FileService.proto
         ./H5ReaderService.proto
 )
 

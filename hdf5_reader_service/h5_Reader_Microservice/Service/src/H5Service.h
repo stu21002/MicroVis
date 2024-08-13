@@ -48,4 +48,4 @@ class H5Service final : public H5Readers::Service
 
 };
 
-#endif  // H5SERVICE_H
+#endif  //H5SERVICE_H
