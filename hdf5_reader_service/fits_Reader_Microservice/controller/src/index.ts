@@ -6,11 +6,11 @@ import { SpectralProfileRequest, SpectralProfileResponse } from "./proto/Spectra
 import { SetSpatialReq, SpatialProfileData } from "./proto/SpatialProfile";
 import { HistogramResponse, SetHistogramReq } from "./proto/Histogram";
 // import { Ingres } from './ingres';
-import {Hdf5WorkerPool} from './Service/FitsWorkerPool'
+import {FitsWorkerPool} from './Service/FitsWorkerPool'
 import { bytesToFloat32 } from './utils/arrays';
 import { SetRegion } from "./proto/Region";
 
-import { H5Services } from './Service/FitsServices';
+import { FitsServices } from './Service/FitsServices';
 import { getCoords } from './utils/coord';
 import { stat } from "fs";
 
@@ -20,10 +20,12 @@ if (args.length > 0) {
   numWorkers = Number(args[0]);
 } 
 const ServicePort = 8079;
-const fitsServices = new H5Services("0.0.0.0",ServicePort,numWorkers);
+const fitsServices = new FitsServices("0.0.0.0",ServicePort,numWorkers);
 const res = async()=>{return await fitsServices.workerPool.checkStatus()};
 async()=>{await res};
 console.log(res);
+
+
 // async()=>{await fitsServices.workerPool.ready()};
 // const ingres = new Ingres("0.0.0.0",ServicePort);
 // console.log("LOL")

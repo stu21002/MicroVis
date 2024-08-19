@@ -96,7 +96,8 @@ int main(int argc, char** argv) {
     builder.RegisterService(&reader_service);
 
     const auto server(builder.BuildAndStart());
-    std::cout << "Server listening on " << server_address << std::endl;
+    reader_service.ServicePrint("Fits Reader Running");
+    // std::cout << "Server listening on " << server_address << std::endl;
     server->Wait();
 
     return 0;

@@ -10,13 +10,13 @@
 
 class SpectralServiceClient {
  public:
-  SpectralServiceClient(std::shared_ptr<grpc::Channel> channel);
+//   SpectralServiceClient(std::shared_ptr<grpc::Channel> channel);
 
-  std::string getSpectralProfile(const std::string& user);
-  std::string getSpectralProfilePerm(const std::string& user);
+//   std::string getSpectralProfile(const std::string& user);
+//   std::string getSpectralProfilePerm(const std::string& user);
 
- private:
-  std::unique_ptr<proto::FileSerivce::Stub> stub_;
+//  private:
+//   std::unique_ptr<proto::FileService::Stub> stub_;
 };
 
 #endif //SPECTRALPROFILE_H

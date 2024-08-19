@@ -10,7 +10,7 @@ import { SpatialProfile } from "../proto/SpatialProfile";
 import { SpectralProfileReaderResponse, SpectralProfileResponse } from "../proto/SpectralProfile";
 // import { bytesToFloat32 } from "../utils/arrays";
 
-export class Hdf5WorkerPool {
+export class FitsWorkerPool {
   readonly readers: FitsReader[];
 
 
@@ -72,15 +72,16 @@ export class Hdf5WorkerPool {
     return this.primaryreader?.getFileInfo({ uuid ,directory ,file ,hdu });
   }
   
-  //Refine Method
+
   async getImageDataStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
 
-    //possbly add data type
+    
     const promises = new Array<Promise<ImageDataResponse[]>>
-    if (count.length<=2 || count[3]==1){
+    if (this.readers.length=1){
       
       console.log("single")
-      promises.push(this.primaryreader.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE}));
+      promises.push(this.primaryreader.getImageDataStream({uuid, start, count, regionType: RegionType.RECTANGLE, permData: false
+      }));
 
     }
     else{
@@ -104,7 +105,10 @@ export class Hdf5WorkerPool {
         const tempStart = [start[0],start[1],numPixelsInChunk]
         const tempCount = [count[0],count[1],zStart]
       
-        promises.push(reader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+        promises.push(reader.getImageDataStream({
+          uuid, start: tempStart, count: tempCount, regionType: RegionType.RECTANGLE,
+          permData: false
+        }));
   
       }
     }
@@ -120,15 +124,27 @@ export class Hdf5WorkerPool {
 
       if (this.readers.length==1){
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [x, 0, 0, 0], count: [1, height, 1, 1],
+          permData: false
+        })))
         //x
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [0, y, 0, 0], count: [width, 1, 1, 1],
+          permData: false
+        })))
       }
       else{
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [x, 0, 0, 0], count: [1, height, 1, 1],
+          permData: false
+        })))
         //x
-        promises.push(( this.readers[1].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
+        promises.push(( this.readers[1].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [0, y, 0, 0], count: [width, 1, 1, 1],
+          permData: false
+        })))
       }
      
 
@@ -192,34 +208,3 @@ export class Hdf5WorkerPool {
     });
   }
  }
-
-//  function getMask(region:Region,startX:number,startY:number,numX:number,numY:number) {
-//   let mask: boolean[] = [];
-//   switch (region.type) {
-//     case RegionType.CIRCLE:
-//       //
-//       const diameter = region.controlPoints[1].x;
-//       const pow_radius = Math.pow(diameter / 2.0, 2);
-//       const centerX = (diameter - 1) / 2.0;
-//       const centerY = (diameter - 1) / 2.0;
-//       let index = 0;
-//       for (let y = startY; y < startY+numY; y++) {
-//           const pow_y = Math.pow(y - centerY, 2);
-    
-//           for (let x = startX; x < startX+numX; x++) {
-              
-//               mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
-     
-//           }
-//       }      
-//       break;
-  
-//     default:
-
-//       break;
-//   }
-
-
-//   return mask;
-  
-// }

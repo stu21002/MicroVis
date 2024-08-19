@@ -113,10 +113,10 @@ grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const ::Fi
     FileInfoExtended* file_info_extended = response->mutable_file_info_extended();
     file_info_extended->set_dimensions(num_dims);
 
-    for (size_t i = 0; i < num_dims; i++)
-    {
-      std::cout<<dims[i]<<std::endl;
-    }
+    // for (size_t i = 0; i < num_dims; i++)
+    // {
+    //   std::cout<<dims[i]<<std::endl;
+    // }
   
 
     if (num_dims > 0){
@@ -142,6 +142,7 @@ grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const ::Fi
 grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request,
                                       ::grpc::ServerWriter< ::ImageDataResponse>* writer) {
   ServicePrint("Image Data");
+  const size_t MAX_CHUNK_SIZE = 2040 * 2040;
 
   if (request->uuid().empty()) {
     return {grpc::StatusCode::INVALID_ARGUMENT, "UUID must be specified"};
@@ -156,55 +157,89 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
   int fits_status_code = 0;
   int fits_close_code = 0;
   
-  std::vector<long> start_pix(request->start().begin(), request->start().end());
-  std::vector<long> last_pix(start_pix.size());
-  long num_pixels = 1;
-  for (size_t i = 0; i < start_pix.size(); i++)
-  {
-    num_pixels *= request->count()[i];
-    last_pix[i] = start_pix[i]+request->count()[i];
-  }
-  std::vector<long> increment = {1, 1, 1, 1};
+  // std::vector<long> start_pix(request->start().begin(), request->start().end());
+  // std::vector<long> last_pix(start_pix.size());
+  // long num_pixels = 1;
+  // for (size_t i = 0; i < start_pix.size(); i++)
+  // {
+  //   num_pixels *= request->count()[i];
+  //   last_pix[i] = start_pix[i]+request->count()[i];
+  // }
 
+  int startZ = request->start(2);
+  int endZ = request->count(2)+startZ;
+
+  std::vector<long> start(request->start().size(),1);
+  std::vector<long> last(request->start().size(),1);
+
+  start[0] = request->start(0);
+  start[1] = request->start(1);
+  last[0] = request->count(0)+start[0]-1;
+  last[1] = request->count(1)+start[1]-1;
+
+
+  std::vector<long> increment = {1, 1, 1, 1};
+  
+  long num_pixels = request->count(0)*request->count(1);
   int num_bytes = num_pixels * sizeof(float);
   std::vector<float> buffer(num_pixels);
-
-  
   // fits_read_pix(fits_ptr, TFLOAT, start_pix.data(),num_pixels, nullptr, response->mutable_data()->data(), nullptr, &fits_status_code);
-  fits_read_subset(fits_ptr, TFLOAT, start_pix.data(), last_pix.data(), increment.data(), nullptr, buffer.data(),
-                    nullptr, &fits_status_code);
-
-
-  if (fits_status_code != 0) {
-    return StatusFromFitsError(grpc::StatusCode::INTERNAL, fits_status_code, "Could not read image data");
-  }
-
-  const size_t MAX_CHUNK_SIZE = 2000* 2000;
-
-  size_t offset = 0;
-  size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
-
-  while (offset < buffer.size()) {
-      size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
-      auto begin = std::chrono::high_resolution_clock::now();
-
-      ImageDataResponse response;
-      response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
   
-      response.set_num_pixels(current_chunk_size);
-      float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+  
 
-      std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
-      
-      writer->Write(response);
-      auto end = std::chrono::high_resolution_clock::now();
-      auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-      
-      // std::cout<<duration1.count()<<std::endl;
+  for (size_t i = startZ; i < endZ; i++)
+  {
 
-      offset += current_chunk_size;
+    start[2]=startZ;
+    last[2]=startZ;
+
+    // for (size_t i = 0; i < start.size(); i++)
+    // {
+    //   std::cout<<start[i]<<" ";
+    // }
+    // std::cout<<std::endl;
+
+    // for (size_t i = 0; i < last.size(); i++)
+    // {
+    //   std::cout<<last[i]<<" ";
+    // }
+    // std::cout<<std::endl;
+    
+
+    fits_read_subset(fits_ptr, TFLOAT, start.data(), last.data(), increment.data(), nullptr, buffer.data(),
+                      nullptr, &fits_status_code);
+
+
+    if (fits_status_code != 0) {
+      return StatusFromFitsError(grpc::StatusCode::INTERNAL, fits_status_code, "Could not read image data");
+    }
+
+
+    size_t offset = 0;
+    size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
+
+    while (offset < buffer.size()) {
+        size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
+        auto begin = std::chrono::high_resolution_clock::now();
+
+        ImageDataResponse response;
+        response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
+    
+        response.set_num_pixels(current_chunk_size);
+        float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+
+        std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+        
+        writer->Write(response);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+        
+        // std::cout<<duration1.count()<<std::endl;
+
+        offset += current_chunk_size;
+    }
+
   }
-
   return grpc::Status::OK;
 }
 

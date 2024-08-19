@@ -18,8 +18,8 @@ async function spectral(){
     // console.log(open_file_res);
     const region_info = RegionInfo.create();
     region_info.regionType = RegionType.RECTANGLE;
+    region_info.controlPoints.push({x:600,y:600});
     region_info.controlPoints.push({x:400,y:400});
-    region_info.controlPoints.push({x:800,y:800});
 
     const set_region = SetRegion.create();
     set_region.fileId=open_file_res.uuid;
@@ -88,7 +88,7 @@ async function ImageData() {
     const ingres = new Ingres("0.0.0.0",8079);
     console.log("Ingres Created");
     ingres.checkStatus({});
-    const open_file_res =  await ingres.openFile({directory:"/home/stuart/",file:"Small.hdf5",hdu:"",uuid:""});
+    const open_file_res =  await ingres.openFile({directory:"/home/stuart/",file:"Small.fits",hdu:"",uuid:""});
     // const open_file_res =  await ingres.openFile({directory:"/media/stuart/Elements/",file:"Big.hdf5",hdu:"",uuid:""});
 
     for (let index = 1; index < 2; index+=20) {
@@ -96,7 +96,8 @@ async function ImageData() {
         const image_request = ImageDataRequest.create();
         image_request.uuid = open_file_res.uuid;
         image_request.start = [0,0,0];
-        image_request.count = [800,800,6];
+        image_request.count = [400,400,400];
+        image_request.permData = false;
         image_request.regionType = RegionType.RECTANGLE;
         
         // console.time("ImageData");
@@ -130,6 +131,6 @@ async function openFile() {
     // ingres.closeFile({uuid:open_file_res.uuid});
 
 }
-spectral();
+// spectral();
 // openFile();
-// ImageData();
+ImageData();

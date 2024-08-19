@@ -69,6 +69,9 @@ class FileSerivceClient {
 
     std::vector<float> sum(depth,0);
     std::vector<int> count(depth,0);
+
+    std::vector<bool> mask = getMask(region_info);
+    int maskIndex = 0;
     if (hasPerm){
       std::cout<<"Perm data Calculation"<<std::endl;
 
@@ -92,6 +95,18 @@ class FileSerivceClient {
                 currentWidth++;
                 currentHeight=0;
               }
+              
+            }
+            if (!mask[maskIndex]){
+              if (depth+index>num_pixels){
+                currentDepth = depth - (num_pixels - index);
+                index = num_pixels;
+              }else{
+                index += depth - currentDepth;
+                currentDepth = depth;
+                maskIndex++;
+              }
+              continue;
             }
             const float value = values[index++];
               if (std::isfinite(value)){
@@ -150,10 +165,16 @@ class FileSerivceClient {
 
               spectral_profile[currentDepth]=sum[currentDepth]/count[currentDepth];
               currentDepth++;
-              currentHeight=0;         
+              currentHeight=0;      
+              maskIndex=0;   
             }
 
           }
+          if (!mask[maskIndex++]){
+              currentWidth++;
+              continue;
+          }
+          
           const float value = values[index++];
             if (std::isfinite(value)){
               sum[currentDepth] += value;
@@ -180,6 +201,42 @@ class FileSerivceClient {
 
  private:
 //   std::unique_ptr<FileSerivce::Stub> stub_;
+  std::vector<bool> getMask(RegionInfo region_info){
+      std::vector<bool> mask(region_info.controlpoints().Get(1).x()*region_info.controlpoints().Get(1).y(),true);
+
+      switch (region_info.regiontype())
+      {
+      case RegionType::CIRCLE:{
+          int radi = region_info.controlpoints().Get(1).x();
+          int diameter = radi*2;
+          // int centerX = region_info.controlpoints().Get(0).x();
+          // int centerY = region_info.controlpoints().Get(0).y();
+          int centerX = region_info.controlpoints().Get(1).x();
+          int centerY = region_info.controlpoints().Get(1).y();
+          int index = 0;
+          double pow_radius = pow(radi,2);
+          // float center = (diameter-1)/2.0;
+          // float centerY = (diameter-1)/2.0;
+
+          for (int x = 0; x < diameter; x++) {
+              //part of circle calculation
+              double pow_x = pow(x-centerX,2);
+              for (int y = 0; y < diameter; y++) {
+                  //if point is inside the circle
+                  if (pow_x + pow(y-centerY,2) > pow_radius){
+
+                      mask[index] = false;
+                  }
+                  index++;
+              }
+          }
+          break;
+      }
+      default:
+          break;
+      }
+      return mask;
+  }
 };
 
 //Connection from Ingres

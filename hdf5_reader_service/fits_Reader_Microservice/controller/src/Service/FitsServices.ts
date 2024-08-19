@@ -11,17 +11,16 @@ import {
 
 import { FileInfoRequest, FileInfoResponse } from "../proto/FileInfo";
 import { OpenFileRequest, OpenFileACK, FileCloseRequest } from "../proto/OpenFile";
-import { Hdf5WorkerPool } from "./FitsWorkerPool";
+import { FitsWorkerPool } from "./FitsWorkerPool";
 import { Empty, FileInfoExtended, RegionInfo, RegionType, StatusResponse } from "../proto/defs";
 import { bytesToFloat32 } from "../utils/arrays";
-// import { H5ServicesServer, H5ServicesService } from "../proto/H5ReaderService";
 import { ImageDataRequest, ImageDataResponse } from "../proto/ImageData";
 import { SetSpatialReq, SpatialProfileData } from "../proto/SpatialProfile";
 import { SpectralProfileRequest, SpectralProfileResponse } from "../proto/SpectralProfile";
 import { HistogramResponse, SetHistogramReq } from "../proto/Histogram";
 import { SetRegion, SetRegionAck } from "../proto/Region";
 import { getCircleCoords, getCoords } from "../utils/coord";
-import { FileSerivceServer, FileSerivceService } from "../proto/FileService";
+import { FileServiceServer, FileServiceService } from "../proto/FileService";
 
 
 interface DimensionValues {
@@ -32,18 +31,18 @@ interface DimensionValues {
   dims:number;
 }
 
-export class H5Services {
-  readonly workerPool:Hdf5WorkerPool;
+export class FitsServices {
+  readonly workerPool:FitsWorkerPool;
   readonly fileDims: Map<string,DimensionValues > = new Map();
   readonly regions:Map<number,RegionInfo> = new Map();
   regionId:number;
 
   constructor(address:string,port: number = 8080,numWorkers=1) {
     const SERVICE_URL = `${address}:${port}`;
-    this.workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);
+    this.workerPool = new FitsWorkerPool(numWorkers,"0.0.0.0" ,8080);
     this.regionId = 0;
     const server = new Server();
-    server.addService(FileSerivceService,this.serviceImp);
+    server.addService(FileServiceService,this.serviceImp);
     server.bindAsync(
       SERVICE_URL,
       ServerCredentials.createInsecure(),
@@ -58,7 +57,7 @@ export class H5Services {
   }
 
 
-  public serviceImp:FileSerivceServer={
+  public serviceImp:FileServiceServer={
 
     openFile: async (call:ServerUnaryCall<OpenFileRequest, OpenFileACK>,callback:sendUnaryData<OpenFileACK>):Promise<void> => {
       // Implement your logic here
@@ -128,6 +127,19 @@ export class H5Services {
       if (!regionType){
         regionType=RegionType.RECTANGLE;
       }
+      const dims = this.fileDims.get(uuid)?.dims;
+      if (!dims){
+        throw ("File Not Found");
+      }
+      for (let i = start.length; i < dims; i++) {
+        start.push(0);
+        count.push(1);
+      }
+
+      for (let i = 0; i < start.length; i++) {
+        start[i]+=1;
+      }
+
       const responses =  this.workerPool.getImageDataStream(uuid,regionType,start,count)
  
       for (const response of (await responses)) {
