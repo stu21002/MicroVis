@@ -1,4 +1,4 @@
-import { credentials } from "@grpc/grpc-js";
+import { credentials, ServiceError } from "@grpc/grpc-js";
 import { promisify } from "util";
 
 // import { H5ServicesClient } from "./proto/H5ReaderService";
@@ -7,28 +7,17 @@ import { FileInfoRequest, FileInfoResponse } from "./proto/FileInfo";
 import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./proto/OpenFile";
 import { Empty, FileType, StatusResponse } from "./proto/defs";
 import { ImageDataRequest, ImageDataResponse } from "./proto/ImageData";
-import { SpectralProfileRequest, SpectralProfileResponse } from "./proto/SpectralProfile";
+import { SpectralProfileRequest, SpectralProfileResponse, SpectralServiceRequest } from "./proto/SpectralProfile";
 import { SetSpatialReq, SpatialProfileData } from "./proto/SpatialProfile";
 import { HistogramResponse, SetHistogramReq } from "./proto/Histogram";
 import { SetRegion, SetRegionAck } from "./proto/Region";
 import { FileServiceClient } from "./proto/FileService";
 import { FileServiceConn } from "./FileServiceConn";
 import { error } from "console";
+import { SpectralServiceClient, SpectralServiceResponse } from "./proto/SpectralProfileService";
 // import { FitsServicesClient } from "./proto/FitsReaderService";
 export class Ingres {
 
-    // readonly checkStatus: (request: Empty) => Promise<StatusResponse>;
-    // readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
-    // // readonly getImageDataStream: (request: ImageDataRequest) => Promise<ImageDataResponse[]>;
-    
-    // readonly getSpectralProfile: (request: SpectralProfileRequest) => Promise<SpectralProfileResponse>;
-    // readonly getSpatialProfile:(request:SetSpatialReq)=> Promise<SpatialProfileData>;
-    // readonly getHistogram: (request: SetHistogramReq) =>Promise<HistogramResponse>;
-    // // readonly getHistogramDist: (request: HistogramDistRequest) =>Promise<HistogramResponse>;
-
-    // readonly openFile: (request: OpenFileRequest) => Promise<OpenFileACK>;
-    // readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
-    // readonly CreateRegion:(Request:SetRegion)=>Promise<SetRegionAck>;
     private _connected = false;
     private _readyResolves: (() => void)[] = [];
     private _rejectResolves: ((err: Error) => void)[] = [];
@@ -56,18 +45,12 @@ export class Ingres {
         const reader_url = `${address}:${port}`;
         this.readerConnections=new FileServiceConn(address,port);
    
-
-///contouring
-///Reading requests////
-///Countring...//
-
-
      
     }
 
-    public checkStatus(request:Empty):Promise<StatusResponse>{
+  public checkStatus(request:Empty):Promise<StatusResponse>{
       
-      return this.readerConnections.checkStatus(request);
+    return this.readerConnections.checkStatus(request);
         
   }
   public getFileInfo(request:FileInfoRequest):Promise<FileInfoResponse>{
@@ -108,5 +91,29 @@ export class Ingres {
   public getImageDataStream(request: ImageDataRequest): Promise<ImageDataResponse[]> {
    
       return this.readerConnections.getImageDataStream(request);
+  }
+
+  public spectralService(request: SpectralServiceRequest):Promise<SpectralServiceResponse>{
+    // const SERVICE_URL = `${address}:${port}`;
+    const SERVICE_URL = `${"0.0.0.0"}:${8078}`;
+
+    const spectralServiceConn = new SpectralServiceClient(SERVICE_URL,credentials.createInsecure());
+
+    return new Promise((resolve, reject) => {
+      spectralServiceConn.waitForReady(Date.now() + 5000, (err) => {
+          if (err) {
+              reject(`Not Spectral Service ready`); //${err.message}
+          } else {
+              spectralServiceConn.getSpectralProfile(request, (error: ServiceError | null, response: SpectralServiceResponse) => {
+                  if (error) {
+                      reject(error);
+                  } else {
+                      resolve(response);
+                  }
+              });
+          }
+      });
+  });
+  
   }
 }

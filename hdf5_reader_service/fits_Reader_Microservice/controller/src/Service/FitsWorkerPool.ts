@@ -77,7 +77,8 @@ export class FitsWorkerPool {
 
     
     const promises = new Array<Promise<ImageDataResponse[]>>
-    if (this.readers.length=1){
+    // const promises = [];
+    if (this.readers.length==1){
       
       console.log("single")
       promises.push(this.primaryreader.getImageDataStream({uuid, start, count, regionType: RegionType.RECTANGLE, permData: false
@@ -87,14 +88,7 @@ export class FitsWorkerPool {
     else{
       //Handling distributed reading
       console.log("multi")
-      let workerIndex=0;
-      // for (let dim3 = start[2]; dim3 <start[2]+count[2]; dim3++) {
-
-      //   const tempStart = [start[0],start[1],dim3]
-      //   const tempCount = [count[0],count[1],1]
-      //   promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}))
-        
-      // }
+ 
       const numWorkers = this.readers.length;
       const pixelsPerWorker = Math.floor(count[2] / numWorkers);
       for (let i = 0; i < this.readers.length; i++) {
@@ -102,14 +96,12 @@ export class FitsWorkerPool {
         const zStart = start[2] + i * pixelsPerWorker;
         const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
         const reader = this.readers[i % this.readers.length];
-        const tempStart = [start[0],start[1],numPixelsInChunk]
-        const tempCount = [count[0],count[1],zStart]
-      
+        const tempStart = [start[0],start[1],zStart,1]
+        const tempCount = [count[0],count[1],numPixelsInChunk,1]
         promises.push(reader.getImageDataStream({
           uuid, start: tempStart, count: tempCount, regionType: RegionType.RECTANGLE,
           permData: false
         }));
-  
       }
     }
   
@@ -122,27 +114,28 @@ export class FitsWorkerPool {
 
       const promises = new Array<Promise<ImageDataResponse[]>>
 
+
       if (this.readers.length==1){
         //y
         promises.push(( this.readers[0].getImageDataStream({
-          uuid, regionType: RegionType.LINE, start: [x, 0, 0, 0], count: [1, height, 1, 1],
+          uuid, regionType: RegionType.LINE, start: [x+1, 1, 1, 1], count: [1, height, 1, 1],
           permData: false
         })))
         //x
         promises.push(( this.readers[0].getImageDataStream({
-          uuid, regionType: RegionType.LINE, start: [0, y, 0, 0], count: [width, 1, 1, 1],
+          uuid, regionType: RegionType.LINE, start: [1, y+1, 1, 1], count: [width, 1, 1, 1],
           permData: false
         })))
       }
       else{
         //y
         promises.push(( this.readers[0].getImageDataStream({
-          uuid, regionType: RegionType.LINE, start: [x, 0, 0, 0], count: [1, height, 1, 1],
+          uuid, regionType: RegionType.LINE, start: [x+1, 1, 1, 1], count: [1, height, 1, 1],
           permData: false
         })))
         //x
         promises.push(( this.readers[1].getImageDataStream({
-          uuid, regionType: RegionType.LINE, start: [0, y, 0, 0], count: [width, 1, 1, 1],
+          uuid, regionType: RegionType.LINE, start: [1, y+1, 1, 1], count: [width, 1, 1, 1],
           permData: false
         })))
       }

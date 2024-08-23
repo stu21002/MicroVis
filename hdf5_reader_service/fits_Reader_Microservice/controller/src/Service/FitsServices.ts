@@ -75,7 +75,6 @@ export class FitsServices {
 
         //Get to not require dir/file;
         const fileInfoResponse = await this.workerPool.getFileInfo(fileOpenResponse.uuid,"","",hdu)
-        console.log(fileInfoResponse);
         if (!fileInfoResponse.fileInfoExtended) {
 
           openFileAck.success=false;
@@ -88,7 +87,6 @@ export class FitsServices {
           openFileAck.uuid=fileOpenResponse.uuid;
           openFileAck.fileInfo=fileInfoResponse.fileInfo;
           openFileAck.fileInfoExtended=fileInfoResponse.fileInfoExtended; 
-          console.log("File Dims : ",fileInfoResponse.fileInfoExtended);
           const dimensionValues: DimensionValues = {
             width: fileInfoResponse.fileInfoExtended.width,
             height: fileInfoResponse.fileInfoExtended.height,
@@ -149,6 +147,7 @@ export class FitsServices {
             call.write( chunk)
           }
       }
+      
       call.end();
     },
 
@@ -212,13 +211,10 @@ export class FitsServices {
       }
       //This will only work for circles and rectangles
       const points = region_info.controlPoints;
-      // const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-          // console.log({startingX,startingY,adjustedWidth,adjustedHeight})
       
-
       if (region_info.regionType == RegionType.CIRCLE){
             const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
-            const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight);
+            const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,0,depth,adjustedWidth,adjustedHeight);
             const spectral_profile_response = SpectralProfileResponse.create();
             spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
             callback(null, spectral_profile_response);
@@ -227,7 +223,7 @@ export class FitsServices {
       else if(region_info.regionType == RegionType.RECTANGLE){
         
         const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-          const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,1,depth,adjustedWidth,adjustedHeight);
+          const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight);
           const spectral_profile_response = SpectralProfileResponse.create();
           spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
           callback(null, spectral_profile_response);

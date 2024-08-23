@@ -71,6 +71,7 @@ class FileSerivceClient {
     std::vector<int> count(depth,0);
 
     std::vector<bool> mask = getMask(region_info);
+
     int maskIndex = 0;
     if (hasPerm){
       std::cout<<"Perm data Calculation"<<std::endl;
@@ -132,7 +133,7 @@ class FileSerivceClient {
         std::cerr << "gRPC stream failed: " << status.error_message() << std::endl;
       }
 
-
+      std::cout<<"HDF5 Data Calculation Done"<<std::endl;
       return spectral_response;
     }
     else{
@@ -144,12 +145,15 @@ class FileSerivceClient {
       
       while (reader->Read(&response)) {
       
-        std::cout << "Received chunk of size : " << response.raw_values_fp32().size() << " bytes" << std::endl;
+        // std::cout << "Received chunk of size : " << response.raw_values_fp32().size() << " bytes" << std::endl;
 
         int num_pixels = response.raw_values_fp32().size()/sizeof(float);
         std::vector<float> values(num_pixels);
+        // std::cout<<num_pixels<<std::endl;
+        // std::cout<<"Break";
         memcpy(values.data(),response.raw_values_fp32().data(),values.size()*sizeof(float));
-       
+        // std::cout<<"ing";
+
         int index = 0;
 
         while (index<num_pixels)
@@ -171,7 +175,10 @@ class FileSerivceClient {
 
           }
           if (!mask[maskIndex++]){
+              // std::cout<<maskIndex<<" : "<<mask[maskIndex]<<std::endl;
+              // std::cout<<currentWidth<<":"<<currentHeight<<":"<<currentDepth<<std::endl;
               currentWidth++;
+              index++;
               continue;
           }
           
@@ -193,8 +200,8 @@ class FileSerivceClient {
       if (!status.ok()) {
         std::cerr << "gRPC stream failed: " << status.error_message() << std::endl;
       }
+      std::cout<<"Fits Data Calculation Done"<<std::endl;
 
-      
       return spectral_response;
     }
   }
@@ -202,11 +209,13 @@ class FileSerivceClient {
  private:
 //   std::unique_ptr<FileSerivce::Stub> stub_;
   std::vector<bool> getMask(RegionInfo region_info){
-      std::vector<bool> mask(region_info.controlpoints().Get(1).x()*region_info.controlpoints().Get(1).y(),true);
+      // std::vector<bool> mask(region_info.controlpoints().Get(1).x()*region_info.controlpoints().Get(1).y(),true);
 
       switch (region_info.regiontype())
       {
       case RegionType::CIRCLE:{
+          std::vector<bool> mask(region_info.controlpoints().Get(1).x()*region_info.controlpoints().Get(1).y(),true);
+  
           int radi = region_info.controlpoints().Get(1).x();
           int diameter = radi*2;
           // int centerX = region_info.controlpoints().Get(0).x();
@@ -230,12 +239,20 @@ class FileSerivceClient {
                   index++;
               }
           }
-          break;
+          return mask;
       }
+      //Assume Rectangle
       default:
-          break;
+        const int startingX = ceil(region_info.controlpoints()[0].x() - region_info.controlpoints()[1].x());
+        const int startingY = ceil(region_info.controlpoints()[0].y() - region_info.controlpoints()[1].y());
+        const int endingX = floor(region_info.controlpoints()[0].x()  + region_info.controlpoints()[1].x());
+        const int endingY = floor(region_info.controlpoints()[0].y()  + region_info.controlpoints()[1].y());
+        const int width = endingX-startingX+1;
+        const int height = endingY-startingY+1;
+          std::vector<bool> mask(width*height,true);
+          return mask;
       }
-      return mask;
+     
   }
 };
 

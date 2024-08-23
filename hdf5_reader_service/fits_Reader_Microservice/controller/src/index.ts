@@ -21,9 +21,9 @@ if (args.length > 0) {
 } 
 const ServicePort = 8079;
 const fitsServices = new FitsServices("0.0.0.0",ServicePort,numWorkers);
-const res = async()=>{return await fitsServices.workerPool.checkStatus()};
-async()=>{await res};
-console.log(res);
+// const res = async()=>{return await fitsServices.workerPool.checkStatus()};
+// async()=>{await res};
+// console.log(res);
 
 
 // async()=>{await fitsServices.workerPool.ready()};
