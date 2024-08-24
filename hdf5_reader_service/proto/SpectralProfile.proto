@@ -2,16 +2,16 @@ syntax = "proto3";
 package proto;
 import "defs.proto";
 
+message SpectralProfile {
+  string coordinate = 1;
+  StatsType stats_type = 2;
+  bytes raw_values_fp32 = 3;
+  // bytes raw_values_fp64 = 4;
+}
+
 message SpectralProfileRequest {
     string uuid = 1;
     sfixed32 region_id = 2;
-    // int32 x = 3;
-    // int32 y = 4;
-    // int32 z = 5;
-    // int32 numPixels = 6;
-    // int32 width = 7;
-    // int32 height = 8;
-    // repeated bool mask = 9;
   }
 
   message SpectralProfileReaderRequest {
@@ -34,10 +34,12 @@ message SpectralProfileRequest {
   
   
   message SpectralProfileReaderResponse {
-    bytes raw_values_fp32 = 1;
-    bytes counts=2;
+    // bytes raw_values_fp32 = 1;
+    // bytes counts=2;
+    repeated SpectralProfile profiles = 1;
   }
     
   message SpectralProfileResponse {
-    bytes raw_values_fp32 = 1;
+    // bytes raw_values_fp32 = 1;
+    repeated SpectralProfile profiles = 1;
   }

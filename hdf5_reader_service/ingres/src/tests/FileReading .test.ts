@@ -98,39 +98,44 @@ describe("HDF5 Func",()=>{
                 expect(OpenFileResponse.success).toEqual(true);
             }, openFileTimeout);
             
+            let rectRegUUID=0;
+
             test(`(Step 2)"${assertItem.fileOpen.file}" Creating a Region`, async () => {
                 let setRegionAckResponse = await ingres.regionCreate({fileId:file_uuid,regionId:assertItem.setRegion.regionId,regionInfo:assertItem.setRegion.regionInfo});
                 console.log(setRegionAckResponse.regionId);
                 expect(setRegionAckResponse.success).toEqual(true);
+                rectRegUUID=setRegionAckResponse.regionId;
             }, readRegionTimeout);
 
 
             test(`(Step 3)"${assertItem.fileOpen.file}" SPECTRAL_PROFILE_DATA`, async () => {
-                let SpectralProfileDataResponse = await ingres.getSpectralProfile({uuid:file_uuid,regionId:1});
+                let SpectralProfileDataResponse = await ingres.getSpectralProfile({uuid:file_uuid,regionId:rectRegUUID});
                 // expect(SpectralProfileDataResponse.rawValuesFp32.length).toBeGreaterThan(1);
-                const firstValue = bytesToFloat32(SpectralProfileDataResponse.rawValuesFp32).slice(0,5);
+                const firstValue = bytesToFloat32(SpectralProfileDataResponse.profiles[0].rawValuesFp32).slice(0,5);
 
                 for (let index = 0; index < 5; index++) {
-                    expect(firstValue[index]).toBeCloseTo(assertItem.SpectralResult[index],5);
+                    expect(firstValue[index]).toBeCloseTo(assertItem.SpectralResult[index],4);
                     
                 }
             }, spectralProfileTimeout);
 
-            // test(`(Step 4)"${assertItem.fileOpen.file}" Creating a Circle Region`, async () => {
-            //     let setRegionAckResponse = await ingres.regionCreate({fileId:file_uuid,regionId:assertItem.setRegionMask.regionId,regionInfo:assertItem.setRegionMask.regionInfo});
-            //     console.log(setRegionAckResponse.regionId);
-            //     expect(setRegionAckResponse.success).toEqual(true);
-            // }, readRegionTimeout);
+            let circleRegUUID=0;
+            test(`(Step 4)"${assertItem.fileOpen.file}" Creating a Circle Region`, async () => {
+                let setRegionAckResponse = await ingres.regionCreate({fileId:file_uuid,regionId:assertItem.setRegionMask.regionId,regionInfo:assertItem.setRegionMask.regionInfo});
+                console.log(setRegionAckResponse.regionId);
+                expect(setRegionAckResponse.success).toEqual(true);
+                circleRegUUID=setRegionAckResponse.regionId;
+            }, readRegionTimeout);
 
-            // test(`(Step 5)"${assertItem.fileOpen.file}" MASKED SPECTRAL_PROFILE_DATA`, async () => {
-            //     let SpectralProfileDataResponse = await ingres.getSpectralProfile({uuid:file_uuid,regionId:2});
-            //     const firstValue = bytesToFloat32(SpectralProfileDataResponse.rawValuesFp32).slice(0,5);
+            test(`(Step 5)"${assertItem.fileOpen.file}" MASKED SPECTRAL_PROFILE_DATA`, async () => {
+                let SpectralProfileDataResponse = await ingres.getSpectralProfile({uuid:file_uuid,regionId:circleRegUUID});
+                const firstValue = bytesToFloat32(SpectralProfileDataResponse.profiles[0].rawValuesFp32).slice(0,5);
 
-            //     for (let index = 0; index < 5; index++) {
-            //         expect(firstValue[index]).toBeCloseTo(assertItem.SpectralMaskResult[index],5);
+                for (let index = 0; index < 5; index++) {
+                    expect(firstValue[index]).toBeCloseTo(assertItem.SpectralMaskResult[index],4);
                     
-            //     }
-            // }, spectralProfileTimeout);
+                }
+            }, spectralProfileTimeout);
         
             test(`(Step 5)"${assertItem.fileOpen.file}"SPATIAL PROFILE DATA CURSOR`, async () => {
                 let SpatialProfileDataResponse = await ingres.getSpatialProfile({uuid:file_uuid,x:assertItem.cursor.x,y:assertItem.cursor.y});

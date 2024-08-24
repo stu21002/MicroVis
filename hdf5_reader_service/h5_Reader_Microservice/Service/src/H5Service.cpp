@@ -186,7 +186,7 @@ using namespace std::chrono;
         }
 
         // //ServicePrint("Image Data Request");
-      
+
 
         Hdf5_File &h5file = hdf5_files[request->uuid()];
 
@@ -418,21 +418,51 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         H5::Group permGroup = h5file._group.openGroup("PermutedData");
         H5::DataSet dataset = permGroup.openDataSet("ZYXW");
 
+
         const hsize_t resultSize = width*height*num_pixels;
         std::vector<bool> mask = getMask(request->region_info(),x,y,width,height);
 
-        const auto num_bytes_sum = num_pixels * sizeof(float);
-        const auto num_bytes_count = num_pixels * sizeof(int);
+        const auto num_bytes = num_pixels * sizeof(float);
+        // const auto num_bytes_count = num_pixels * sizeof(int);
     
-        response->mutable_raw_values_fp32()->resize(num_bytes_sum);
-        response->mutable_counts()->resize(num_bytes_count);
+        std::vector<SpectralProfile> profiles(6);
+        for (size_t i = 0; i < 6; i++)
+        {
+            
+            profiles[i].mutable_raw_values_fp32()->resize(num_bytes);
+            profiles[i].set_coordinate("z");
+        }
+        
+        // response->mutable_raw_values_fp32()->resize(num_bytes_sum);
+        // response->mutable_counts()->resize(num_bytes_count);
 
-        float* sum = reinterpret_cast<float*>(response->mutable_raw_values_fp32()->data());
-        int* counts = reinterpret_cast<int*>(response->mutable_counts()->data());
+        int* counts = reinterpret_cast<int*>(profiles[0].mutable_raw_values_fp32()->data());
+        int* nan_count  = reinterpret_cast<int*>(profiles[1].mutable_raw_values_fp32()->data());;
+        float* sum = reinterpret_cast<float*>(profiles[2].mutable_raw_values_fp32()->data());
+        //FLUX
+        float* sum_sq = reinterpret_cast<float*>(profiles[3].mutable_raw_values_fp32()->data());
+        float* min= reinterpret_cast<float*>(profiles[4].mutable_raw_values_fp32()->data());
+        float* max = reinterpret_cast<float*>(profiles[5].mutable_raw_values_fp32()->data());
+       
+        profiles[0].set_stats_type(StatsType::NumPixels);
+        profiles[1].set_stats_type(StatsType::NanCount);
+        profiles[2].set_stats_type(StatsType::Sum);
+        profiles[3].set_stats_type(StatsType::SumSq);
+        profiles[4].set_stats_type(StatsType::Min);
+        profiles[5].set_stats_type(StatsType::Max);
+
+        for (size_t z = 0; z < num_pixels; z++) {
+            min[z] = std::numeric_limits<float>::max();
+            max[z] = std::numeric_limits<float>::lowest();
+            counts[z] = 0;
+            nan_count[z] = 0;
+            sum[z] = 0;
+            sum_sq[z] = 0;
+        }
 
         hsize_t res_size = height*num_pixels;
         H5::DataSpace data_space = dataset.getSpace();
-        
+
         int maskIndex=0;
         for (size_t i = x; i < x+width; i++)
         {
@@ -456,6 +486,12 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
                         if (std::isfinite(val)) {
                             sum[zpos] += val;
                             counts[zpos]+=1;
+                            sum_sq[zpos] += val * val;
+                            min[zpos] = std::min(min[zpos], val);
+                            max[zpos] = std::max(max[zpos], val);
+                        }
+                        else{
+                            nan_count[zpos]+=1;
                         }
                     }
                 }
@@ -464,15 +500,22 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
                 }
             }
         }
+
         data_space.close();
         dataset.close();
         permGroup.close();
 
+        
+        for (size_t i = 0; i < profiles.size(); i++)
+        {
+            *response->add_profiles() = std::move(profiles[i]);
+        }
+  
+
+
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-
         ServicePrint(std::to_string(duration.count()));
-        //ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
 

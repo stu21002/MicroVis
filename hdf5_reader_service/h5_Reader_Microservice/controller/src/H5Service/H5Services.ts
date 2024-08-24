@@ -12,12 +12,12 @@ import {
 import { FileInfoRequest, FileInfoResponse } from "../proto/FileInfo";
 import { OpenFileRequest, OpenFileACK, FileCloseRequest } from "../proto/OpenFile";
 import { Hdf5WorkerPool } from "./H5WorkerPool";
-import { Empty, FileInfoExtended, RegionInfo, RegionType, StatusResponse } from "../proto/defs";
+import { Empty, FileInfoExtended, RegionInfo, RegionType, StatsType, StatusResponse } from "../proto/defs";
 import { bytesToFloat32, float32ToBytes } from "../utils/arrays";
 // import { H5ServicesServer, H5ServicesService } from "../proto/H5ReaderService";
 import { ImageDataRequest, ImageDataResponse } from "../proto/ImageData";
 import { SetSpatialReq, SpatialProfileData } from "../proto/SpatialProfile";
-import { SpectralProfileRequest, SpectralProfileResponse } from "../proto/SpectralProfile";
+import { SpectralProfile, SpectralProfileRequest, SpectralProfileResponse } from "../proto/SpectralProfile";
 import { HistogramResponse, SetHistogramReq } from "../proto/Histogram";
 import { SetRegion, SetRegionAck } from "../proto/Region";
 import { getCircleCoords, getCoords } from "../utils/coord";
@@ -221,7 +221,11 @@ export class H5Services {
             const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
             const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
             const spectral_profile_response = SpectralProfileResponse.create();
-            spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+            const profile = SpectralProfile.create();
+            profile.coordinate = "z";
+            profile.statsType = StatsType.Mean;
+            profile.rawValuesFp32 = Buffer.from(spectral_profile.mean.buffer)
+            spectral_profile_response.profiles.push(profile);
             callback(null, spectral_profile_response);
             return;
       }
@@ -230,7 +234,11 @@ export class H5Services {
         const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
           const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
           const spectral_profile_response = SpectralProfileResponse.create();
-          spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+          const profile = SpectralProfile.create();
+          profile.coordinate = "z";
+          profile.statsType = StatsType.Mean;
+          profile.rawValuesFp32 = Buffer.from(spectral_profile.mean.buffer)
+          spectral_profile_response.profiles.push(profile);
           callback(null, spectral_profile_response);
           return;
       }

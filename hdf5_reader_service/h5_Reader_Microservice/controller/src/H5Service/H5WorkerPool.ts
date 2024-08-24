@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { H5Reader } from "./H5Reader";
 import { bytesToFloat32, bytesToInt32 } from "../utils/arrays";
-import { RegionInfo, RegionType } from "../proto/defs";
+import { RegionInfo, RegionType, StatsType } from "../proto/defs";
 import { ImageDataResponse } from "../proto/ImageData";
 import { SpatialProfile } from "../proto/SpatialProfile";
 import { SpectralProfileReaderResponse, SpectralProfileResponse } from "../proto/SpectralProfile";
@@ -182,26 +182,93 @@ export class Hdf5WorkerPool {
       promises.push(reader.getSpectralProfile({ uuid,regionInfo:region_info, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
 
     }
-    const spectralData = new Float32Array(numPixels);
-    const statistic = new Float32Array(numPixels).fill(0);
-    const counts = Array(numPixels).fill(0);
+    // const statistic = new Float32Array(numPixels).fill(0);
+    const counts = new Int32Array(numPixels).fill(0);    
+    const nan_count  = new Int32Array(numPixels).fill(0);
+    const sum = new Float32Array(numPixels).fill(0);
+    //FLUX
+    const sum_sq = new Float32Array(numPixels).fill(0);
+    const min = new Float32Array(numPixels).fill(0);
+    const max = new Float32Array(numPixels).fill(0);
+   
     
     return Promise.all(promises).then(res => {
       for (const response of res) {
-          const values = bytesToFloat32(response.rawValuesFp32);
-          const count = bytesToInt32(response.counts);
 
-        for (let index = 0; index < numPixels; index++) {
-          statistic[index]+=values[index];
-          counts[index]+=count[index];  
+        for (const profile of response.profiles){
+  
+          switch (profile.statsType) {
+            case StatsType.NumPixels:
+              const count_values = bytesToInt32(profile.rawValuesFp32)
+              for (let i = 0; i < numPixels; i++) {
+                counts[i]+=count_values[i];
+              }
+              break;
+            case StatsType.NanCount:
+              const nan_values = bytesToInt32(profile.rawValuesFp32)
+              for (let i = 0; i < numPixels; i++) {
+                nan_count[i]+=nan_values[i];
+              }
+              break;
+            case StatsType.Sum:
+              const sum_values = bytesToFloat32(profile.rawValuesFp32)
+              for (let i = 0; i < numPixels; i++) {
+                sum[i]+=sum_values[i];
+              }
+              break;
+            case StatsType.SumSq:
+              const sumsq_values = bytesToFloat32(profile.rawValuesFp32)
+              for (let i = 0; i < numPixels; i++) {
+                sum_sq[i]+=sumsq_values[i];
+              }
+              break;
+            case StatsType.Min:
+              const min_values = bytesToFloat32(profile.rawValuesFp32)
+              for (let i = 0; i < numPixels; i++) {
+                const val = min_values[i]
+                if (val<min[i]){
+                  min[i]=val
+                }
+              }
+              break;
+            case StatsType.Max:
+              const max_values = bytesToFloat32(profile.rawValuesFp32)
+              for (let i = 0; i < numPixels; i++) {
+                const val = max_values[i]
+                if (val>max[i]){
+                  max[i]=val
+                }
+              }
+              break;
+            default:
+              break;
+          }
         }
       }
+      
+      //Partial Stats
+      const mean = new Float32Array(numPixels);
+      const rms = new Float32Array(numPixels);
+      const sigma = new Float32Array(numPixels);
+      const extrema = new Float32Array(numPixels);
 
-      for (let index = 0; index < numPixels; index++) {
-        spectralData[index]=statistic[index]/counts[index]      
+
+      let sum_z;
+      let count_z;
+      let sum_sq_z;
+      for (let z = 0; z < numPixels; z++) {
+        count_z = counts[z];
+        sum_z = sum[z];
+        sum_sq_z = sum_sq[z];
+
+        mean[z]=sum_z/count_z;
+        rms[z] = Math.sqrt(sum_sq_z / count_z);
+        sigma[z] = count_z > 1 ? Math.sqrt((sum_sq_z - (sum_z * sum_z / count_z)) / (count_z - 1)) : 0;
+        extrema[z] = (Math.abs(min[z]) > Math.abs(max[z]) ? min[z] : max[z]);
+
       }
 
-      return {spectralData} ;
+      return {mean} ;
     });
   }
  }

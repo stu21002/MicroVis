@@ -40,7 +40,7 @@ async function spectral(file:string, start:number,count:number) {
     const spec_res = await ingres.getSpectralProfile(spectral_request);
     console.timeEnd("Spectral Profile");
 
-    // console.log("Ingres First five values : " + bytesToFloat32(spec_res.rawValuesFp32).subarray(0, 5));
+    console.log("Ingres First five values : " + bytesToFloat32(spec_res.profiles[0].rawValuesFp32).subarray(0, 5));
 
     ingres.closeFile({uuid: open_file_res.uuid});
 }
@@ -72,7 +72,7 @@ async function spectralCirlce(file:string, start:number,count:number) {
 
     console.time("Spectral Profile");
     const spec_res = await ingres.getSpectralProfile(spectral_request);
-    console.log("Ingres First five values : " + bytesToFloat32(spec_res.rawValuesFp32).subarray(0, 5));
+    console.log("Ingres First five values : " + bytesToFloat32(spec_res.profiles[0].rawValuesFp32).subarray(0, 5));
     console.timeEnd("Spectral Profile");
 
     ingres.closeFile({uuid: open_file_res.uuid});
@@ -180,7 +180,7 @@ async function executeOperation(operation: string, ...args: any[]) {
     // executeOperation("spectralService","Small.fits",400,40,false);
     // executeOperation("spectralService","Small.hdf5",400,40,true);
     // Large
-    executeOperation("spectralService","Small.fits",400,400,false);
+    // executeOperation("spectralService","Small.fits",400,400,false);
     // executeOperation("spectralService","Small.hdf5",400,400,true);
 
 // Spectral Profile Service Experiments
@@ -188,7 +188,7 @@ async function executeOperation(operation: string, ...args: any[]) {
         // executeOperation("spectral","Small.hdf5",400,40);
         // executeOperation("spectral","Small.fits",400,40);
     // Large
-        // executeOperation("spectral","Small.hdf5",400,400);
+        executeOperation("spectral","Small.hdf5",400,400);
         // executeOperation("spectral","Small.fits",400,400);
 
 // executeOperation("spectral","Small.hdf5",200,200,false);
