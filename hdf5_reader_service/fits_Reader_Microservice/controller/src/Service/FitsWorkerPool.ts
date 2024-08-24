@@ -179,11 +179,7 @@ export class FitsWorkerPool {
     const promises = new Array<Promise<SpectralProfileResponse>>();
     for (let i = 0; i < numWorkers; i++) {
       const zStart = z + i * pixelsPerWorker;
-      console.log(zStart);
-      console.log(pixelsPerWorker);
-      // Last worker gets the remainder
       const numPixelsInChunk = (i === numWorkers - 1) ? numPixels - i * pixelsPerWorker : pixelsPerWorker;
-      console.log(numPixelsInChunk);
 
       const worker = this.readers[i % this.readers.length];
       promises.push(worker.getSpectralProfile({ uuid,regionInfo:undefined, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));

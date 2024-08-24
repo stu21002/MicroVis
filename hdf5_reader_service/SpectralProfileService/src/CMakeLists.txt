@@ -10,9 +10,9 @@ find_package(fmt)
 # include_directories(${HDF5_INCLUDE_DIRS})
 
 add_executable(Spectral 
-# main.cpp
 Service/SpectralProfileService.cpp
-# Service/SpectralProfileService.h
+Service/SpectralProfileService.h
+main.cpp
 )
 
 set(LINK_LIBS
@@ -21,8 +21,7 @@ set(LINK_LIBS
         proto_files
 )
 
-# target_link_libraries(H5Service protolib)
-# target_link_libraries(H5Service ${HDF5_LIBRARIES})
+
 
 target_link_libraries(Spectral   
         ${LINK_LIBS}

@@ -19,12 +19,11 @@ using namespace std::chrono;
 
     grpc::Status H5Service::CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response)
     {
-        std::cout << "Checking Status" << std::endl;
         response->set_status(true);
         
-        for (const auto& pair : hdf5_files) {
-            std::cout << pair.first << " : " << pair.second._file.getFileName() << std::endl;
-        }
+        // for (const auto& pair : hdf5_files) {
+        //     std::cout << pair.first << " : " << pair.second._file.getFileName() << std::endl;
+        // }
                 
         response->set_statusmessage("OK");
         return grpc::Status::OK;
@@ -396,7 +395,10 @@ using namespace std::chrono;
         return grpc::Status::OK;
     };
 grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileReaderResponse* response){
-                if (request->uuid().empty()) {
+        
+        auto begin = std::chrono::high_resolution_clock::now();
+
+        if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         }
 
@@ -412,19 +414,13 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         const hsize_t height = request->height();
         const hsize_t num_pixels = request->numpixels();
         
-     
-        Hdf5_File &h5file = hdf5_files[request->uuid()];
-        //Possible add perm group to struct
-       
+        Hdf5_File &h5file = hdf5_files[request->uuid()];    
         H5::Group permGroup = h5file._group.openGroup("PermutedData");
-
         H5::DataSet dataset = permGroup.openDataSet("ZYXW");
 
         const hsize_t resultSize = width*height*num_pixels;
-        int maskIndex=0;
         std::vector<bool> mask = getMask(request->region_info(),x,y,width,height);
 
- 
         const auto num_bytes_sum = num_pixels * sizeof(float);
         const auto num_bytes_count = num_pixels * sizeof(int);
     
@@ -435,35 +431,24 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         int* counts = reinterpret_cast<int*>(response->mutable_counts()->data());
 
         hsize_t res_size = height*num_pixels;
-        // for (size_t i = 0; i < dimCount.size(); i++)
-        // {
-        //     res_size *= dimCount[i];
-        // }
         H5::DataSpace data_space = dataset.getSpace();
+        
+        int maskIndex=0;
         for (size_t i = x; i < x+width; i++)
         {
         
         std::vector<hsize_t> start = {0,i,y,z};
         std::vector<hsize_t> dimCount = {1,1,height,num_pixels};
         
-        // result = H5Service::readRegion(dataset,dimCount,start,res_size);
-
-        // std::vector<float> result;
         std::vector<float> result(res_size);
-        // readRegion(dataset,dimCount,start,res_size,result);
         H5::DataSpace mem_space(1,&res_size);
-
         data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
         dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
-        mem_space.close();
-        // std::vector<float> sum(num_pixels,0);
-        // std::vector<int> counts(num_pixels,0);
-        // int xoffset = num_pixels*height;
-        
-        int index = 0;
-        // int maskIndex=0;
 
-        //   for (size_t xpos = 0; xpos < width; xpos++) {
+        mem_space.close();
+     
+        int index = 0;
+
             for (size_t ypos = 0; ypos < height; ypos++) {
                 if (mask[maskIndex++]){
                     for (size_t zpos = 0; zpos < num_pixels; zpos++) {
@@ -478,11 +463,15 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
                     index+=num_pixels;
                 }
             }
-        // }
-            /* code */
         }
         data_space.close();
         dataset.close();
+        permGroup.close();
+
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+        ServicePrint(std::to_string(duration.count()));
         //ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
@@ -670,20 +659,22 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         }
         return mask;
     }
-    //Old Methods
-
-    void H5Service::readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &dimCount,std::vector<hsize_t> &start,hsize_t totalPixels, std::vector<float> result){
-        
-            // std::vector<float> result(totalPixels);
-            H5::DataSpace data_space = dataset.getSpace();
-            H5::DataSpace mem_space(1,&totalPixels);
-
-            data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
-            dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
-            // return result;
- 
-    };
 
     void H5Service::ServicePrint(std::string msg){
         std::cout << "[" << port << "] " << msg << std::endl;
     }
+
+    //Old Methods
+
+
+    // void H5Service::readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &dimCount,std::vector<hsize_t> &start,hsize_t totalPixels, std::vector<float> result){
+        
+    //         // std::vector<float> result(totalPixels);
+    //         H5::DataSpace data_space = dataset.getSpace();
+    //         H5::DataSpace mem_space(1,&totalPixels);
+
+    //         data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
+    //         dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
+    //         // return result;
+ 
+    // };

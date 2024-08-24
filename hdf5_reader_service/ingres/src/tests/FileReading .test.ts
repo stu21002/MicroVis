@@ -18,7 +18,7 @@ let assertItem = {
     fileOpen: 
         {
             directory: "/home/stuart/",
-            file: "Small.fits",
+            file: "Small.hdf5",
             hdu: "0",
             uuid: "",
         },

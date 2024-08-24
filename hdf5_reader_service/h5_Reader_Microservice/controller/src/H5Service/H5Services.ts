@@ -213,12 +213,10 @@ export class H5Services {
       if (!depth){
         depth = 1;
       }
+      
       //This will only work for circles and rectangles
       const points = region_info.controlPoints;
-      // const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-          // console.log({startingX,startingY,adjustedWidth,adjustedHeight})
       
-
       if (region_info.regionType == RegionType.CIRCLE){
             const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
             const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
@@ -237,8 +235,6 @@ export class H5Services {
           return;
       }
         
-
-
       const error = {
         code: status.UNIMPLEMENTED,
         message: "Region Type Not Implemented" + region_info.regionType.toString()

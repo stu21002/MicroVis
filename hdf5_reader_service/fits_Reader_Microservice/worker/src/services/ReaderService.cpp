@@ -241,6 +241,7 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
 ::grpc::Status ReaderService::GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileResponse* response) {
   
   //ServicePrint("Spectral");
+  auto begin = std::chrono::high_resolution_clock::now();
 
   if (request->uuid().empty()) {
     return {grpc::StatusCode::INVALID_ARGUMENT, "UUID must be specified"};
@@ -328,6 +329,10 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
     }
   }
 
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+  ServicePrint(std::to_string(duration.count()));
   return grpc::Status::OK;
 }
 

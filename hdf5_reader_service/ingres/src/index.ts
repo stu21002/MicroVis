@@ -40,7 +40,7 @@ async function spectral(file:string, start:number,count:number) {
     const spec_res = await ingres.getSpectralProfile(spectral_request);
     console.timeEnd("Spectral Profile");
 
-    console.log("Ingres First five values : " + bytesToFloat32(spec_res.rawValuesFp32).subarray(0, 5));
+    // console.log("Ingres First five values : " + bytesToFloat32(spec_res.rawValuesFp32).subarray(0, 5));
 
     ingres.closeFile({uuid: open_file_res.uuid});
 }
@@ -125,7 +125,7 @@ async function spectralService(file:string,start:number,count:number,perm:boolea
 
     const open_file_res = await ingres.openFile({directory:"/home/stuart/", file, hdu:"", uuid:""});
     // SessionUUID = open_file_res.uuid;
-    console.log(open_file_res.uuid);
+    // console.log(open_file_res.uuid);
 
 
     const region_info = RegionInfo.create();
@@ -141,9 +141,13 @@ async function spectralService(file:string,start:number,count:number,perm:boolea
     spectral_service_request.depth = open_file_res.fileInfoExtended.depth
     spectral_service_request.uuid = open_file_res.uuid;
     spectral_service_request.regionInfo = region_info;
-
+    
+    console.time("SpecServ");
     const service_response = await ingres.spectralService(spectral_service_request);
-    console.log(bytesToFloat32(service_response.rawValuesFp32).slice(0,5));
+    console.timeEnd("SpecServ");
+
+    // console.log(bytesToFloat32(service_response.rawValuesFp32).slice(0,5));
+    // console.log(bytesToFloat32(service_response.rawValuesFp32).length)
     ingres.closeFile({uuid: open_file_res.uuid});
 }
 
@@ -171,13 +175,21 @@ async function executeOperation(operation: string, ...args: any[]) {
 }
 
 
-// Example usage:
-// executeOperation("openFile","Small.fits");
-// executeOperation("spectralService","Small.fits",400,40,false);
+// Spectral Profile Service Experiments
+    // Small
+    // executeOperation("spectralService","Small.fits",400,40,false);
+    // executeOperation("spectralService","Small.hdf5",400,40,true);
+    // Large
+    executeOperation("spectralService","Small.fits",400,400,false);
+    // executeOperation("spectralService","Small.hdf5",400,400,true);
 
-// executeOperation("spectralService","Small.hdf5",200,200,false);
-
-// executeOperation("spectralService","Small.hdf5",200,200,true);
+// Spectral Profile Service Experiments
+    // Small
+        // executeOperation("spectral","Small.hdf5",400,40);
+        // executeOperation("spectral","Small.fits",400,40);
+    // Large
+        // executeOperation("spectral","Small.hdf5",400,400);
+        // executeOperation("spectral","Small.fits",400,400);
 
 // executeOperation("spectral","Small.hdf5",200,200,false);
 
@@ -198,4 +210,4 @@ async function groupTesting(){
     await executeOperation("imageData","Small.hdf5",0,800,true);
 
 }
-groupTesting();
+// groupTesting();

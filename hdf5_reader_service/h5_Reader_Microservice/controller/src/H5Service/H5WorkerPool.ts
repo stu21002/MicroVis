@@ -75,8 +75,6 @@ export class Hdf5WorkerPool {
   //Refine Method
   async getImageDataStream(uuid: string,permData:boolean,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
 
-    //possbly add data type
-    // const promises = new Array<Promise<ImageDataResponse[]>>
     const promises: Array<Promise<ImageDataResponse[]>> = [];
     const numWorkers = this.readers.length;
 
@@ -96,7 +94,6 @@ export class Hdf5WorkerPool {
           const xStart = x + i * pixelsPerWorker;
           const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
           const reader = this.readers[i % this.readers.length];
-          // promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
           const tempStart = [xStart,start[1],start[2],0]
           const tempCount = [numPixelsInChunk,count[1],count[2],1]
           promises.push(reader.getImageDataStream({ uuid,permData,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
@@ -113,8 +110,6 @@ export class Hdf5WorkerPool {
           const reader = this.readers[i % this.readers.length];
           const tempStart = [start[0],start[1],zStart]
           const tempCount = [count[0],count[1],numPixelsInChunk]
-          // console.log(i + " Work Load Start:",tempStart);
-          // console.log(i + " Work Load Count:",tempCount);
           promises.push(reader.getImageDataStream({ uuid,permData,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
         }
       }
@@ -184,9 +179,6 @@ export class Hdf5WorkerPool {
       const xStart = x + i * pixelsPerWorker;
       const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
       const reader = this.readers[i % this.readers.length];
-      // promises.push(reader.getSpectralProfileStream({ uuid,regionType:RegionType.RECTANGLE, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
-      console.log(xStart + " " + numPixelsInChunk + " " + pixelsPerWorker);
-
       promises.push(reader.getSpectralProfile({ uuid,regionInfo:region_info, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
 
     }
@@ -195,7 +187,6 @@ export class Hdf5WorkerPool {
     const counts = Array(numPixels).fill(0);
     
     return Promise.all(promises).then(res => {
-      //Adding values as they come in, avoids heap error
       for (const response of res) {
           const values = bytesToFloat32(response.rawValuesFp32);
           const count = bytesToInt32(response.counts);
