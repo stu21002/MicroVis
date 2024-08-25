@@ -27,5 +27,4 @@ service CompressionServices{
     rpc computeCompression(CompressionEmpty) returns (CompressionOutput) {}
     rpc computeDecompression(CompressionEmpty) returns (CompressionOutput) {}
     rpc computeNanEncodingsBlock(NanEncodingMessage) returns (NanEncodingResponse) {}
-
 }

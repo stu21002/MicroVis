@@ -9,19 +9,19 @@
 
 void ContourCallback(double level, double progress, const std::vector<float> &partial_vertex_data, const std::vector<int> &partial_index_data)
     {
-        static std::map<double, int> vertex_count_map;
+        // static std::map<double, int> vertex_count_map;
 
-        // Add the number of vertices for this callback invocation
-        vertex_count_map[level] += partial_vertex_data.size() / 2; // Each vertex has two coordinates (x, y)
+        // // Add the number of vertices for this callback invocation
+        // vertex_count_map[level] += partial_vertex_data.size() / 2; // Each vertex has two coordinates (x, y)
 
-        // If the progress is 1.0, we have completed this level
-        if (progress == 1.0)
-        {
-            std::cout << "Level: " << level << " Total Vertices: " << vertex_count_map[level] << std::endl;
+        // // If the progress is 1.0, we have completed this level
+        // if (progress == 1.0)
+        // {
+        //     std::cout << "Level: " << level << " Total Vertices: " << vertex_count_map[level] << std::endl;
 
-            // Optionally, clear the entry for this level if you don't need it afterward
-            vertex_count_map.erase(level);
-        }
+        //     // Optionally, clear the entry for this level if you don't need it afterward
+        //     vertex_count_map.erase(level);
+        // }
     }
 
 class ProcessingImpl : public ContourServices::Service {
@@ -54,7 +54,7 @@ class ProcessingImpl : public ContourServices::Service {
         std::vector<std::vector<float>> vertex_data;
         std::vector<std::vector<int32_t>> index_data;
 
-        int chunk_size = 100;
+        int chunk_size = 100000;
         float scale = request->scale();
         float offset = request->offset();
 
