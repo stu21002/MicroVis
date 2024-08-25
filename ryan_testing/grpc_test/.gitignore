@@ -1,4 +1,4 @@
-/Release
+build/
 controller/node_modules
 controller/dist
 files/Big.fits

@@ -1,17 +1,10 @@
 syntax = "proto3";
 
 message SmoothingOutput {
-    bytes data = 1;
-    float smoothingFactor = 2;
-    float dest_width = 3;
-    float dest_height = 4;
+    string value = 1;
 }
 
-message SmoothingEmpty{
-    bytes data = 1;
-    float width = 2;
-    float height = 3;
-}
+message SmoothingEmpty{}
 
 service SmoothingServices{
     rpc computeGuassianBlur(SmoothingEmpty) returns (SmoothingOutput) {}

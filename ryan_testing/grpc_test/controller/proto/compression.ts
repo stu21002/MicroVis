@@ -22,36 +22,20 @@ import * as _m0 from "protobufjs/minimal";
 export const protobufPackage = "";
 
 export interface CompressionOutput {
-  success: string;
+  value: string;
 }
 
 export interface CompressionEmpty {
-  data: Uint8Array;
-  width: number;
-  height: number;
-  precision: number;
-  offset: number;
-}
-
-export interface NanEncodingMessage {
-  data: Uint8Array;
-  offset: number;
-  width: number;
-  height: number;
-}
-
-export interface NanEncodingResponse {
-  success: string;
 }
 
 function createBaseCompressionOutput(): CompressionOutput {
-  return { success: "" };
+  return { value: "" };
 }
 
 export const CompressionOutput = {
   encode(message: CompressionOutput, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.success !== "") {
-      writer.uint32(10).string(message.success);
+    if (message.value !== "") {
+      writer.uint32(10).string(message.value);
     }
     return writer;
   },
@@ -68,7 +52,7 @@ export const CompressionOutput = {
             break;
           }
 
-          message.success = reader.string();
+          message.value = reader.string();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -80,13 +64,13 @@ export const CompressionOutput = {
   },
 
   fromJSON(object: any): CompressionOutput {
-    return { success: isSet(object.success) ? globalThis.String(object.success) : "" };
+    return { value: isSet(object.value) ? globalThis.String(object.value) : "" };
   },
 
   toJSON(message: CompressionOutput): unknown {
     const obj: any = {};
-    if (message.success !== "") {
-      obj.success = message.success;
+    if (message.value !== "") {
+      obj.value = message.value;
     }
     return obj;
   },
@@ -96,32 +80,17 @@ export const CompressionOutput = {
   },
   fromPartial<I extends Exact<DeepPartial<CompressionOutput>, I>>(object: I): CompressionOutput {
     const message = createBaseCompressionOutput();
-    message.success = object.success ?? "";
+    message.value = object.value ?? "";
     return message;
   },
 };
 
 function createBaseCompressionEmpty(): CompressionEmpty {
-  return { data: new Uint8Array(0), width: 0, height: 0, precision: 0, offset: 0 };
+  return {};
 }
 
 export const CompressionEmpty = {
-  encode(message: CompressionEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.data.length !== 0) {
-      writer.uint32(10).bytes(message.data);
-    }
-    if (message.width !== 0) {
-      writer.uint32(21).float(message.width);
-    }
-    if (message.height !== 0) {
-      writer.uint32(29).float(message.height);
-    }
-    if (message.precision !== 0) {
-      writer.uint32(37).float(message.precision);
-    }
-    if (message.offset !== 0) {
-      writer.uint32(45).float(message.offset);
-    }
+  encode(_: CompressionEmpty, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     return writer;
   },
 
@@ -132,41 +101,6 @@ export const CompressionEmpty = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.data = reader.bytes();
-          continue;
-        case 2:
-          if (tag !== 21) {
-            break;
-          }
-
-          message.width = reader.float();
-          continue;
-        case 3:
-          if (tag !== 29) {
-            break;
-          }
-
-          message.height = reader.float();
-          continue;
-        case 4:
-          if (tag !== 37) {
-            break;
-          }
-
-          message.precision = reader.float();
-          continue;
-        case 5:
-          if (tag !== 45) {
-            break;
-          }
-
-          message.offset = reader.float();
-          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -176,207 +110,20 @@ export const CompressionEmpty = {
     return message;
   },
 
-  fromJSON(object: any): CompressionEmpty {
-    return {
-      data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0),
-      width: isSet(object.width) ? globalThis.Number(object.width) : 0,
-      height: isSet(object.height) ? globalThis.Number(object.height) : 0,
-      precision: isSet(object.precision) ? globalThis.Number(object.precision) : 0,
-      offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
-    };
+  fromJSON(_: any): CompressionEmpty {
+    return {};
   },
 
-  toJSON(message: CompressionEmpty): unknown {
+  toJSON(_: CompressionEmpty): unknown {
     const obj: any = {};
-    if (message.data.length !== 0) {
-      obj.data = base64FromBytes(message.data);
-    }
-    if (message.width !== 0) {
-      obj.width = message.width;
-    }
-    if (message.height !== 0) {
-      obj.height = message.height;
-    }
-    if (message.precision !== 0) {
-      obj.precision = message.precision;
-    }
-    if (message.offset !== 0) {
-      obj.offset = message.offset;
-    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<CompressionEmpty>, I>>(base?: I): CompressionEmpty {
     return CompressionEmpty.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CompressionEmpty>, I>>(object: I): CompressionEmpty {
+  fromPartial<I extends Exact<DeepPartial<CompressionEmpty>, I>>(_: I): CompressionEmpty {
     const message = createBaseCompressionEmpty();
-    message.data = object.data ?? new Uint8Array(0);
-    message.width = object.width ?? 0;
-    message.height = object.height ?? 0;
-    message.precision = object.precision ?? 0;
-    message.offset = object.offset ?? 0;
-    return message;
-  },
-};
-
-function createBaseNanEncodingMessage(): NanEncodingMessage {
-  return { data: new Uint8Array(0), offset: 0, width: 0, height: 0 };
-}
-
-export const NanEncodingMessage = {
-  encode(message: NanEncodingMessage, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.data.length !== 0) {
-      writer.uint32(10).bytes(message.data);
-    }
-    if (message.offset !== 0) {
-      writer.uint32(21).float(message.offset);
-    }
-    if (message.width !== 0) {
-      writer.uint32(29).float(message.width);
-    }
-    if (message.height !== 0) {
-      writer.uint32(37).float(message.height);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): NanEncodingMessage {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseNanEncodingMessage();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.data = reader.bytes();
-          continue;
-        case 2:
-          if (tag !== 21) {
-            break;
-          }
-
-          message.offset = reader.float();
-          continue;
-        case 3:
-          if (tag !== 29) {
-            break;
-          }
-
-          message.width = reader.float();
-          continue;
-        case 4:
-          if (tag !== 37) {
-            break;
-          }
-
-          message.height = reader.float();
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): NanEncodingMessage {
-    return {
-      data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0),
-      offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
-      width: isSet(object.width) ? globalThis.Number(object.width) : 0,
-      height: isSet(object.height) ? globalThis.Number(object.height) : 0,
-    };
-  },
-
-  toJSON(message: NanEncodingMessage): unknown {
-    const obj: any = {};
-    if (message.data.length !== 0) {
-      obj.data = base64FromBytes(message.data);
-    }
-    if (message.offset !== 0) {
-      obj.offset = message.offset;
-    }
-    if (message.width !== 0) {
-      obj.width = message.width;
-    }
-    if (message.height !== 0) {
-      obj.height = message.height;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<NanEncodingMessage>, I>>(base?: I): NanEncodingMessage {
-    return NanEncodingMessage.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<NanEncodingMessage>, I>>(object: I): NanEncodingMessage {
-    const message = createBaseNanEncodingMessage();
-    message.data = object.data ?? new Uint8Array(0);
-    message.offset = object.offset ?? 0;
-    message.width = object.width ?? 0;
-    message.height = object.height ?? 0;
-    return message;
-  },
-};
-
-function createBaseNanEncodingResponse(): NanEncodingResponse {
-  return { success: "" };
-}
-
-export const NanEncodingResponse = {
-  encode(message: NanEncodingResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.success !== "") {
-      writer.uint32(10).string(message.success);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): NanEncodingResponse {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseNanEncodingResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.success = reader.string();
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): NanEncodingResponse {
-    return { success: isSet(object.success) ? globalThis.String(object.success) : "" };
-  },
-
-  toJSON(message: NanEncodingResponse): unknown {
-    const obj: any = {};
-    if (message.success !== "") {
-      obj.success = message.success;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<NanEncodingResponse>, I>>(base?: I): NanEncodingResponse {
-    return NanEncodingResponse.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<NanEncodingResponse>, I>>(object: I): NanEncodingResponse {
-    const message = createBaseNanEncodingResponse();
-    message.success = object.success ?? "";
     return message;
   },
 };
@@ -392,8 +139,8 @@ export const CompressionServicesService = {
     responseSerialize: (value: CompressionOutput) => Buffer.from(CompressionOutput.encode(value).finish()),
     responseDeserialize: (value: Buffer) => CompressionOutput.decode(value),
   },
-  computeDecompression: {
-    path: "/CompressionServices/computeDecompression",
+  computeNanEncodingsBlock: {
+    path: "/CompressionServices/computeNanEncodingsBlock",
     requestStream: false,
     responseStream: false,
     requestSerialize: (value: CompressionEmpty) => Buffer.from(CompressionEmpty.encode(value).finish()),
@@ -401,21 +148,11 @@ export const CompressionServicesService = {
     responseSerialize: (value: CompressionOutput) => Buffer.from(CompressionOutput.encode(value).finish()),
     responseDeserialize: (value: Buffer) => CompressionOutput.decode(value),
   },
-  computeNanEncodingsBlock: {
-    path: "/CompressionServices/computeNanEncodingsBlock",
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value: NanEncodingMessage) => Buffer.from(NanEncodingMessage.encode(value).finish()),
-    requestDeserialize: (value: Buffer) => NanEncodingMessage.decode(value),
-    responseSerialize: (value: NanEncodingResponse) => Buffer.from(NanEncodingResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer) => NanEncodingResponse.decode(value),
-  },
 } as const;
 
 export interface CompressionServicesServer extends UntypedServiceImplementation {
   computeCompression: handleUnaryCall<CompressionEmpty, CompressionOutput>;
-  computeDecompression: handleUnaryCall<CompressionEmpty, CompressionOutput>;
-  computeNanEncodingsBlock: handleUnaryCall<NanEncodingMessage, NanEncodingResponse>;
+  computeNanEncodingsBlock: handleUnaryCall<CompressionEmpty, CompressionOutput>;
 }
 
 export interface CompressionServicesClient extends Client {
@@ -434,35 +171,20 @@ export interface CompressionServicesClient extends Client {
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CompressionOutput) => void,
   ): ClientUnaryCall;
-  computeDecompression(
+  computeNanEncodingsBlock(
     request: CompressionEmpty,
     callback: (error: ServiceError | null, response: CompressionOutput) => void,
   ): ClientUnaryCall;
-  computeDecompression(
+  computeNanEncodingsBlock(
     request: CompressionEmpty,
     metadata: Metadata,
     callback: (error: ServiceError | null, response: CompressionOutput) => void,
   ): ClientUnaryCall;
-  computeDecompression(
+  computeNanEncodingsBlock(
     request: CompressionEmpty,
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CompressionOutput) => void,
-  ): ClientUnaryCall;
-  computeNanEncodingsBlock(
-    request: NanEncodingMessage,
-    callback: (error: ServiceError | null, response: NanEncodingResponse) => void,
-  ): ClientUnaryCall;
-  computeNanEncodingsBlock(
-    request: NanEncodingMessage,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: NanEncodingResponse) => void,
-  ): ClientUnaryCall;
-  computeNanEncodingsBlock(
-    request: NanEncodingMessage,
-    metadata: Metadata,
-    options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: NanEncodingResponse) => void,
   ): ClientUnaryCall;
 }
 
@@ -474,31 +196,6 @@ export const CompressionServicesClient = makeGenericClientConstructor(
   service: typeof CompressionServicesService;
   serviceName: string;
 };
-
-function bytesFromBase64(b64: string): Uint8Array {
-  if ((globalThis as any).Buffer) {
-    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
-  } else {
-    const bin = globalThis.atob(b64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; ++i) {
-      arr[i] = bin.charCodeAt(i);
-    }
-    return arr;
-  }
-}
-
-function base64FromBytes(arr: Uint8Array): string {
-  if ((globalThis as any).Buffer) {
-    return globalThis.Buffer.from(arr).toString("base64");
-  } else {
-    const bin: string[] = [];
-    arr.forEach((byte) => {
-      bin.push(globalThis.String.fromCharCode(byte));
-    });
-    return globalThis.btoa(bin.join(""));
-  }
-}
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
