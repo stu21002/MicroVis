@@ -31,6 +31,7 @@ export interface ContouringEmpty {
   height: number;
   offset: number;
   scale: number;
+  index: number;
 }
 
 function createBaseContouringOutput(): ContouringOutput {
@@ -91,7 +92,7 @@ export const ContouringOutput = {
 };
 
 function createBaseContouringEmpty(): ContouringEmpty {
-  return { data: new Uint8Array(0), width: 0, height: 0, offset: 0, scale: 0 };
+  return { data: new Uint8Array(0), width: 0, height: 0, offset: 0, scale: 0, index: 0 };
 }
 
 export const ContouringEmpty = {
@@ -110,6 +111,9 @@ export const ContouringEmpty = {
     }
     if (message.scale !== 0) {
       writer.uint32(45).float(message.scale);
+    }
+    if (message.index !== 0) {
+      writer.uint32(53).float(message.index);
     }
     return writer;
   },
@@ -156,6 +160,13 @@ export const ContouringEmpty = {
 
           message.scale = reader.float();
           continue;
+        case 6:
+          if (tag !== 53) {
+            break;
+          }
+
+          message.index = reader.float();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -172,6 +183,7 @@ export const ContouringEmpty = {
       height: isSet(object.height) ? globalThis.Number(object.height) : 0,
       offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
       scale: isSet(object.scale) ? globalThis.Number(object.scale) : 0,
+      index: isSet(object.index) ? globalThis.Number(object.index) : 0,
     };
   },
 
@@ -192,6 +204,9 @@ export const ContouringEmpty = {
     if (message.scale !== 0) {
       obj.scale = message.scale;
     }
+    if (message.index !== 0) {
+      obj.index = message.index;
+    }
     return obj;
   },
 
@@ -205,6 +220,7 @@ export const ContouringEmpty = {
     message.height = object.height ?? 0;
     message.offset = object.offset ?? 0;
     message.scale = object.scale ?? 0;
+    message.index = object.index ?? 0;
     return message;
   },
 };

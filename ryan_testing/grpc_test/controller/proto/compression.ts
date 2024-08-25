@@ -31,6 +31,7 @@ export interface CompressionEmpty {
   height: number;
   precision: number;
   offset: number;
+  index: number;
 }
 
 export interface NanEncodingMessage {
@@ -38,6 +39,7 @@ export interface NanEncodingMessage {
   offset: number;
   width: number;
   height: number;
+  index: number;
 }
 
 export interface NanEncodingResponse {
@@ -102,7 +104,7 @@ export const CompressionOutput = {
 };
 
 function createBaseCompressionEmpty(): CompressionEmpty {
-  return { data: new Uint8Array(0), width: 0, height: 0, precision: 0, offset: 0 };
+  return { data: new Uint8Array(0), width: 0, height: 0, precision: 0, offset: 0, index: 0 };
 }
 
 export const CompressionEmpty = {
@@ -121,6 +123,9 @@ export const CompressionEmpty = {
     }
     if (message.offset !== 0) {
       writer.uint32(45).float(message.offset);
+    }
+    if (message.index !== 0) {
+      writer.uint32(53).float(message.index);
     }
     return writer;
   },
@@ -167,6 +172,13 @@ export const CompressionEmpty = {
 
           message.offset = reader.float();
           continue;
+        case 6:
+          if (tag !== 53) {
+            break;
+          }
+
+          message.index = reader.float();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -183,6 +195,7 @@ export const CompressionEmpty = {
       height: isSet(object.height) ? globalThis.Number(object.height) : 0,
       precision: isSet(object.precision) ? globalThis.Number(object.precision) : 0,
       offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
+      index: isSet(object.index) ? globalThis.Number(object.index) : 0,
     };
   },
 
@@ -203,6 +216,9 @@ export const CompressionEmpty = {
     if (message.offset !== 0) {
       obj.offset = message.offset;
     }
+    if (message.index !== 0) {
+      obj.index = message.index;
+    }
     return obj;
   },
 
@@ -216,12 +232,13 @@ export const CompressionEmpty = {
     message.height = object.height ?? 0;
     message.precision = object.precision ?? 0;
     message.offset = object.offset ?? 0;
+    message.index = object.index ?? 0;
     return message;
   },
 };
 
 function createBaseNanEncodingMessage(): NanEncodingMessage {
-  return { data: new Uint8Array(0), offset: 0, width: 0, height: 0 };
+  return { data: new Uint8Array(0), offset: 0, width: 0, height: 0, index: 0 };
 }
 
 export const NanEncodingMessage = {
@@ -237,6 +254,9 @@ export const NanEncodingMessage = {
     }
     if (message.height !== 0) {
       writer.uint32(37).float(message.height);
+    }
+    if (message.index !== 0) {
+      writer.uint32(45).float(message.index);
     }
     return writer;
   },
@@ -276,6 +296,13 @@ export const NanEncodingMessage = {
 
           message.height = reader.float();
           continue;
+        case 5:
+          if (tag !== 45) {
+            break;
+          }
+
+          message.index = reader.float();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -291,6 +318,7 @@ export const NanEncodingMessage = {
       offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
       width: isSet(object.width) ? globalThis.Number(object.width) : 0,
       height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+      index: isSet(object.index) ? globalThis.Number(object.index) : 0,
     };
   },
 
@@ -308,6 +336,9 @@ export const NanEncodingMessage = {
     if (message.height !== 0) {
       obj.height = message.height;
     }
+    if (message.index !== 0) {
+      obj.index = message.index;
+    }
     return obj;
   },
 
@@ -320,6 +351,7 @@ export const NanEncodingMessage = {
     message.offset = object.offset ?? 0;
     message.width = object.width ?? 0;
     message.height = object.height ?? 0;
+    message.index = object.index ?? 0;
     return message;
   },
 };

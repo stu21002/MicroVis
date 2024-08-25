@@ -35,13 +35,13 @@ import { NanEncodingResponse } from "./proto/compression";
 
             const slices: [number, number | null, number | null][][] = [];
 
-            for (let row = 0; row < 2; row++) {
-                for (let col = 0; col < 2; col++) {
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 4; col++) {
                     slices.push([
                         [0, 1, null], 
                         [0, 1, null],
-                        [col * halfWidth, (col + 1) * halfWidth, null],
-                        [row * halfHeight, (row + 1) * halfHeight, null]
+                        [col * quarterWidth, (col + 1) * quarterWidth, null],
+                        [row * quarterHeight, (row + 1) * quarterHeight, null]
                     ]);
                 }
             }
@@ -57,6 +57,18 @@ import { NanEncodingResponse } from "./proto/compression";
                 new CompressionServicesClient("localhost:9965", grpc.credentials.createInsecure(), options),
                 new CompressionServicesClient("localhost:9964", grpc.credentials.createInsecure(), options),
                 new CompressionServicesClient("localhost:9963", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9962", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9961", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9960", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9959", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9958", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9957", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9956", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9955", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9954", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9953", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9952", grpc.credentials.createInsecure(), options),
+                new CompressionServicesClient("localhost:9951", grpc.credentials.createInsecure(), options),
             ];
 
             slices.forEach((slice, index) => {
@@ -78,20 +90,22 @@ import { NanEncodingResponse } from "./proto/compression";
 
                     let compressionRequest = {
                         data: flatArray,
-                        width: halfWidth,
-                        height: halfHeight,
+                        width: quarterWidth,
+                        height: quarterHeight,
                         precision: 32,
-                        offset: 0
+                        offset: 0,
+                        index: index
                     }
 
                     let NanEncodingrequest = {
                         data: flatArray,
-                        width: halfWidth,
-                        height: halfHeight,
-                        offset: 0
+                        width: quarterWidth,
+                        height: quarterHeight,
+                        offset: 0,
+                        index: index
                     }
 
-                    let compressionMode = 0;
+                    let compressionMode = 1;
 
                     if(compressionMode == 0){
 
@@ -104,7 +118,8 @@ import { NanEncodingResponse } from "./proto/compression";
                             } else {
                                 console.log(`Compression Output ${index + 1}:`);
                             }
-                            console.log(`Time taken for Compression gRPC request ${index}: ${grpcCompressionEndTime - grpcCompressionStartTime} ms`);
+                            console.log(`Time grpc data was sent ${index}: ${grpcCompressionStartTime % 1000000} ms`);
+                            console.log(`Total gRPC Time ${index}: ${grpcCompressionEndTime - grpcCompressionStartTime} ms`);
                         });
                     }
                     else if(compressionMode == 1){
@@ -121,7 +136,22 @@ import { NanEncodingResponse } from "./proto/compression";
                             } else {
                                 console.log(`NanEncoding Output ${index + 1}: ${response?.success}`);
                             }
-                            console.log(`Time taken for Compression gRPC request ${index}: ${grpcNanEncodingEndTime - grpcNanEncodingStartTime} ms`);
+                            console.log(`Time grpc data was sent ${index}: ${grpcNanEncodingStartTime % 1000000} ms`);
+                            console.log(`Total gRPC Time ${index}: ${grpcNanEncodingEndTime - grpcNanEncodingStartTime} ms`);
+                        });
+                    }
+                    else if(compressionMode == 2){
+                        const grpcDecompressionStartTime = new Date().getTime();
+
+                        compressionClients[index].computeDecompression(compressionRequest, (error, response: CompressionOutput) => {
+                            const grpcCompressionEndTime = new Date().getTime();
+                            if (error) {
+                                console.error(`Error: ${error}`);
+                            } else {
+                                console.log(`Decompression Output ${index + 1}:`);
+                            }
+                            console.log(`Time grpc data was sent ${index}: ${grpcDecompressionStartTime % 1000000} ms`);
+                            console.log(`Total gRPC Time ${index}: ${grpcCompressionEndTime - grpcDecompressionStartTime} ms`);
                         });
                     }
 

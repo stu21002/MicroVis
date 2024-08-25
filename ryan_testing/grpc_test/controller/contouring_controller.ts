@@ -90,7 +90,8 @@ import { ContourServicesClient } from "./proto/contouring";
                         width: width,
                         height: height,
                         offset: 0,
-                        scale: 1
+                        scale: 1,
+                        index: index
                     };
 
                     const grpcStartTime = new Date().getTime();

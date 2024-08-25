@@ -10,6 +10,7 @@ message ContouringEmpty{
     float height = 3;
     float offset = 4;
     float scale = 5;
+    float index = 6;
 }
 
 service ContourServices{

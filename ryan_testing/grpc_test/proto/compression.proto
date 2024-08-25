@@ -10,6 +10,7 @@ message CompressionEmpty{
     float height = 3;
     float precision = 4;
     float offset = 5;
+    float index = 6;
 }
 
 message NanEncodingMessage{
@@ -17,6 +18,7 @@ message NanEncodingMessage{
     float offset = 2;
     float width = 3;
     float height = 4;
+    float index = 5;
 }
 
 message NanEncodingResponse{

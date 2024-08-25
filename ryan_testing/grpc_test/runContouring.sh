@@ -2,7 +2,7 @@
 
 pids=()
 
-server_executable="./build/ContouringService"
+server_executable="./Release/ContouringService"
 
 for port in {9984..9999}; do
     $server_executable $port &

@@ -143,7 +143,8 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                     let requestData = {
                         data: flatArray,
                         width: width,
-                        height: height
+                        height: height,
+                        index: index
                     };
 
                     const grpcStartTime = new Date().getTime();

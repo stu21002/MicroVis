@@ -32,6 +32,7 @@ export interface SmoothingEmpty {
   data: Uint8Array;
   width: number;
   height: number;
+  index: number;
 }
 
 function createBaseSmoothingOutput(): SmoothingOutput {
@@ -139,7 +140,7 @@ export const SmoothingOutput = {
 };
 
 function createBaseSmoothingEmpty(): SmoothingEmpty {
-  return { data: new Uint8Array(0), width: 0, height: 0 };
+  return { data: new Uint8Array(0), width: 0, height: 0, index: 0 };
 }
 
 export const SmoothingEmpty = {
@@ -152,6 +153,9 @@ export const SmoothingEmpty = {
     }
     if (message.height !== 0) {
       writer.uint32(29).float(message.height);
+    }
+    if (message.index !== 0) {
+      writer.uint32(37).float(message.index);
     }
     return writer;
   },
@@ -184,6 +188,13 @@ export const SmoothingEmpty = {
 
           message.height = reader.float();
           continue;
+        case 4:
+          if (tag !== 37) {
+            break;
+          }
+
+          message.index = reader.float();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -198,6 +209,7 @@ export const SmoothingEmpty = {
       data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0),
       width: isSet(object.width) ? globalThis.Number(object.width) : 0,
       height: isSet(object.height) ? globalThis.Number(object.height) : 0,
+      index: isSet(object.index) ? globalThis.Number(object.index) : 0,
     };
   },
 
@@ -212,6 +224,9 @@ export const SmoothingEmpty = {
     if (message.height !== 0) {
       obj.height = message.height;
     }
+    if (message.index !== 0) {
+      obj.index = message.index;
+    }
     return obj;
   },
 
@@ -223,6 +238,7 @@ export const SmoothingEmpty = {
     message.data = object.data ?? new Uint8Array(0);
     message.width = object.width ?? 0;
     message.height = object.height ?? 0;
+    message.index = object.index ?? 0;
     return message;
   },
 };

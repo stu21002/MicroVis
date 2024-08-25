@@ -12,12 +12,12 @@ void ContourCallback(double level, double progress, const std::vector<float> &pa
         // static std::map<double, int> vertex_count_map;
 
         // // Add the number of vertices for this callback invocation
-        // vertex_count_map[level] += partial_vertex_data.size() / 2; // Each vertex has two coordinates (x, y)
+        // vertex_count_map[level] += partial_vertex_data.size(); // Each vertex has two coordinates (x, y)
 
         // // If the progress is 1.0, we have completed this level
         // if (progress == 1.0)
         // {
-        //     std::cout << "Level: " << level << " Total Vertices: " << vertex_count_map[level] << std::endl;
+        //     std::cout << "Level: " << level << " Total Indexes: " << vertex_count_map[level] << std::endl;
 
         //     // Optionally, clear the entry for this level if you don't need it afterward
         //     vertex_count_map.erase(level);
@@ -29,13 +29,30 @@ class ProcessingImpl : public ContourServices::Service {
     //std::cout << "Called Contouring Service" << std::endl;
 
         //const google::protobuf::RepeatedField<float>& data = request->data();
+        auto wholeTimeStart = std::chrono::high_resolution_clock::now();
 
-        int width = request->width();
-        int height = request->height();
 
         auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
 
+        int width = request->width();
+        int height = request->height();
+        int index = request->index();
+
+        
+
         const std::string& raw_values = request->data();
+
+        auto now = std::chrono::system_clock::now();
+    
+        // Convert it to time since epoch, in milliseconds
+        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+        auto last_six_digits = millis % 1000000;
+
+        // Print the milliseconds
+        std::cout << "Time gRPC data was recieved for index: " << index << ": " << last_six_digits << " ms" << std::endl;
+
+        auto nowEnd = std::chrono::system_clock::now();
 
         size_t num_floats = raw_values.size() / sizeof(float);
 
@@ -58,6 +75,8 @@ class ProcessingImpl : public ContourServices::Service {
         float scale = request->scale();
         float offset = request->offset();
 
+        //std::cout << width << " " << height << " " << index << " " << scale << " " << offset << std::endl;
+
         carta::ContourCallback callback = ContourCallback;
 
         //std::cout << float_values.size() << std::endl;
@@ -68,9 +87,13 @@ class ProcessingImpl : public ContourServices::Service {
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = end - start;
-        std::cout << "TraceContours took " << duration.count() << " seconds." << std::endl;
+        std::cout << "TraceContours took for index: " << index << ": " << duration.count() << " seconds." << std::endl;
 
         response->set_value("Contour processing complete");
+
+        auto wholeTimeEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> wholeTimeDuration = wholeTimeEnd - wholeTimeStart - (nowEnd - now);
+        std::cout << "Whole time took " << wholeTimeDuration.count() << " seconds for index: " << index << std::endl;
 
     return grpc::Status::OK;
 }
@@ -82,7 +105,7 @@ void StartServer(int port){
     grpc::ServerBuilder builder;
 
     builder.SetMaxSendMessageSize(5 * 1024 * 1024); // 5MB
-    builder.SetMaxReceiveMessageSize(15 * 1024 * 1024); // 15MB
+    builder.SetMaxReceiveMessageSize(60 * 1024 * 1024); // 15MB
 
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);

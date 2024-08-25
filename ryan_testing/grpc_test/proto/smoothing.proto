@@ -11,6 +11,7 @@ message SmoothingEmpty{
     bytes data = 1;
     float width = 2;
     float height = 3;
+    float index = 4;
 }
 
 service SmoothingServices{

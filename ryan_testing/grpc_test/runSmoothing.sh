@@ -2,7 +2,7 @@
 
 pids=()
 
-server_executable="./build/SmoothingService"
+server_executable="./Release/SmoothingService"
 
 for port in {9967..9983}; do
     $server_executable $port &

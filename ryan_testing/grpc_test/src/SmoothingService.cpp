@@ -57,13 +57,26 @@ class ProcessingImpl : public SmoothingServices::Service {
     // auto after_receieved_contoruing = std::chrono::high_resolution_clock::now();
 
     // std::cout << "After data recieved Smoothing: " << after_receieved_contoruing.max << std::endl;
-
-    int width = request->width();
-    int height = request->height();
+    auto wholeTimeStart = std::chrono::high_resolution_clock::now();
 
     auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
 
+    int width = request->width();
+    int height = request->height();
+    int index = request->index();
     const std::string& raw_values = request->data();
+
+    auto now = std::chrono::system_clock::now();
+    
+    // Convert it to time since epoch, in milliseconds
+    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+    auto last_six_digits = millis % 1000000;
+
+    // Print the milliseconds
+    std::cout << "Time gRPC data was recieved for index: " << index << ": " << last_six_digits << " ms" << std::endl;
+
+    auto nowEnd = std::chrono::system_clock::now();
 
     size_t num_floats = raw_values.size() / sizeof(float);
 
@@ -77,7 +90,7 @@ class ProcessingImpl : public SmoothingServices::Service {
     std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
     std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
 
-    int smoothing_factor = 12;
+    int smoothing_factor = 4;
     
     int mask_size = (smoothing_factor - 1) * 2 + 1;
     int64_t kernel_width = (mask_size - 1) / 2;
@@ -99,19 +112,23 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
-    std::cout << "GaussianSmooth took " << duration.count() << " seconds." << std::endl;
+    std::cout << "GaussianSmooth took " << duration.count() << " seconds for index: " << index << std::endl;
 
-    std::ostringstream oss;
-        oss << "5 values from middle of array: ";
-        for (int i = 94200; i < 94205 && i < dest_width * dest_height; ++i) {
-            oss << response_array[i];
-            if (i < 94204) {
-                oss << ", ";
-            }
-        }
-    std::cout << oss.str() << std::endl;
+    // std::cout << dest_width * dest_height << std::endl;
 
-    auto startConversionDest = std::chrono::high_resolution_clock::now();
+    // float final = 0;
+    // for(int i = 0; i < dest_width * dest_height; i++){
+    //     if(std::isnan(response_array[i])){
+    //         continue;
+    //     }
+    //     else{
+    //         final = final + response_array[i];
+    //     }
+    // }
+
+    // std::cout << final << std::endl;
+
+    // auto startConversionDest = std::chrono::high_resolution_clock::now();
     
     // for (int64_t i = 0; i < dest_width * dest_height; ++i) {
     //     response->add_data(dest_array[i]);
@@ -119,13 +136,17 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     //std::memcpy(response_array, dest_array.get(), dest_width * dest_height * sizeof(float));
 
-    auto endConversionDest = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> durationConversionDest = endConversionDest - startConversionDest;
-    std::cout << "Coversion to send data took " << durationConversionDest.count() << " seconds." << std::endl;
+    // auto endConversionDest = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<double> durationConversionDest = endConversionDest - startConversionDest;
+    // std::cout << "Coversion to send data took " << durationConversionDest.count() << " seconds." << std::endl;
 
     response->set_smoothingfactor(smoothing_factor);
     response->set_dest_width(dest_width);
     response->set_dest_height(dest_height);
+
+    auto wholeTimeEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> wholeTimeDuration = wholeTimeEnd - wholeTimeStart - (nowEnd - now);
+    std::cout << "Whole time took " << wholeTimeDuration.count() << " seconds for index: " << index << std::endl;
 
     return grpc::Status::OK;
 }
@@ -175,12 +196,26 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     //const google::protobuf::RepeatedField<float>& data = request->data();
 
-    int width = request->width();
-    int height = request->height();
+    auto wholeTimeStart = std::chrono::high_resolution_clock::now();
 
     auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
 
+    int width = request->width();
+    int height = request->height();
+    int index = request->index();
     const std::string& raw_values = request->data();
+
+    auto now = std::chrono::system_clock::now();
+    
+    // Convert it to time since epoch, in milliseconds
+    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
+    auto last_six_digits = millis % 1000000;
+
+    // Print the milliseconds
+    std::cout << "Time gRPC data was recieved for index: " << index << ": " << last_six_digits << " ms" << std::endl;
+
+    auto nowEnd = std::chrono::system_clock::now();
 
     size_t num_floats = raw_values.size() / sizeof(float);
 
@@ -208,7 +243,7 @@ class ProcessingImpl : public SmoothingServices::Service {
     size_t row_length_region = std::ceil((float)req_width / smoothing_factor);
     //std::unique_ptr<float[]> dest_array(new float[num_rows_region * row_length_region]);
 
-    response->mutable_data()->resize(width * height * sizeof(float));
+    response->mutable_data()->resize(row_length_region * num_rows_region * sizeof(float));
     float* response_array = reinterpret_cast<float*>(response->mutable_data()->data());
 
     int num_image_columns = width;
@@ -227,23 +262,69 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
-    std::cout << "BlockSmoothing took " << duration.count() << " seconds." << std::endl;
+    std::cout << "BlockSmoothing took " << duration.count() << " seconds for index:" << index << std::endl;
 
     size_t dest_width = ceil(double(width) / smoothing_factor);
     size_t dest_height = ceil(double(height) / smoothing_factor);
 
     // std::ostringstream oss;
-    //     oss << "Completed Block Smoothing: First 5 values: ";
+    //     oss << "Completed Block Smoothing: 5 values from array from index: " << index << " " << row_length_region * num_rows_region << " ";
     //     for (int i = 0; i < 5 && i < num_rows_region * row_length_region; ++i) {
-    //         oss << dest_array[i];
+    //         oss << response_array[i];
     //         if (i < 4) {
     //             oss << ", ";
     //         }
     //     }
+    // std::cout << oss.str() << std::endl;
+    // float final = 0;
+    // for(int i = 0; i < row_length_region * num_rows_region; i++){
+    //     if(std::isnan(response_array[i])){
+    //         continue;
+    //     }
+    //     else{
+    //         final = final + response_array[i];
+    //     }
+    // }
+
+    // std::cout << final << std::endl;
+
+    // std::ostringstream oss3;
+    //     oss3 << "5 values from middle of Block smoothing array: ";
+    //     for (int i = 57595; i < 57600 && i < num_rows_region * row_length_region; ++i) {
+    //         oss3 << response_array[i];
+    //         if (i < 57599) {
+    //             oss3 << ", ";
+    //         }
+    //     }
+    //     std::cout << oss3.str() << std::endl;
+
+    //     std::ostringstream oss4;
+    //     oss4 << "5 values from middle of Block smoothing array: ";
+    //     for (int i = 115195; i < 115200 && i < num_rows_region * row_length_region; ++i) {
+    //         oss4 << response_array[i];
+    //         if (i < 115199) {
+    //             oss4 << ", ";
+    //         }
+    //     }
+    //     std::cout << oss4.str() << std::endl;
+
+        // std::ostringstream oss5;
+        // oss5 << "5 values from end of Block smoothing array: "<< index << " ";
+        // for (int i = 57595; i < 57600 && i < num_rows_region * row_length_region; ++i) {
+        //     oss5 << response_array[i];
+        //     if (i < 57599) {
+        //         oss5 << ", ";
+        //     }
+        // }
+        // std::cout << oss5.str() << std::endl;
 
     response->set_smoothingfactor(smoothing_factor);
     response->set_dest_width(dest_width);
     response->set_dest_height(dest_height);
+
+    auto wholeTimeEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> wholeTimeDuration = wholeTimeEnd - wholeTimeStart - (nowEnd - now);
+    std::cout << "Whole time took " << wholeTimeDuration.count() << " seconds for index: " << index << std::endl;
 
     return grpc::Status::OK;
 }   
@@ -253,8 +334,8 @@ void StartServer(int port){
     ProcessingImpl service;
     grpc::ServerBuilder builder;
 
-    builder.SetMaxSendMessageSize(15 * 1024 * 1024); // 15MB
-    builder.SetMaxReceiveMessageSize(15 * 1024 * 1024); // 15MB
+    builder.SetMaxSendMessageSize(60 * 1024 * 1024); // 15MB
+    builder.SetMaxReceiveMessageSize(60 * 1024 * 1024); // 15MB
 
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);

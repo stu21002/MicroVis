@@ -50,7 +50,7 @@ bool RunKernel(const std::vector<float>& kernel, const float* src_data, float* d
 
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(omp_get_num_procs());
+    omp_set_num_threads(omp_get_num_procs()/16);
 
 #pragma omp parallel for
     for (int64_t dest_y = 0; dest_y < dest_height; dest_y++) {
@@ -165,7 +165,7 @@ bool GaussianSmooth(const float* src_data, float* dest_data, int64_t src_width, 
         dest_ptr += num_lines * dest_width;
     }
 
-    omp_set_num_threads(omp_get_num_procs());
+    omp_set_num_threads(omp_get_num_procs()/16);
     // Fill in original NaNs
     //ThreadManager::ApplyThreadLimit();
 #pragma omp parallel for
@@ -207,7 +207,7 @@ bool BlockSmoothSSE(const float* src_data, float* dest_data, int64_t src_width, 
     int64_t x_offset, int64_t y_offset, int smoothing_factor) {
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(omp_get_num_procs());
+    omp_set_num_threads(omp_get_num_procs()/16);
 
 #pragma omp parallel for
     for (int64_t j = 0; j < dest_height; ++j) {
@@ -269,7 +269,7 @@ bool BlockSmoothAVX(const float* src_data, float* dest_data, int64_t src_width, 
     int64_t x_offset, int64_t y_offset, int smoothing_factor) {
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(omp_get_num_procs());
+    omp_set_num_threads(omp_get_num_procs()/16);
 
 #pragma omp parallel for
     for (int64_t j = 0; j < dest_height; ++j) {
@@ -328,7 +328,7 @@ bool BlockSmoothScalar(const float* src_data, float* dest_data, int64_t src_widt
     //ThreadManager::ApplyThreadLimit();
     // Non-SIMD version. This could still be optimised to use SIMD in future
 
-    omp_set_num_threads(omp_get_num_procs());
+    omp_set_num_threads(omp_get_num_procs()/16);
 
 #pragma omp parallel for
     for (int64_t j = 0; j < dest_height; ++j) {
@@ -360,7 +360,7 @@ void NearestNeighbor(const float* src_data, float* dest_data, int64_t src_width,
     int64_t y_offset, int smoothing_factor) {
     //ThreadManager::ApplyThreadLimit();
 
-    omp_set_num_threads(omp_get_num_procs());
+    omp_set_num_threads(omp_get_num_procs()/16);
 
 #pragma omp parallel for
     for (size_t j = 0; j < dest_height; ++j) {
