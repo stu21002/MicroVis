@@ -122,9 +122,6 @@ import { NanEncodingResponse } from "./proto/compression";
                             console.log(`Total gRPC Time ${index}: ${grpcCompressionEndTime - grpcCompressionStartTime} ms`);
                         });
                     }
-                    else if(compressionMode == 1){
-
-                    }
                     else if(compressionMode == 2){
 
                         const grpcNanEncodingStartTime = new Date().getTime();
@@ -140,7 +137,7 @@ import { NanEncodingResponse } from "./proto/compression";
                             console.log(`Total gRPC Time ${index}: ${grpcNanEncodingEndTime - grpcNanEncodingStartTime} ms`);
                         });
                     }
-                    else if(compressionMode == 2){
+                    else if(compressionMode == 1){
                         const grpcDecompressionStartTime = new Date().getTime();
 
                         compressionClients[index].computeDecompression(compressionRequest, (error, response: CompressionOutput) => {
