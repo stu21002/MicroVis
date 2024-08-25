@@ -4,7 +4,7 @@ pids=()
 
 server_executable="./build/SmoothingService"
 
-for port in {9990..9994}; do
+for port in {9967..9983}; do
     $server_executable $port &
     pids+=($!)
     echo "Started server on port $port with PID $!"

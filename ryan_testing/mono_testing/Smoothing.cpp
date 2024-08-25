@@ -16,7 +16,9 @@
 // #include "ThreadingManager/ThreadingManager.h"
 // #include "Timer/Timer.h"
 
+#include <H5Cpp.h>
 #include <omp.h>
+#include <sstream>
 
 namespace carta {
 
@@ -373,3 +375,181 @@ void NearestNeighbor(const float* src_data, float* dest_data, int64_t src_width,
 }
 
 } // namespace carta
+
+int main()
+    {
+        std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
+        std::string datasetName = "DATA";                                                                  // Replace with the actual dataset name                                                                
+
+        H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
+        H5::Group group = file.openGroup("0");
+
+        // Open the dataset
+        H5::DataSet dataset = group.openDataSet(datasetName);
+
+        // Get the dataspace of the dataset
+        H5::DataSpace dataspace = dataset.getSpace();
+
+        // Get the dimensions of the dataset
+        hsize_t dims[4];
+        dataspace.getSimpleExtentDims(dims, NULL);
+        int64_t dim1 = dims[0];
+        int64_t dim2 = dims[1];
+        int64_t width = dims[2];
+        int64_t height = dims[3];
+
+        int target_slice = 0;
+
+        hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+        H5::DataSpace memspace(2, slice_dims);
+
+        // Create a buffer to hold the data for the entire slice
+        std::vector<float> slice_buffer(width * height);
+
+        // Define hyperslab in the dataset
+        hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
+        hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
+        dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
+
+        try {
+            dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
+        } catch (H5::Exception& e) {
+            std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
+        }
+
+        std::cout << slice_buffer.size() << std::endl;
+
+        int smoothing_factor = 4;
+    
+        int mask_size = (smoothing_factor - 1) * 2 + 1;
+        int64_t kernel_width = (mask_size - 1) / 2;
+
+        int64_t source_width = width;
+        int64_t source_height = height;
+        int64_t dest_width = width - (2 * kernel_width);
+        int64_t dest_height = height - (2 * kernel_width);
+        std::unique_ptr<float[]> dest_array(new float[dest_width * dest_height]);
+
+        // Call the TraceContours function
+        carta::GaussianSmooth(slice_buffer.data(), dest_array.get(), width, height, dest_width, dest_height, smoothing_factor);
+
+        // std::ostringstream oss;
+        // oss << "5 values from middle of Gaussian Smoothing array: ";
+        // for (int i = 921595; i < 921600 && i < dest_width * dest_height; ++i) {
+        //     oss << dest_array[i];
+        //     if (i < 921599) {
+        //         oss << ", ";
+        //     }
+        // }
+        // std::cout << oss.str() << std::endl;
+
+        float final2 = 0;
+        for(int i = 0; i < dest_width * dest_height; i++){
+            if(std::isnan(dest_array[i])){
+                //std::cout << "nan" << std::endl;
+                continue;
+            }
+            else{
+                //std::cout << "no NAN" << std::endl;
+                final2 = final2 + dest_array[i];
+            }
+        }
+
+        std::cout << final2 << std::endl;
+
+        bool mean_filter = true;
+
+        const int x = 0;
+        const int y = 0;
+        const int req_height = height - y;
+        const int req_width = width - x;
+
+        // size returned vector
+        size_t num_rows_region = std::ceil((float)req_height / smoothing_factor);
+        size_t row_length_region = std::ceil((float)req_width / smoothing_factor);
+        std::vector<float> dest_array2;
+        dest_array2.resize(num_rows_region * row_length_region);
+        //std::unique_ptr<float[]> dest_array2(new float[num_rows_region * row_length_region]);
+
+        int num_image_columns = width;
+        int num_image_rows = height;
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        if (mean_filter && smoothing_factor > 1) {
+            // Perform down-sampling by calculating the mean for each MIPxMIP block
+            carta::BlockSmooth(
+                slice_buffer.data(), dest_array2.data(), num_image_columns, num_image_rows, row_length_region, num_rows_region, x, y, smoothing_factor);
+        } else {
+            // Nearest neighbour filtering
+            carta::NearestNeighbor(slice_buffer.data(), dest_array2.data(), num_image_columns, row_length_region, num_rows_region, x, y, smoothing_factor);
+        }
+
+        float final = 0;
+        for(int i = 0; i < row_length_region * num_rows_region; i++){
+            if(std::isnan(dest_array2[i])){
+                //std::cout << "nan" << std::endl;
+                continue;
+            }
+            else{
+                //std::cout << "no NAN" << std::endl;
+                final = final + dest_array2[i];
+            }
+        }
+
+        std::cout << final << std::endl;
+
+        std::cout << num_rows_region * row_length_region << std::endl;
+
+        // std::ostringstream oss2;
+        // oss2 << "5 values from middle of Block smoothing array: ";
+        // for (int i = 0; i < 5 && i < num_rows_region * row_length_region; ++i) {
+        //     oss2 << dest_array2[i];
+        //     if (i < 4) {
+        //         oss2 << ", ";
+        //     }
+        // }
+        // std::cout << oss2.str() << std::endl;
+
+        // std::ostringstream oss3;
+        // oss3 << "5 values from middle of Block smoothing array: ";
+        // for (int i = 57595; i < 57600 && i < num_rows_region * row_length_region; ++i) {
+        //     oss3 << dest_array2[i];
+        //     if (i < 57599) {
+        //         oss3 << ", ";
+        //     }
+        // }
+        // std::cout << oss3.str() << std::endl;
+
+        // std::ostringstream oss4;
+        // oss4 << "5 values from middle of Block smoothing array: ";
+        // for (int i = 115195; i < 115200 && i < num_rows_region * row_length_region; ++i) {
+        //     oss4 << dest_array2[i];
+        //     if (i < 115199) {
+        //         oss4 << ", ";
+        //     }
+        // }
+        // std::cout << oss4.str() << std::endl;
+
+        // std::ostringstream oss5;
+        // oss5 << "5 values from middle of Block smoothing array: ";
+        // for (int i = 172795; i < 172800 && i < num_rows_region * row_length_region; ++i) {
+        //     oss5 << dest_array2[i];
+        //     if (i < 172799) {
+        //         oss5 << ", ";
+        //     }
+        // }
+        // std::cout << oss5.str() << std::endl;
+
+        // std::ostringstream oss6;
+        // oss6 << "5 values from middle of Block smoothing array: ";
+        // for (int i = 230395; i < 230400 && i < num_rows_region * row_length_region; ++i) {
+        //     oss6 << dest_array2[i];
+        //     if (i < 230399) {
+        //         oss6 << ", ";
+        //     }
+        // }
+        // std::cout << oss6.str() << std::endl;
+
+        return 0;
+    }

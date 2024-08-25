@@ -9,7 +9,6 @@ import { ContourServicesClient } from "./proto/contouring";
     const startTime = new Date().getTime();
 
     const file = new h5wasm.File("/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5", "r");
-    const keys = file.keys();
 
     const datasetName = '0/DATA';
     const dataset = file.get(datasetName);
@@ -23,34 +22,48 @@ import { ContourServicesClient } from "./proto/contouring";
             // Extract width and height from maxshape
             const width = maxshape[2];
             const height = maxshape[3];
+
+            const halfWidth = Math.floor(width / 2);
+            const halfHeight = Math.floor(height / 2);
+
             const quarterWidth = Math.floor(width / 4);
             const quarterHeight = Math.floor(height / 4);
 
-            const slices: [number, number | null, number | null][][] = [
-                [[0, 1, null], [0, 1, null], [0, quarterWidth, null], [0, quarterHeight, null]],
-                [[0, 1, null], [0, 1, null], [quarterWidth, 2 * quarterWidth, null], [0, quarterHeight, null]],
-                [[0, 1, null], [0, 1, null], [2 * quarterWidth, 3 * quarterWidth, null], [0, quarterHeight, null]],
-                [[0, 1, null], [0, 1, null], [3 * quarterWidth, width, null], [0, quarterHeight, null]],
-                [[0, 1, null], [0, 1, null], [0, quarterWidth, null], [quarterHeight, 2 * quarterHeight, null]],
-                [[0, 1, null], [0, 1, null], [quarterWidth, 2 * quarterWidth, null], [quarterHeight, 2 * quarterHeight, null]],
-                [[0, 1, null], [0, 1, null], [2 * quarterWidth, 3 * quarterWidth, null], [quarterHeight, 2 * quarterHeight, null]],
-                [[0, 1, null], [0, 1, null], [3 * quarterWidth, width, null], [quarterHeight, 2 * quarterHeight, null]]
-            ];
+            const slices: [number, number | null, number | null][][] = [];
+
+            for (let row = 0; row < 1; row++) {
+                for (let col = 0; col < 1; col++) {
+                    slices.push([
+                        [0, 1, null], 
+                        [0, 1, null],
+                        [col * width, (col + 1) * width, null],
+                        [row * height, (row + 1) * height, null]
+                    ]);
+                }
+            }
 
             const options = {
-                'grpc.max_send_message_length': 5 * 1024 * 1024, // 5MB
+                'grpc.max_send_message_length': 15 * 1024 * 1024, // 15MB
                 'grpc.max_receive_message_length': 5 * 1024 * 1024 // 5MB
             };
 
             const clients = [
                 new ContourServicesClient("localhost:9999", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9995", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9994", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9993", grpc.credentials.createInsecure(), options),
-                new ContourServicesClient("localhost:9992", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9998", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9997", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9996", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9995", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9994", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9993", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9992", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9991", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9990", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9989", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9988", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9987", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9986", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9985", grpc.credentials.createInsecure(), options),
+                // new ContourServicesClient("localhost:9984", grpc.credentials.createInsecure(), options),
             ];
 
             slices.forEach((slice, index) => {
@@ -62,19 +75,22 @@ import { ContourServicesClient } from "./proto/contouring";
                         return;
                     }
 
-                    let flatArray: number[] = [];
+                    let flatArray;
                     if (sliceData instanceof Float32Array) {
-                        flatArray = Array.from(sliceData);
-                        console.log("Flat Array: ", flatArray)
+                        flatArray = Buffer.from(sliceData.buffer);
                     } else {
                         console.error('Unsupported sliceData format:', typeof sliceData);
                         return;
                     }
 
+                    console.log(flatArray.length)
+
                     const requestData = {
                         data: flatArray,
-                        width: quarterWidth,
-                        height: quarterHeight
+                        width: width,
+                        height: height,
+                        offset: 0,
+                        scale: 1
                     };
 
                     const grpcStartTime = new Date().getTime();

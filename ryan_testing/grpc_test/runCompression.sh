@@ -4,7 +4,7 @@ pids=()
 
 server_executable="./build/CompressionService"
 
-for port in {9985..9989}; do
+for port in {9950..9966}; do
     $server_executable $port &
     pids+=($!)
     echo "Started server on port $port with PID $!"

@@ -5,9 +5,11 @@ message ContouringOutput {
 }
 
 message ContouringEmpty{
-    repeated float data = 1;
+    bytes data = 1;
     float width = 2;
     float height = 3;
+    float offset = 4;
+    float scale = 5;
 }
 
 service ContourServices{
