@@ -1,8 +1,5 @@
 import { credentials, ServiceError } from "@grpc/grpc-js";
 import { promisify } from "util";
-
-// import { H5ServicesClient } from "./proto/H5ReaderService";
-//Protos
 import { FileInfoRequest, FileInfoResponse } from "./proto/FileInfo";
 import { FileCloseRequest, OpenFileACK, OpenFileRequest } from "./proto/OpenFile";
 import { Empty, FileType, StatusResponse } from "./proto/defs";
@@ -15,9 +12,13 @@ import { FileServiceClient } from "./proto/FileService";
 import { FileServiceConn } from "./FileServiceConn";
 import { error } from "console";
 import { SpectralServiceClient, SpectralServiceResponse } from "./proto/SpectralProfileService";
-// import { FitsServicesClient } from "./proto/FitsReaderService";
+
+
+//Class for communication between different services
 export class Ingres {
 
+    private SPEC_ADD = "0.0.0.0"
+    private SPEC_PORT = 8078
     private _connected = false;
     private _readyResolves: (() => void)[] = [];
     private _rejectResolves: ((err: Error) => void)[] = [];
@@ -39,9 +40,10 @@ export class Ingres {
       });
     }
   
+    
+    //Constructor to initialize connection to HDF5 File reading services
     constructor(address:string,port: number = 8079) {
 
-        //Connection to HDF5 File reading services
         const reader_url = `${address}:${port}`;
         this.readerConnections=new FileServiceConn(address,port);
    
@@ -94,15 +96,14 @@ export class Ingres {
   }
 
   public spectralService(request: SpectralServiceRequest):Promise<SpectralServiceResponse>{
-    // const SERVICE_URL = `${address}:${port}`;
-    const SERVICE_URL = `${"0.0.0.0"}:${8078}`;
+    const SERVICE_URL = `${this.SPEC_ADD}:${this.SPEC_PORT}`;
 
     const spectralServiceConn = new SpectralServiceClient(SERVICE_URL,credentials.createInsecure());
 
     return new Promise((resolve, reject) => {
       spectralServiceConn.waitForReady(Date.now() + 5000, (err) => {
           if (err) {
-              reject(`Not Spectral Service ready`); //${err.message}
+              reject(`Not Spectral Service ready`);
           } else {
               spectralServiceConn.getSpectralProfile(request, (error: ServiceError | null, response: SpectralServiceResponse) => {
                   if (error) {
