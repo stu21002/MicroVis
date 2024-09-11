@@ -33,9 +33,9 @@ class H5Service final : public H5Readers::Service
         virtual ::grpc::Status GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request, ::grpc::ServerWriter< ::ImageDataResponse>* writer);
         
         virtual ::grpc::Status GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileReaderResponse* response);
-        virtual ::grpc::Status GetSpectralProfileStream(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::grpc::ServerWriter< ::SpectralProfileReaderResponse>* writer);
+        // virtual ::grpc::Status GetSpectralProfileStream(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::grpc::ServerWriter< ::SpectralProfileReaderResponse>* writer);
         virtual ::grpc::Status GetHistogram(::grpc::ServerContext* context, const ::HistogramRequest* request, ::HistogramResponse* response);
-        virtual ::grpc::Status GetHistogramDist(::grpc::ServerContext* context, const ::HistogramDistRequest* request, ::HistogramResponse* response);
+        // virtual ::grpc::Status GetHistogramDist(::grpc::ServerContext* context, const ::HistogramDistRequest* request, ::HistogramResponse* response);
 
 
         
@@ -43,7 +43,7 @@ class H5Service final : public H5Readers::Service
         void ServicePrint(std::string msg);
 
         //Old methods 
-        std::vector<float> readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &start,std::vector<hsize_t> &dimCount,hsize_t totalPixels);
+        void readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &start,std::vector<hsize_t> &dimCount,hsize_t totalPixels, std::vector<float> result);
         std::vector<bool> getMask(RegionInfo region_info,int startX,int startY,int numX, int numY);
 
 };

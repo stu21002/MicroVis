@@ -51,7 +51,9 @@ export class H5Services {
         if (error) {
           throw error;
         }
-        console.log("Reader Service is running on", SERVICE_URL);
+        console.log("Reader Service running on ", SERVICE_URL);
+        console.log("Readers Connections : ", numWorkers);
+
       }
     );
     
@@ -129,38 +131,27 @@ export class H5Services {
         regionType=RegionType.RECTANGLE;
       }
 
-      // if (count[0]==-1){
-      //   let width = this.fileDims.get(uuid)?.width;
-      //   if (!width){
-      //     width=1;
-      //   }
-      //   count[0] = width;
-      // }
+      const dims = this.fileDims.get(uuid)?.dims;
+      if (!dims){
+        throw ("File Not Found");
+      }
+      for (let i = start.length; i < dims; i++) {
+        start.push(0);
+        count.push(1);
+      }
 
-      // if (count[1]==-1){
-      //   let height = this.fileDims.get(uuid)?.height;
-      //   if (!height){
-      //     height=1;
-      //   }
-      //   count[1] = height;
-      // }
-
-      // if (count[2]==-1){
-      //   let depth = this.fileDims.get(uuid)?.depth;
-      //   if (!depth){
-      //     depth=1;
-      //   }
-      //   count[2] = depth;
-      // }
-
-      const responses =  this.workerPool.getImageDataStream(uuid,permData,regionType,start,count)
+      const responses =  await this.workerPool.getImageDataStream(uuid,permData,regionType,start,count)
  
-      for (const response of (await responses)) {
-
-          for  (const chunk of (await response)) {
+      for (const response of  responses) {
+          for (const chunk of  await response) {
             call.write( chunk)
           }
       }
+      // for await (const response of await responses) {
+      //   for await (const chunk of response) {
+      //       call.write(chunk);
+      //   }
+      // }
       call.end();
     },
 
@@ -222,12 +213,10 @@ export class H5Services {
       if (!depth){
         depth = 1;
       }
+      
       //This will only work for circles and rectangles
       const points = region_info.controlPoints;
-      // const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-          // console.log({startingX,startingY,adjustedWidth,adjustedHeight})
       
-
       if (region_info.regionType == RegionType.CIRCLE){
             const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
             const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
@@ -246,8 +235,6 @@ export class H5Services {
           return;
       }
         
-
-
       const error = {
         code: status.UNIMPLEMENTED,
         message: "Region Type Not Implemented" + region_info.regionType.toString()

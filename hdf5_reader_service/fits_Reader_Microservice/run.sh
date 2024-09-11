@@ -1,19 +1,19 @@
 #!/bin/bash
 
+num_times=$1
 
-
-# Array to hold PIDs of background tasks
 pids=()
+output_file="service_output.log"
+> "$output_file"
 
-# Start services in the background and store their PIDs
-for i in {8080..8090}
+for (( i=0; i<num_times; i++ ))
 do
-    ./build/worker/fits_read ${i} &
-
+    port=$((8080 + i))
+     ./build/worker/fits_read ${port} >> "$output_file" 2>&1 &
     pids+=($!)
 done
 
-read -p "Enter to terminate all services: " userInput
+read -p "Press Enter to terminate all services: " userInput
 
 for pid in "${pids[@]}"
 do

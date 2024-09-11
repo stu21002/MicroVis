@@ -19,12 +19,11 @@ using namespace std::chrono;
 
     grpc::Status H5Service::CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response)
     {
-        std::cout << "Checking Status" << std::endl;
         response->set_status(true);
         
-        for (const auto& pair : hdf5_files) {
-            std::cout << pair.first << " : " << pair.second._file.getFileName() << std::endl;
-        }
+        // for (const auto& pair : hdf5_files) {
+        //     std::cout << pair.first << " : " << pair.second._file.getFileName() << std::endl;
+        // }
                 
         response->set_statusmessage("OK");
         return grpc::Status::OK;
@@ -38,10 +37,10 @@ using namespace std::chrono;
         try
         {
             // std::cout << ">>Opening file " << std::endl;
-            ServicePrint("Opening File");
+            //ServicePrint("Opening File");
             if (request->uuid().empty() || request->file().empty()){
                 // std::cout << "<<Failed Request" << std::endl;
-                ServicePrint("Failed Open");
+                //ServicePrint("Failed Open");
                 std::cout << request->uuid() << " : " << request->file()<<std::endl;
                 return {grpc::StatusCode::INVALID_ARGUMENT, "UUID and filename must be present"};
             }
@@ -80,7 +79,7 @@ using namespace std::chrono;
         }
         
         // std::cout<<"<<File has been opened"<<std::endl;
-        ServicePrint("File Opened");
+        //ServicePrint("File Opened");
         return grpc::Status::OK;
     }
 
@@ -96,7 +95,7 @@ using namespace std::chrono;
 
         try
         {
-            ServicePrint("Closing File");
+            //ServicePrint("Closing File");
             Hdf5_File &h5file = hdf5_files[request->uuid()];
             h5file._file.close();
             h5file._group.close();
@@ -123,7 +122,7 @@ using namespace std::chrono;
             //TODO Currenty only open files Change to ICD method
 
             // std::cout << ">>Getting file info" << std::endl;
-            ServicePrint("Getting file info");
+            //ServicePrint("Getting file info");
             
             H5::H5File file;
             H5::Group group;
@@ -176,7 +175,8 @@ using namespace std::chrono;
         return grpc::Status::OK;
     };
     grpc::Status H5Service::GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request, ::grpc::ServerWriter< ::ImageDataResponse>* writer){
-        
+        auto begin = std::chrono::high_resolution_clock::now();
+        long total_bytes = 1;
         if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         }
@@ -185,7 +185,7 @@ using namespace std::chrono;
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
 
-        // ServicePrint("Image Data Request");
+        // //ServicePrint("Image Data Request");
       
 
         Hdf5_File &h5file = hdf5_files[request->uuid()];
@@ -196,147 +196,209 @@ using namespace std::chrono;
 
         if (request->perm_data())
         {
-        ServicePrint("Image Data Request Perm Data");
+        //ServicePrint("Image Data Request Perm Data");
 
             permGroup = h5file._group.openGroup("PermutedData");
+            // permGroup = h5file._group.openGroup("SwizzledData");
+
             dataset = permGroup.openDataSet("ZYXW");
+
+
             std::vector<hsize_t> start(request->start().begin(), request->start().end());
             std::vector<hsize_t> count(request->count().begin(), request->count().end());
-            hsize_t total_pixels=1;
-            
-            for (size_t i = 0; i < count.size(); i++)
-            {
-                total_pixels *= count[i];
-            }
+
             data_space = dataset.getSpace();
             int numDims = data_space.getSimpleExtentNdims();
 
             //change start 4th pos for stokes values, assuming 0
             std::vector<hsize_t> h5_start(numDims,0);
             std::vector<hsize_t> h5_count(numDims,1);
-
-            for (size_t i = 1; i < numDims; i++)
-            {
-                h5_start[i]=start[i-1];
-                h5_count[i]=count[i-1];
-            }
-
-            //Investigate this
-            // const size_t MAX_CHUNK_SIZE = 2000* 2000;
-            // int CHUNK_PIXELS = MAX_CHUNK_SIZE/sizeof(float);
-            // int num_stream_pixels = total_pixels/CHUNK_PIXELS;
-            // int zy_num_pixels = count[1]*count[2];
-            // int x_step = num_stream_pixels = 0 ? count[0] : ceil(num_stream_pixels/zy_num_pixels); 
-
-            int num_bytes = total_pixels * sizeof(float);    
-
-            std::vector<float> buffer(total_pixels);
-
-            H5::DataSpace mem_space(1, &total_pixels);
-
-            data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
-            dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
-            data_space.close();
-            dataset.close();
-
-            const size_t MAX_CHUNK_SIZE = 2000* 2000;
-
-            size_t offset = 0;
-            size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
-
-            while (offset < buffer.size()) {
-                size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
-                auto begin = std::chrono::high_resolution_clock::now();
-
-                ImageDataResponse response;
-                response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
             
-                response.set_num_pixels(current_chunk_size);
-                float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+            //0 1 2 3
+            //W X Y Z H5
+            //X Y Z W
+      
+            h5_start[0]=0;
+            h5_start[1]=start[0];
+            h5_start[2]=start[1];
+            h5_start[3]=start[2];
 
-                std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
-                
-                writer->Write(response);
-                auto end = std::chrono::high_resolution_clock::now();
-                auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-
-                
-                // std::cout<<duration1.count()<<std::endl;
-
-
-                offset += current_chunk_size;
-            }
-        }else{
-            ServicePrint("Image Data Request Fits Data");
-
-            dataset= h5file._group.openDataSet("DATA");  
-            data_space = dataset.getSpace();
-
-            // std::vector<float> result;
-
-            std::vector<hsize_t> h5_start;
-            std::vector<hsize_t> h5_count;
+            h5_count[0]=1;
+            h5_count[1]=1;
+            h5_count[2]=count[1];
+            h5_count[3]=count[2];
 
             hsize_t result_size = 1;
-
-            std::vector<hsize_t> start(request->start().begin(), request->start().end());
-            std::vector<hsize_t> count(request->count().begin(), request->count().end());
-
-            int numDims = data_space.getSimpleExtentNdims();
-
-            for (int d = 0; d < numDims; d++)
+            for (size_t i = 0; i < h5_count.size(); i++)
             {
-                h5_start.insert(h5_start.begin(), d < start.size() ? start[d] : 0);
-                h5_count.insert(h5_count.begin(), d < count.size() ? count[d] : 1);
-                result_size *= d < count.size() ? count[d]: 1;
+                result_size *=h5_count[i];
             }
 
             int num_bytes = result_size * sizeof(float);
+            total_bytes *= num_bytes * count[0];
+            
+            size_t startX = start[0];
+            size_t endX = count[0]+startX;
 
-            std::vector<float> buffer(result_size);
 
-            H5::DataSpace mem_space(1, &result_size);
+            for (size_t i = startX; i < endX; i++)
+            {   
+                
+                // auto InBegin = std::chrono::high_resolution_clock::now();
+                h5_start[1]=i; 
 
-            data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
-            dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+                std::vector<float> buffer(result_size);
+
+                H5::DataSpace mem_space(1, &result_size);
+     
+
+                data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+                dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+                mem_space.close();
+            //     std::cout<<result_size<<"-----";
+            //     for (size_t i = 0; i < 4; i++)
+            //     {
+            //         std::cout<<h5_start[i]<<" ";
+            //     }
+            //     std::cout<<":::" ;           
+            //    for (size_t i = 0; i < 4; i++)
+            //     {
+            //         std::cout<<h5_count[i]<<" ";
+            //     }
+            //     std::cout<<":::";
+            //     auto Inend = std::chrono::high_resolution_clock::now();
+            //     auto inner = std::chrono::duration_cast<std::chrono::milliseconds>(Inend - InBegin);
+            //     std::cout<<inner.count();
+            //     std::cout<<std::endl;  
+                const size_t MAX_CHUNK_SIZE = 2000* 2000;
+
+                size_t offset = 0;
+                size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
+
+                while (offset < buffer.size()) {
+                    size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
+
+                    ImageDataResponse response;
+                    response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
+                
+                    response.set_num_pixels(current_chunk_size);
+                    float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+
+                    std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+                    
+                    writer->Write(response);
+                    offset += current_chunk_size;
+                }
+            }
             data_space.close();
             dataset.close();
+            permGroup.close();
+        }else{
+            // ServicePrint("Image Data Request Fits Data");
+            dataset= h5file._group.openDataSet("DATA");  
 
-            const size_t MAX_CHUNK_SIZE = 2000* 2000;
+   
+            std::vector<hsize_t> start(request->start().begin(), request->start().end());
+            std::vector<hsize_t> count(request->count().begin(), request->count().end());
 
-            size_t offset = 0;
-            size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
+            data_space = dataset.getSpace();
+            int numDims = data_space.getSimpleExtentNdims();
+            std::vector<hsize_t> h5_start(numDims,0);
+            std::vector<hsize_t> h5_count(numDims,1);
 
-            while (offset < buffer.size()) {
-                size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
-                auto begin = std::chrono::high_resolution_clock::now();
+            //0 1 2 3
+            //W Z Y X H5
+            //X Y Z W
 
-                ImageDataResponse response;
-                response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
-            
-                response.set_num_pixels(current_chunk_size);
-                float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+            h5_start[0]=0;
+            h5_start[1]=start[2];
+            h5_start[2]=start[1];
+            h5_start[3]=start[0];
 
-                std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
-                
-                writer->Write(response);
-                auto end = std::chrono::high_resolution_clock::now();
-                auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-
-                
-                // std::cout<<duration1.count()<<std::endl;
+            h5_count[0]=1;
+            h5_count[1]=1;
+            h5_count[2]=count[1];
+            h5_count[3]=count[0];
 
 
-                offset += current_chunk_size;
+
+            hsize_t result_size = 1;
+            for (size_t i = 0; i < h5_count.size(); i++)
+            {
+                result_size *=h5_count[i];
             }
 
+            int num_bytes = result_size * sizeof(float);
+            total_bytes *= num_bytes * count[2];
+
+            size_t startZ = start[2];
+            size_t endZ = count[2]+startZ;
+
+            for (size_t i = startZ; i < endZ; i++)
+            {     
+                // auto InBegin = std::chrono::high_resolution_clock::now();
+
+                h5_start[1]=i; 
+           
+                std::vector<float> buffer(result_size);
+
+                H5::DataSpace mem_space(1, &result_size);
+
+                data_space.selectHyperslab(H5S_SELECT_SET, h5_count.data(), h5_start.data());
+                dataset.read(buffer.data(), H5::PredType::NATIVE_FLOAT, mem_space, data_space);
+            //     mem_space.close();
+            //     std::cout<<result_size<<"-----";
+            //     for (size_t i = 0; i < 4; i++)
+            //     {
+            //         std::cout<<h5_start[i]<<" ";
+            //     }
+            //     std::cout<<":::" ;           
+            //    for (size_t i = 0; i < 4; i++)
+            //     {
+            //         std::cout<<h5_count[i]<<" ";
+            //     }
+            //     std::cout<<":::";
+            //     auto Inend = std::chrono::high_resolution_clock::now();
+            //     auto inner = std::chrono::duration_cast<std::chrono::milliseconds>(Inend - InBegin);
+            //     std::cout<<inner.count();
+            //     std::cout<<std::endl;  
+
+                const size_t MAX_CHUNK_SIZE = 2000* 2000;
+
+                size_t offset = 0;
+                size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
+
+                while (offset < buffer.size()) {
+                    size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
+
+                    ImageDataResponse response;
+                    response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
+                
+                    response.set_num_pixels(current_chunk_size);
+                    float* response_data = reinterpret_cast<float*>(response.mutable_raw_values_fp32()->data());
+
+                    std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
+                    
+                    writer->Write(response);
+                    offset += current_chunk_size;
+                }
+
+            }
+            data_space.close();
+            dataset.close();
         }
-        
-        ServicePrint("ImageData Request Complete");
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+        ServicePrint(std::to_string(duration.count())+","+std::to_string(total_bytes)+","+std::to_string(total_bytes/duration.count()));
+        //ServicePrint("ImageData Request Complete | Bytes");
         return grpc::Status::OK;
     };
 grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileReaderResponse* response){
-                if (request->uuid().empty()) {
+        
+        auto begin = std::chrono::high_resolution_clock::now();
+
+        if (request->uuid().empty()) {
             return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
         }
 
@@ -344,8 +406,7 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
             return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
         }
         
-        ServicePrint("Spectral Profile Request");
-        std::vector<float> result;
+        //ServicePrint("Spectral Profile Request");
         const hsize_t x = request->x();
         const hsize_t y = request->y();
         const hsize_t z = request->z();
@@ -353,23 +414,13 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         const hsize_t height = request->height();
         const hsize_t num_pixels = request->numpixels();
         
-     
-        Hdf5_File &h5file = hdf5_files[request->uuid()];
-        //Possible add perm group to struct
-       
+        Hdf5_File &h5file = hdf5_files[request->uuid()];    
         H5::Group permGroup = h5file._group.openGroup("PermutedData");
-
         H5::DataSet dataset = permGroup.openDataSet("ZYXW");
 
         const hsize_t resultSize = width*height*num_pixels;
-
-        std::vector<hsize_t> start = {0,x,y,z};
-        std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
-        result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
-
-      
         std::vector<bool> mask = getMask(request->region_info(),x,y,width,height);
- 
+
         const auto num_bytes_sum = num_pixels * sizeof(float);
         const auto num_bytes_count = num_pixels * sizeof(int);
     
@@ -379,14 +430,25 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         float* sum = reinterpret_cast<float*>(response->mutable_raw_values_fp32()->data());
         int* counts = reinterpret_cast<int*>(response->mutable_counts()->data());
 
-        // std::vector<float> sum(num_pixels,0);
-        // std::vector<int> counts(num_pixels,0);
-        // int xoffset = num_pixels*height;
+        hsize_t res_size = height*num_pixels;
+        H5::DataSpace data_space = dataset.getSpace();
         
-        int index = 0;
         int maskIndex=0;
+        for (size_t i = x; i < x+width; i++)
+        {
+        
+        std::vector<hsize_t> start = {0,i,y,z};
+        std::vector<hsize_t> dimCount = {1,1,height,num_pixels};
+        
+        std::vector<float> result(res_size);
+        H5::DataSpace mem_space(1,&res_size);
+        data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
+        dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
 
-          for (size_t xpos = 0; xpos < width; xpos++) {
+        mem_space.close();
+     
+        int index = 0;
+
             for (size_t ypos = 0; ypos < height; ypos++) {
                 if (mask[maskIndex++]){
                     for (size_t zpos = 0; zpos < num_pixels; zpos++) {
@@ -402,15 +464,22 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
                 }
             }
         }
+        data_space.close();
+        dataset.close();
+        permGroup.close();
 
-        ServicePrint("Spectral Profile Stream Complete");
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+
+        ServicePrint(std::to_string(duration.count()));
+        //ServicePrint("Spectral Profile Stream Complete");
         return grpc::Status::OK;
     }
 
 
     grpc::Status H5Service::GetHistogram(::grpc::ServerContext* context, const ::HistogramRequest* request, ::HistogramResponse* response){
         
-        ServicePrint("Histogram Request");
+        //ServicePrint("Histogram Request");
 
         // std::vector<float> result;
         
@@ -439,7 +508,12 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
             result_size *= d < count.size() ? count[d]: 1;
         }
 
-        std::vector<float> data = readRegion(dataset,h5_count,h5_start,result_size);
+        std::vector<float> data(result_size);
+    // readRegion(dataset,h5_count,h5_start,result_size,data);
+        H5::DataSpace mem_space(1,&result_size);
+
+        data_space.selectHyperslab(H5S_SELECT_SET,h5_count.data(),h5_start.data());
+        dataset.read(data.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
 
         //Find Min,Max;
         float min_val = std::numeric_limits<float>::max(); 
@@ -585,165 +659,22 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         }
         return mask;
     }
-    //Old Methods
-
-    std::vector<float> H5Service::readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &dimCount,std::vector<hsize_t> &start,hsize_t totalPixels){
-        
-            std::vector<float> result(totalPixels);
-            H5::DataSpace data_space = dataset.getSpace();
-            H5::DataSpace mem_space(1,&totalPixels);
-
-            data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
-            dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
-            return result;
- 
-    };
 
     void H5Service::ServicePrint(std::string msg){
         std::cout << "[" << port << "] " << msg << std::endl;
     }
 
-//old
-    grpc::Status H5Service::GetSpectralProfileStream(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::grpc::ServerWriter< ::SpectralProfileReaderResponse>* writer){
-        //         if (request->uuid().empty()) {
-        //     return {grpc::StatusCode::INVALID_ARGUMENT, "No UUID present"};
-        // }
+    //Old Methods
 
-        // if (hdf5_files.find(request->uuid()) == hdf5_files.end()) {
-        //     return {grpc::StatusCode::NOT_FOUND, fmt::format("No file with UUID {}", request->uuid())};
-        // }
+
+    // void H5Service::readRegion(const H5::DataSet &dataset,std::vector<hsize_t> &dimCount,std::vector<hsize_t> &start,hsize_t totalPixels, std::vector<float> result){
         
+    //         // std::vector<float> result(totalPixels);
+    //         H5::DataSpace data_space = dataset.getSpace();
+    //         H5::DataSpace mem_space(1,&totalPixels);
 
-        // // bool hasMask = false;//!request->mask().empty();
-        // // std::vector<bool> mask_vector;
-
-
-        // // if (hasMask){
-        // //     // const google::protobuf::RepeatedField<bool>& mask_values  = request->mask();
-        // //     // mask_vector.assign(mask_values.begin(), mask_values.end());
-        // //     // // int16_t mask_width = mask.width();
-        // //     // // int16_t mask_height = mask.height();
-
-
-        // //     // for (size_t i = 0; i < mask_vector.size(); i++)
-        // //     // {
-        // //     //     std::cout<<mask_vector[i]<<" ";
-        // //     //     /* code */
-        // //     // }
-        // //     std::cout<<std::endl;
-         
-        // // }
-
-        // ServicePrint("Spectral Profile Stream Request");
-
-        // std::vector<float> result;
-        // const hsize_t x = request->x();
-        // const hsize_t y = request->y();
-        // const hsize_t z = request->z();
-        // const hsize_t width = request->width();
-        // const hsize_t height = request->height();
-        // const hsize_t num_pixels = request->numpixels();
-        
-     
-        // Hdf5_File &h5file = hdf5_files[request->uuid()];
-        // //Possible add perm group to struct
-       
-        // H5::Group permGroup = h5file._group.openGroup("PermutedData");
-
-        // H5::DataSet dataset = permGroup.openDataSet("ZYXW");
-
-        // const hsize_t resultSize = width*height*num_pixels;
-
-        // std::vector<hsize_t> start = {0,x,y,z};
-        // std::vector<hsize_t> dimCount = {1,width,height,num_pixels};
-        // result = H5Service::readRegion(dataset,dimCount,start,width*height*num_pixels);
-        
-        //   const auto num_bytes = num_pixels * sizeof(float);
-        // response->mutable_data()->resize(num_bytes);
-
-        // int offset = 0;
-        
-        // std::vector<float> sum(num_pixels,0);
-        // std::vector<int> counts(num_pixels,0);
-        // int xoffset = num_pixels*height;
-        
-        // int index = 0;
-        // for (size_t xpos = 0; xpos < width; xpos++) {
-        //     for (size_t ypos = 0; ypos < height; ypos++) {
-        //             // int yoffset = ypos * num_pixels + zpos;
-        //             for (size_t zpos = 0; zpos < num_pixels; zpos++) {
-        //                 // int index = xpos * xoffset + yoffset;
-        //                 float val = result[index++];
-        //                 if (std::isfinite(val)) {
-        //                     sum[zpos] += val;
-        //                     counts[zpos]++;
-        //             }
-        //         }
-        //     }
-        // }
-
-
-
-        // // auto mid = std::chrono::high_resolution_clock::now();
-
-        // ::SpectralProfileResponse response;
-        // for (size_t i = 0; i < num_pixels; i++){
-
-        //     response.add_count(counts[i]);
-        //     response.add_data(sum[i]);
-
-        // }
-        // // auto mid2 = std::chrono::high_resolution_clock::now();
-      
-        // writer->Write(response);
-        
-        // // auto end = std::chrono::high_resolution_clock::now();
-     
-        // // auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(mid - st);
-        // // auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(mid2 - mid);
-        // // auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end - mid2);
-
-        // // std::cout << "Cal " <<duration1.count() << std::endl;
-        // // std::cout << "App " <<duration2.count() << std::endl;
-        // // std::cout << "Write " <<duration3.count() << std::endl;
-
-        // // ServicePrint("Spectral Profile Stream Complete");
-        return grpc::Status::OK;
-    }
-    //For later if needed
-    grpc::Status H5Service::GetHistogramDist(::grpc::ServerContext* context, const ::HistogramDistRequest* request, ::HistogramResponse* response){
-        
-        ServicePrint("Histogram Request");
-        // const size_t num_bins = request->num_bins();
-        // const float bin_width = request->bin_width();
-        // const std::vector<float> data(request->data().begin(),request->data().end());
-        // const size_t result_size = data.size();
-        // std::vector<int64_t> bins(num_bins);
-        // const float min_val = request->min_value();
-        // const float max_val = request->max_value(); 
-        // // for (int64_t i = 0; i < result_size; i++) {
-        // //     auto val = data[i];
-        // //     if (min_val <= val && val <= max_val) {
-        // //         size_t bin_number = std::clamp((size_t)((val - min_val) / bin_width), (size_t)0, num_bins - 1);
-        // //         bins[bin_number]++;
-        // //     }
-        // // }
-
-        // // #pragma omp for
-        // //         for (int64_t i = 0; i < num_bins; i++) {
-        // //             for (int t = 0; t < num_threads; t++) {
-        // //                 _histogram_bins[i] += temp_bins[num_bins * t + i];
-        // //             }
-        // //         }
-        // // }  
-
-        // response->set_bin_width(bin_width);
-        // response->set_num_bins(num_bins);
-        // for (size_t i = 0; i < num_bins; i++)
-        // {
-        //     response->add_bins(bins[i]);
-        // }
-         
-            
-        return grpc::Status::OK;
-    }
+    //         data_space.selectHyperslab(H5S_SELECT_SET,dimCount.data(),start.data());
+    //         dataset.read(result.data(),H5::PredType::NATIVE_FLOAT,mem_space,data_space);
+    //         // return result;
+ 
+    // };

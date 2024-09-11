@@ -31,7 +31,7 @@ ReaderService ( int port);
   virtual ::grpc::Status GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileResponse* response) override;
 
   virtual  void ServicePrint(std::string msg);
-
+  virtual std::vector<bool> getMask(RegionInfo region_info,int startX,int startY,int numX, int numY);
 
 };
 

@@ -1,19 +1,19 @@
-#!/bin/bash
+num_times=1
 
-# Check if the user entered 'k'
-
-
-# Array to hold PIDs of background tasks
 pids=()
+output_file="service_output.log"
+> "$output_file"
 
-# Start services in the background and store their PIDs
-for i in {8080..8088}
+for (( i=0; i<num_times; i++ ))
 do
-    ./build/Service/H5Service ${i} &
+    port=$((8078 + i))
+    ./build/src/Spectral ${port} >> "$output_file" 2>&1 &
     pids+=($!)
+    # ./build/src/Spectral ${port}  &
+    # pids+=($!)
 done
 
-read -p "Enter to terminate all services: " userInput
+read -p "Press Enter to terminate all services: " userInput
 
 for pid in "${pids[@]}"
 do

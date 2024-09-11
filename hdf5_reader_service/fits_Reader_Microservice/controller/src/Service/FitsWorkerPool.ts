@@ -10,7 +10,7 @@ import { SpatialProfile } from "../proto/SpatialProfile";
 import { SpectralProfileReaderResponse, SpectralProfileResponse } from "../proto/SpectralProfile";
 // import { bytesToFloat32 } from "../utils/arrays";
 
-export class Hdf5WorkerPool {
+export class FitsWorkerPool {
   readonly readers: FitsReader[];
 
 
@@ -72,40 +72,52 @@ export class Hdf5WorkerPool {
     return this.primaryreader?.getFileInfo({ uuid ,directory ,file ,hdu });
   }
   
-  //Refine Method
+
   async getImageDataStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
 
-    //possbly add data type
+    
     const promises = new Array<Promise<ImageDataResponse[]>>
-    if (count.length<=2 || count[3]==1){
+    // const promises = [];
+    if (this.readers.length==1){
       
       console.log("single")
-      promises.push(this.primaryreader.getImageDataStream({ uuid,start, count,regionType:RegionType.RECTANGLE}));
+      promises.push(this.primaryreader.getImageDataStream({uuid, start, count, regionType: RegionType.RECTANGLE, permData: false
+      }));
 
     }
     else{
       //Handling distributed reading
       console.log("multi")
-      let workerIndex=0;
-      // for (let dim3 = start[2]; dim3 <start[2]+count[2]; dim3++) {
 
-      //   const tempStart = [start[0],start[1],dim3]
-      //   const tempCount = [count[0],count[1],1]
-      //   promises.push(this.randomConnectedreader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}))
-        
-      // }
+      if (count[2]>1){
       const numWorkers = this.readers.length;
       const pixelsPerWorker = Math.floor(count[2] / numWorkers);
-      for (let i = 0; i < this.readers.length; i++) {
-  
-        const zStart = start[2] + i * pixelsPerWorker;
-        const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
-        const reader = this.readers[i % this.readers.length];
-        const tempStart = [start[0],start[1],numPixelsInChunk]
-        const tempCount = [count[0],count[1],zStart]
-      
-        promises.push(reader.getImageDataStream({ uuid,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
-  
+        for (let i = 0; i < this.readers.length; i++) {
+          
+          const zStart = start[2] + i * pixelsPerWorker;
+          const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
+          const reader = this.readers[i % this.readers.length];
+          const tempStart = [start[0],start[1],zStart,1]
+          const tempCount = [count[0],count[1],numPixelsInChunk,1]
+          promises.push(reader.getImageDataStream({
+            uuid, start: tempStart, count: tempCount, regionType: RegionType.RECTANGLE,
+            permData: false
+          }));
+        }
+      }else{
+        const numWorkers = this.readers.length;
+        const pixelsPerWorker = Math.floor(count[1] / numWorkers);
+        for (let i = 0; i < this.readers.length; i++) {
+          
+          const yStart = start[1] + i * pixelsPerWorker;
+          const numPixelsInChunk = (i === numWorkers - 1) ? count[1] - i * pixelsPerWorker : pixelsPerWorker;
+          const reader = this.readers[i % this.readers.length];
+          const tempStart = [start[0],yStart,start[2],1]
+          const tempCount = [count[0],numPixelsInChunk,1,1]
+          if (tempCount.reduce((accumulator, currentValue) => accumulator * currentValue, 1)>0){
+            promises.push(reader.getImageDataStream({ uuid,permData:false,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+          }
+        }
       }
     }
   
@@ -118,17 +130,30 @@ export class Hdf5WorkerPool {
 
       const promises = new Array<Promise<ImageDataResponse[]>>
 
+
       if (this.readers.length==1){
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [x+1, 1, 1, 1], count: [1, height, 1, 1],
+          permData: false
+        })))
         //x
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [1, y+1, 1, 1], count: [width, 1, 1, 1],
+          permData: false
+        })))
       }
       else{
         //y
-        promises.push(( this.readers[0].getImageDataStream({uuid,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
+        promises.push(( this.readers[0].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [x+1, 1, 1, 1], count: [1, height, 1, 1],
+          permData: false
+        })))
         //x
-        promises.push(( this.readers[1].getImageDataStream({uuid,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
+        promises.push(( this.readers[1].getImageDataStream({
+          uuid, regionType: RegionType.LINE, start: [1, y+1, 1, 1], count: [width, 1, 1, 1],
+          permData: false
+        })))
       }
      
 
@@ -162,7 +187,7 @@ export class Hdf5WorkerPool {
 
   //Cube Hist?? Mostly fits
   
-  async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
+  async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,region_info:RegionInfo,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
@@ -170,14 +195,10 @@ export class Hdf5WorkerPool {
     const promises = new Array<Promise<SpectralProfileResponse>>();
     for (let i = 0; i < numWorkers; i++) {
       const zStart = z + i * pixelsPerWorker;
-      console.log(zStart);
-      console.log(pixelsPerWorker);
-      // Last worker gets the remainder
       const numPixelsInChunk = (i === numWorkers - 1) ? numPixels - i * pixelsPerWorker : pixelsPerWorker;
-      console.log(numPixelsInChunk);
 
       const worker = this.readers[i % this.readers.length];
-      promises.push(worker.getSpectralProfile({ uuid,regionInfo:undefined, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
+      promises.push(worker.getSpectralProfile({ uuid,regionInfo:region_info, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
     }
 
     return Promise.all(promises).then(res => {
@@ -192,34 +213,3 @@ export class Hdf5WorkerPool {
     });
   }
  }
-
-//  function getMask(region:Region,startX:number,startY:number,numX:number,numY:number) {
-//   let mask: boolean[] = [];
-//   switch (region.type) {
-//     case RegionType.CIRCLE:
-//       //
-//       const diameter = region.controlPoints[1].x;
-//       const pow_radius = Math.pow(diameter / 2.0, 2);
-//       const centerX = (diameter - 1) / 2.0;
-//       const centerY = (diameter - 1) / 2.0;
-//       let index = 0;
-//       for (let y = startY; y < startY+numY; y++) {
-//           const pow_y = Math.pow(y - centerY, 2);
-    
-//           for (let x = startX; x < startX+numX; x++) {
-              
-//               mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
-     
-//           }
-//       }      
-//       break;
-  
-//     default:
-
-//       break;
-//   }
-
-
-//   return mask;
-  
-// }

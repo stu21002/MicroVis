@@ -15,7 +15,8 @@ int main(int argc, char** argv)
     builder.RegisterService(&service);
 
     std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
-    std::cout << fmt::format("HDF5 Microsrvice Reader, port {} is running", port) << std::endl;
+    service.ServicePrint("HDF5 Reader Running");
+    // std::cout << fmt::format("HDF5 Microsrvice Reader, port {} is running", port) << std::endl;
     server->Wait();
 
     return 0;

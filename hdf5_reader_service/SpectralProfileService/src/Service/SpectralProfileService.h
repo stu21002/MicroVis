@@ -1,22 +1,47 @@
-#ifndef SPECTRALPROFILE_H
-#define SPECTRALPROFILE_H
+#ifndef SPECTRALPROFILESERVICE_H
+#define SPECTRALPROFILESERVICE_H
 
-#include <grpcpp/grpcpp.h> 
-#include <./../proto/SpectralProfileService.grpc.pb.cc>
-#include <./../proto/SpectralProfileService.pb.h>
-#include <./../proto/FileService.grpc.pb.cc>
-#include <./../proto/FileService.pb.h>
+#include <iostream>
+#include <memory>
 #include <string>
+#include <vector>
+#include <cmath>
+#include <chrono>
+#include <grpcpp/grpcpp.h>
+#include "./../proto/SpectralProfileService.grpc.pb.h"
+#include "./../proto/SpectralProfileService.pb.h"
+#include "./../proto/FileService.grpc.pb.h"
+#include "./../proto/FileService.pb.h"
 
-class SpectralServiceClient {
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::Status;
+using grpc::ClientReader;
+using proto::FileService;
+using proto::ImageDataRequest;
+using proto::ImageDataResponse;
+using proto::SpectralServiceResponse;
+using proto::RegionInfo;
+
+class FileSerivceClient {
  public:
-  SpectralServiceClient(std::shared_ptr<grpc::Channel> channel);
 
-  std::string getSpectralProfile(const std::string& user);
-  std::string getSpectralProfilePerm(const std::string& user);
+    SpectralServiceResponse getImageData(const std::string& end_server_address, const std::string& uuid, const RegionInfo& region_info, int depth, bool hasPerm);
 
  private:
-  std::unique_ptr<proto::FileSerivce::Stub> stub_;
+    std::vector<bool> getMask(const RegionInfo& region_info);
 };
 
-#endif //SPECTRALPROFILE_H
+class SpectralServiceImpl final : public proto::SpectralService::Service {
+protected:
+    int port;
+
+ public:
+    SpectralServiceImpl ( int port);
+
+    Status GetSpectralProfile(grpc::ServerContext* context, const proto::SpectralServiceRequest* request, proto::SpectralServiceResponse* reply) override;
+    void ServicePrint(std::string msg);
+
+};
+
+#endif // SPECTRALPROFILESERVICE_H
