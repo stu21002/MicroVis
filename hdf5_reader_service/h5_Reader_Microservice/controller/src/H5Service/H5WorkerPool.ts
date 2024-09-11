@@ -102,15 +102,32 @@ export class Hdf5WorkerPool {
       }
       else {
 
-        const pixelsPerWorker = Math.floor(count[2] / numWorkers);
-        for (let i = 0; i < this.readers.length; i++) {
-          
-          const zStart = start[2] + i * pixelsPerWorker;
-          const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
-          const reader = this.readers[i % this.readers.length];
-          const tempStart = [start[0],start[1],zStart]
-          const tempCount = [count[0],count[1],numPixelsInChunk]
-          promises.push(reader.getImageDataStream({ uuid,permData,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+        if (count[2]>1){
+          const pixelsPerWorker = Math.floor(count[2] / numWorkers);
+          for (let i = 0; i < this.readers.length; i++) {
+            
+            const zStart = start[2] + i * pixelsPerWorker;
+            const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
+            const reader = this.readers[i % this.readers.length];
+            const tempStart = [start[0],start[1],zStart]
+            const tempCount = [count[0],count[1],numPixelsInChunk]
+            if (tempCount.reduce((accumulator, currentValue) => accumulator * currentValue, 1)>0){
+              promises.push(reader.getImageDataStream({ uuid,permData,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+            }
+          }
+        }else{
+          const pixelsPerWorker = Math.floor(count[1] / numWorkers);
+          for (let i = 0; i < this.readers.length; i++) {
+            
+            const yStart = start[1] + i * pixelsPerWorker;
+            const numPixelsInChunk = (i === numWorkers - 1) ? count[1] - i * pixelsPerWorker : pixelsPerWorker;
+            const reader = this.readers[i % this.readers.length];
+            const tempStart = [start[0],yStart,start[2]]
+            const tempCount = [count[0],numPixelsInChunk,1]
+            if (tempCount.reduce((accumulator, currentValue) => accumulator * currentValue, 1)>0){
+              promises.push(reader.getImageDataStream({ uuid,permData,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+            }
+          }
         }
       }
     }

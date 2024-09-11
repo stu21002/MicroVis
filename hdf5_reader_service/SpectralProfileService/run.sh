@@ -7,10 +7,10 @@ output_file="service_output.log"
 for (( i=0; i<num_times; i++ ))
 do
     port=$((8078 + i))
-    # ./build/src/Spectral ${port} >> "$output_file" 2>&1 &
-    # pids+=($!)
-    ./build/src/Spectral ${port}  &
+    ./build/src/Spectral ${port} >> "$output_file" 2>&1 &
     pids+=($!)
+    # ./build/src/Spectral ${port}  &
+    # pids+=($!)
 done
 
 read -p "Press Enter to terminate all services: " userInput

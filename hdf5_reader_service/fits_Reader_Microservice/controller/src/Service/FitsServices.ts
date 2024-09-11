@@ -133,7 +133,7 @@ export class FitsServices {
         start.push(0);
         count.push(1);
       }
-
+      console.log(start)
       for (let i = 0; i < start.length; i++) {
         start[i]+=1;
       }
@@ -214,7 +214,7 @@ export class FitsServices {
       
       if (region_info.regionType == RegionType.CIRCLE){
             const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
-            const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,0,depth,adjustedWidth,adjustedHeight);
+            const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight,region_info);
             const spectral_profile_response = SpectralProfileResponse.create();
             spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
             callback(null, spectral_profile_response);
@@ -223,7 +223,7 @@ export class FitsServices {
       else if(region_info.regionType == RegionType.RECTANGLE){
         
         const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-          const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight);
+          const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight,region_info);
           const spectral_profile_response = SpectralProfileResponse.create();
           spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
           callback(null, spectral_profile_response);

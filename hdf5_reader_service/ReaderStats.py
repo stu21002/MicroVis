@@ -77,8 +77,8 @@ def empty_log_file(file_path):
 # Example usage
 
 def main():
-    # log_file_path = "h5_Reader_Microservice/service_output.log"  # Replace with your log file path
-    log_file_path = "fits_Reader_Microservice/service_output.log"  # Replace with your log file path
+    log_file_path = "h5_Reader_Microservice/service_output.log"  # Replace with your log file path
+    # log_file_path = "fits_Reader_Microservice/service_output.log"  # Replace with your log file path
     # log_file_path = "SpectralProfileService/service_output.log"  # Replace with your log file path
     experiments = parse_log(log_file_path)
     # empty_log_file(log_file_path)

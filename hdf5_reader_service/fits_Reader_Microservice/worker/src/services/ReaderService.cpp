@@ -139,8 +139,7 @@ grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const ::Fi
   return grpc::Status::OK;
 }
 
-grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request,
-                                      ::grpc::ServerWriter< ::ImageDataResponse>* writer) {
+grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request,::grpc::ServerWriter< ::ImageDataResponse>* writer) {
   //ServicePrint("Image Data");
   auto begin = std::chrono::high_resolution_clock::now();
   long total_bytes = 1;
@@ -198,6 +197,18 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
     start[2]=i;
     last[2]=i;
 
+    for (size_t i = 0; i < start.size(); i++)
+    {
+      std::cout<<start[i]<<" ";
+    }
+    std::cout<<std::endl;
+    
+    for (size_t i = 0; i < start.size(); i++)
+    {
+      std::cout<<last[i]<<" ";
+    }
+    std::cout<<std::endl;
+    
     fits_read_subset(fits_ptr, TFLOAT, start.data(), last.data(), increment.data(), nullptr, buffer.data(),
                       nullptr, &fits_status_code);
 
@@ -282,12 +293,16 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
       return StatusFromFitsError(grpc::StatusCode::INTERNAL, fits_status_code, "Could not read image data");
     }
   } else {
+
+
     const auto required_buffer_size = width*height;
     std::vector<float> required_buffer(required_buffer_size);
 
     float* data_ptr = reinterpret_cast<float*>(response->mutable_raw_values_fp32()->data());
 
+    std::vector<bool> mask = getMask(request->region_info(),request->x(),request->y(),width,height);
     for (auto i = 0; i < request->numpixels(); i++) {
+      int maskIndex = 0;
       const auto channel = request->z() + i;
 
       std::vector<long> start_pix = {request->x(), request->y(), channel, 1};
@@ -295,32 +310,32 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
       std::vector<long> increment = {1, 1, 1, 1};
 
       // fits_read_pix(fits_ptr, TFLOAT, start_pix.data(), required_buffer_size, nullptr, required_buffer.data(), nullptr, &fits_status_code);
+  
 
      fits_read_subset(fits_ptr, TFLOAT, start_pix.data(), last_pix.data(), increment.data(), nullptr, required_buffer.data(), nullptr,
                       &fits_status_code);
+
      if (fits_status_code != 0) {
        return StatusFromFitsError(grpc::StatusCode::INTERNAL, fits_status_code, "Could not read image data");
      }
 
       int count = 0;
       float sum = 0;
-//      for (const auto& value : channel_buffer) {
-//        if (std::isfinite(value)) {
-//          sum += value;
-//          count++;
-//        }
-//      }
 
       long offset = 0;
       for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
-          const auto value = required_buffer[offset++];
-          if (std::isfinite(value)) {
-            sum += value;
-            count++;
+          if (mask[maskIndex++]){
+            const auto value = required_buffer[offset++];
+            if (std::isfinite(value)) {
+              sum += value;
+              count++;
+            }
+          }
+          else{
+            offset++;
           }
         }
-        // offset += dims[0];
       }
 
 
@@ -335,6 +350,40 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
   ServicePrint(std::to_string(duration.count()));
   return grpc::Status::OK;
 }
+  std::vector<bool> ReaderService::getMask(RegionInfo region_info,int startX,int startY,int numX, int numY){
+        std::vector<bool> mask(numX*numY,true);
+
+        switch (region_info.regiontype())
+        {
+        case RegionType::CIRCLE:{
+            int radi = region_info.controlpoints().Get(1).x();
+            int centerX = region_info.controlpoints().Get(0).x();
+            int centerY = region_info.controlpoints().Get(0).y();
+            int index = 0;
+            double pow_radius = pow(radi,2);
+            // float center = (diameter-1)/2.0;
+            // float centerY = (diameter-1)/2.0;
+
+            for (int x = startX-1; x < startX+numX-1; x++) {
+                //part of circle calculation
+                double pow_x = pow(x-centerX,2);
+                for (int y = startY-1; y < startY+numY-1; y++) {
+                    //if point is inside the circle
+                    if (pow_x + pow(y-centerY,2) > pow_radius){
+                        mask[index] = false;
+                    }
+                    index++;
+                }
+                std::cout<<std::endl;
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        return mask;
+    }
+
 
     void ReaderService::ServicePrint(std::string msg){
         std::cout << "[" << port << "] " << msg << std::endl;

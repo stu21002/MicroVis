@@ -88,20 +88,36 @@ export class FitsWorkerPool {
     else{
       //Handling distributed reading
       console.log("multi")
- 
+
+      if (count[2]>1){
       const numWorkers = this.readers.length;
       const pixelsPerWorker = Math.floor(count[2] / numWorkers);
-      for (let i = 0; i < this.readers.length; i++) {
-  
-        const zStart = start[2] + i * pixelsPerWorker;
-        const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
-        const reader = this.readers[i % this.readers.length];
-        const tempStart = [start[0],start[1],zStart,1]
-        const tempCount = [count[0],count[1],numPixelsInChunk,1]
-        promises.push(reader.getImageDataStream({
-          uuid, start: tempStart, count: tempCount, regionType: RegionType.RECTANGLE,
-          permData: false
-        }));
+        for (let i = 0; i < this.readers.length; i++) {
+          
+          const zStart = start[2] + i * pixelsPerWorker;
+          const numPixelsInChunk = (i === numWorkers - 1) ? count[2] - i * pixelsPerWorker : pixelsPerWorker;
+          const reader = this.readers[i % this.readers.length];
+          const tempStart = [start[0],start[1],zStart,1]
+          const tempCount = [count[0],count[1],numPixelsInChunk,1]
+          promises.push(reader.getImageDataStream({
+            uuid, start: tempStart, count: tempCount, regionType: RegionType.RECTANGLE,
+            permData: false
+          }));
+        }
+      }else{
+        const numWorkers = this.readers.length;
+        const pixelsPerWorker = Math.floor(count[1] / numWorkers);
+        for (let i = 0; i < this.readers.length; i++) {
+          
+          const yStart = start[1] + i * pixelsPerWorker;
+          const numPixelsInChunk = (i === numWorkers - 1) ? count[1] - i * pixelsPerWorker : pixelsPerWorker;
+          const reader = this.readers[i % this.readers.length];
+          const tempStart = [start[0],yStart,start[2],1]
+          const tempCount = [count[0],numPixelsInChunk,1,1]
+          if (tempCount.reduce((accumulator, currentValue) => accumulator * currentValue, 1)>0){
+            promises.push(reader.getImageDataStream({ uuid,permData:false,start:tempStart, count:tempCount,regionType:RegionType.RECTANGLE}));
+          }
+        }
       }
     }
   
@@ -171,7 +187,7 @@ export class FitsWorkerPool {
 
   //Cube Hist?? Mostly fits
   
-  async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,numWorkers?: number) {
+  async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,region_info:RegionInfo,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
@@ -182,7 +198,7 @@ export class FitsWorkerPool {
       const numPixelsInChunk = (i === numWorkers - 1) ? numPixels - i * pixelsPerWorker : pixelsPerWorker;
 
       const worker = this.readers[i % this.readers.length];
-      promises.push(worker.getSpectralProfile({ uuid,regionInfo:undefined, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
+      promises.push(worker.getSpectralProfile({ uuid,regionInfo:region_info, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
     }
 
     return Promise.all(promises).then(res => {
