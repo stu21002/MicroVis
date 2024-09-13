@@ -50,6 +50,8 @@ export class Ingres {
      
     }
 
+
+    //Methods Connecting to the file service requests
   public checkStatus(request:Empty):Promise<StatusResponse>{
       
     return this.readerConnections.checkStatus(request);

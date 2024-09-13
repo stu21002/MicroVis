@@ -3,9 +3,9 @@ package proto;
 
 message FileInfo {
     string name = 1;
-    // FileType type = 2; Assume HDF5
+    FileType type = 2;
     sfixed64 size = 3;
-    repeated string HDU_list = 4; //Note sure what goes here
+    repeated string HDU_list = 4; 
     sfixed64 date = 5;
   }
   

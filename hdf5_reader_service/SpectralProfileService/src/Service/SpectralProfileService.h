@@ -23,6 +23,7 @@ using proto::ImageDataResponse;
 using proto::SpectralServiceResponse;
 using proto::RegionInfo;
 
+// Class for Connecting to the File Reading Services
 class FileSerivceClient {
  public:
 
@@ -32,6 +33,8 @@ class FileSerivceClient {
     std::vector<bool> getMask(const RegionInfo& region_info);
 };
 
+
+// Class for Spectral Service inheriting from the gRPC service definition
 class SpectralServiceImpl final : public proto::SpectralService::Service {
 protected:
     int port;

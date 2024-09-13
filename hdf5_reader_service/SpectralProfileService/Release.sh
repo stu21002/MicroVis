@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash compiling C++ code in release mode
 
 BUILD_TYPE=Release
 

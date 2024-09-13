@@ -12,6 +12,8 @@ import "Region.proto";
 
 
 
+//Service defintions for File reading
+
 service FileService{
     rpc CheckStatus(Empty) returns  (StatusResponse) {}
     rpc OpenFile(OpenFileRequest) returns (OpenFileACK) {}
