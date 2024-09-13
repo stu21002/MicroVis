@@ -240,27 +240,18 @@ async function executeOperation(operation: string, ...args: any[]) {
 // executeOperation("imageData","Small.fits",400,400,0,40,40,1917,false);
 
 
-
-
 // executeOperation("imageData","Small.fits",0,800,false);
 
 
-for (let index = 0; index < 1; index++) {
-    const x = randomInt(1920)
-    const y = randomInt(1920)
-    console.log(x + " " + y)
-    executeOperation("spatial","Contour.hdf5",x,y)
-}
-
-// async function groupTesting(){
+async function Demo(){
      
-//     // await executeOperation("spectralService","Small.hdf5",400,40,false);
+    // await executeOperation("spectralService","Small.hdf5",400,40,false);
 
-//     // await executeOperation("spectralService","Small.hdf5",400,40,true);
-//     // console.log("FITS")
-//     // await executeOperation("imageData","Small.hdf5",0,800,false);
-//     // console.log("HDF5")
-//     // await executeOperation("imageData","Small.hdf5",0,800,true);
+    // await executeOperation("spectralService","Small.hdf5",400,40,true);
+    // console.log("FITS")
+    // await executeOperation("imageData","Small.hdf5",0,800,false);
+    // console.log("HDF5")
+    // await executeOperation("imageData","Small.hdf5",0,800,true);
 
-// }
-// // groupTesting();
+}
+// Demo();
