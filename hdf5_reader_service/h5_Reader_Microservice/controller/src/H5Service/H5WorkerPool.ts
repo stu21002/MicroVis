@@ -1,4 +1,4 @@
-//adapted from https://github.com/CARTAvis/fits_reader_microservice/tree/main by Angus
+//adapted from https://github.com/CARTAvis/fits_reader_microservice/tree/main by Angus Comrie
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -8,9 +8,12 @@ import { RegionInfo, RegionType } from "../proto/defs";
 import { ImageDataResponse } from "../proto/ImageData";
 import { SpatialProfile } from "../proto/SpatialProfile";
 import { SpectralProfileReaderResponse, SpectralProfileResponse } from "../proto/SpectralProfile";
-// import { bytesToFloat32 } from "../utils/arrays";
 
+
+//Class for management of file readers and distribution of workloads
 export class Hdf5WorkerPool {
+
+  //List of readers
   readonly readers: H5Reader[];
 
 
@@ -29,6 +32,7 @@ export class Hdf5WorkerPool {
     }
   }
 
+  //Methods for accessing readers
   get connectedreaders() {
     return this.readers.filter((reader) => reader.connected);
   }
@@ -53,6 +57,8 @@ export class Hdf5WorkerPool {
     return this.primaryreader.checkStatus({});
   }
 
+
+  //Opens file on all connected readers
   async openFile(directory: string,file: string, hdu: string = "") {
     const uuid = uuidv4();
     const promises = this.readers.map((reader) => reader.openFile({ directory, file, hdu, uuid }));  
@@ -61,6 +67,7 @@ export class Hdf5WorkerPool {
     });
   }
 
+  //Closes a file on all connnected readers
   async closeFile(uuid: string) {
     const promises = this.readers.map((reader) => reader.closeFile({ uuid }));
     return Promise.all(promises).then(responses => {
@@ -68,29 +75,30 @@ export class Hdf5WorkerPool {
     });
   }
 
+  //Gets file info, using first reader
   async getFileInfo(uuid: string,directory:string,file:string,hdu:string) {
     return this.primaryreader?.getFileInfo({ uuid ,directory ,file ,hdu });
   }
   
-  //Refine Method
+  //Gets a stream of image data
   async getImageDataStream(uuid: string,permData:boolean,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
 
     const promises: Array<Promise<ImageDataResponse[]>> = [];
     const numWorkers = this.readers.length;
 
     if (numWorkers==1){
-      
+      //Single readers       
       promises.push(this.primaryreader.getImageDataStream({ uuid,permData,start, count,regionType:RegionType.RECTANGLE}));
 
     }
     else{      
-
+      //Multiple readers
+      //For permutated data
       if (permData){
         const x = start[0]
         const width = count[0]
         const pixelsPerWorker = Math.floor(width / numWorkers);
         for (let i = 0; i < numWorkers; i++) {
-    
           const xStart = x + i * pixelsPerWorker;
           const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
           const reader = this.readers[i % this.readers.length];
@@ -101,7 +109,9 @@ export class Hdf5WorkerPool {
         }
       }
       else {
+        //For normal data (FITS data)
 
+        //Split across Z axis for Z values greater than 1 
         if (count[2]>1){
           const pixelsPerWorker = Math.floor(count[2] / numWorkers);
           for (let i = 0; i < this.readers.length; i++) {
@@ -116,6 +126,7 @@ export class Hdf5WorkerPool {
             }
           }
         }else{
+          //Split across Y axis for Z values of 1
           const pixelsPerWorker = Math.floor(count[1] / numWorkers);
           for (let i = 0; i < this.readers.length; i++) {
             
@@ -136,18 +147,20 @@ export class Hdf5WorkerPool {
 
   }
 
-  
+  //Creates spatial, from image data requests
   async getSpatial(uuid:string,x:number,y:number,width:number,height:number){
 
       const promises = new Array<Promise<ImageDataResponse[]>>
 
       if (this.readers.length==1){
+        //Single reader
         //y
         promises.push(( this.readers[0].getImageDataStream({uuid,permData:false,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
         //x
         promises.push(( this.readers[0].getImageDataStream({uuid,permData:false,regionType:RegionType.LINE,start:[0,y,0,0],count:[width,1,1,1]})))
       }
       else{
+        //Multi reader
         //y
         promises.push(( this.readers[0].getImageDataStream({uuid,permData:false,regionType:RegionType.LINE,start:[x,0,0,0],count:[1,height,1,1]})))
         //x
@@ -159,6 +172,7 @@ export class Hdf5WorkerPool {
         ([yImageData, xImageData]) => {
           const profiles:SpatialProfile[]=[];
 
+          //Creating spatial profile responses
           let xStart = 0;
           for (const profile of xImageData){
             const xEnd = xStart + profile.numPixels;
@@ -178,27 +192,25 @@ export class Hdf5WorkerPool {
       )
   }
 
-  async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
-    const reader = this.randomConnectedreader;
-    return reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
-  }
-
-  //Cube Hist?? Mostly fits
-  
+  //Gets spectral profile
   async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,region_info:RegionInfo,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
+    //Calculating workload distribution
     const pixelsPerWorker = Math.floor(width / numWorkers);
     const promises = new Array<Promise<SpectralProfileReaderResponse>>();
-    for (let i = 0; i < numWorkers; i++) {
 
+    //Making requests to the readers
+    for (let i = 0; i < numWorkers; i++) {
       const xStart = x + i * pixelsPerWorker;
       const numPixelsInChunk = (i === numWorkers - 1) ? width - i * pixelsPerWorker : pixelsPerWorker;
       const reader = this.readers[i % this.readers.length];
       promises.push(reader.getSpectralProfile({ uuid,regionInfo:region_info, x:xStart, y, z, width:numPixelsInChunk, height, numPixels }));
 
     }
+    
+    //Calculation of Partial statsistics 
     const spectralData = new Float32Array(numPixels);
     const statistic = new Float32Array(numPixels).fill(0);
     const counts = Array(numPixels).fill(0);
@@ -222,34 +234,3 @@ export class Hdf5WorkerPool {
     });
   }
  }
-
-//  function getMask(region:Region,startX:number,startY:number,numX:number,numY:number) {
-//   let mask: boolean[] = [];
-//   switch (region.type) {
-//     case RegionType.CIRCLE:
-//       //
-//       const diameter = region.controlPoints[1].x;
-//       const pow_radius = Math.pow(diameter / 2.0, 2);
-//       const centerX = (diameter - 1) / 2.0;
-//       const centerY = (diameter - 1) / 2.0;
-//       let index = 0;
-//       for (let y = startY; y < startY+numY; y++) {
-//           const pow_y = Math.pow(y - centerY, 2);
-    
-//           for (let x = startX; x < startX+numX; x++) {
-              
-//               mask[index++] = (pow_y + Math.pow(x - centerX, 2) <= pow_radius);
-     
-//           }
-//       }      
-//       break;
-  
-//     default:
-
-//       break;
-//   }
-
-
-//   return mask;
-  
-// }

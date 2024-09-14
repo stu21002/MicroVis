@@ -1,5 +1,4 @@
 //adapted from https://github.com/CARTAvis/fits_reader_microservice/tree/main by Angus
-//Provides access to all endpoints of the hdf5 reader microservice 
 
 import { Empty, StatusResponse } from "../proto/defs";
 import { FileInfoRequest, FileInfoResponse } from "../proto/FileInfo";
@@ -44,18 +43,19 @@ export class FitsReader {
     const WORKER_URL = `0.0.0.0:${port}`;
     const client = new FitsReadersClient(WORKER_URL, credentials.createInsecure());
 
+    //Service requests
     this.checkStatus = promisify<Empty, StatusResponse>(client.checkStatus).bind(client);
     this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(client.getFileInfo).bind(client);
     this.getSpectralProfile = promisify<SpectralProfileReaderRequest, SpectralProfileResponse>(client.getSpectralProfile).bind(client);
     this.openFile = promisify<OpenFileRequest, StatusResponse>(client.openFile).bind(client);
     this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
 
+    //Image data stream request
     this.getImageDataStream = (request: ImageDataRequest) => {
       return new Promise<ImageDataResponse[]>((resolve, reject) => {
         const call = client.getImageDataStream(request);
         const imageDataResponses:ImageDataResponse[] = [];
         call.on('data', (response: ImageDataResponse) => {
-          //Possible Conditions
             imageDataResponses.push(response)
           
         });

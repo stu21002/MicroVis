@@ -37,6 +37,7 @@ export class FitsServices {
   readonly regions:Map<number,RegionInfo> = new Map();
   regionId:number;
 
+  //Creating server
   constructor(address:string,port: number = 8080,numWorkers=1) {
     const SERVICE_URL = `${address}:${port}`;
     this.workerPool = new FitsWorkerPool(numWorkers,"0.0.0.0" ,8080);
@@ -56,11 +57,12 @@ export class FitsServices {
     
   }
 
-
+  //Server services 
   public serviceImp:FileServiceServer={
 
+    //Open a file
     openFile: async (call:ServerUnaryCall<OpenFileRequest, OpenFileACK>,callback:sendUnaryData<OpenFileACK>):Promise<void> => {
-      // Implement your logic here
+     
       console.log("Open file called");
       const {directory,file,hdu} = call.request
   
@@ -72,8 +74,7 @@ export class FitsServices {
         openFileAck.message="Failed to open file";
         callback(null,openFileAck);
       }else{
-
-        //Get to not require dir/file;
+        //Getting file info
         const fileInfoResponse = await this.workerPool.getFileInfo(fileOpenResponse.uuid,"","",hdu)
         if (!fileInfoResponse.fileInfoExtended) {
 
@@ -82,7 +83,7 @@ export class FitsServices {
           callback(null, openFileAck);
 
         }else{
-
+          //adding file info to response
           openFileAck.success=true;
           openFileAck.uuid=fileOpenResponse.uuid;
           openFileAck.fileInfo=fileInfoResponse.fileInfo;
@@ -100,13 +101,14 @@ export class FitsServices {
         }
       }
     },
-
+    //Checking status
     checkStatus: async (call:ServerUnaryCall<Empty, StatusResponse>,callback:sendUnaryData<StatusResponse>):Promise<void> => {
       console.log("Status called");
       const res = await this.workerPool.checkStatus()
       callback(null,res);
 
     },
+    //Closing files
     closeFile: async (call:ServerUnaryCall<FileCloseRequest, StatusResponse>,callback:sendUnaryData<StatusResponse>):Promise<void> => {
       console.log("Close file called");
       const response = StatusResponse.create();
@@ -114,12 +116,13 @@ export class FitsServices {
       callback(null,response);
     },
 
+    //Get file info
     getFileInfo: async (call:ServerUnaryCall<FileInfoRequest, FileInfoResponse>,callback:sendUnaryData<FileInfoResponse>):Promise<void> => {
-      // Implement your logic here
       console.log("File Info called");
       callback(null,await this.workerPool.getFileInfo(call.request.uuid,call.request.directory,call.request.file,call.request.hdu));
     },
 
+    //Image data stream handling
     getImageDataStream: async (call:ServerWritableStream<ImageDataRequest, ImageDataResponse>):Promise<void> => {
       let {uuid,start,count,regionType} = call.request;
       if (!regionType){
@@ -137,9 +140,10 @@ export class FitsServices {
       for (let i = 0; i < start.length; i++) {
         start[i]+=1;
       }
-
+      //image data request to worker pool
       const responses =  this.workerPool.getImageDataStream(uuid,regionType,start,count)
  
+      //forawrding of image data responses 
       for (const response of (await responses)) {
 
           for  (const chunk of (await response)) {
@@ -151,9 +155,10 @@ export class FitsServices {
       call.end();
     },
 
+    //Spatial profile service
     getSpatialProfile: async(call:ServerUnaryCall<SetSpatialReq, SpatialProfileData>,callback:sendUnaryData<SpatialProfileData>):Promise<void> => {
-      // Implement your logic here
       console.log("Spatial Profile called");
+      //getting dimensions
       const {uuid,x,y} = call.request;
       const dimensions = this.fileDims.get(uuid);
       if (!dimensions){
@@ -167,8 +172,9 @@ export class FitsServices {
         return;
       }else{
 
+        //getting profiles
         const spatial_profiles = await this.workerPool.getSpatial(uuid,x,y,dimensions?.width,dimensions?.height);
-        
+        //creating spatial profile resposne
         const spatial_profile_data = SpatialProfileData.create();
         spatial_profile_data.uuid = uuid;
         spatial_profiles.profiles.forEach(profile => {
@@ -179,6 +185,7 @@ export class FitsServices {
       }
     },
 
+    //Spactral profile service
     getSpectralProfile: async (call:ServerUnaryCall<SpectralProfileRequest, SpectralProfileResponse>,callback:sendUnaryData<SpectralProfileResponse>):Promise<void> => {
       console.log("Spectral Profile called");
       const {uuid,regionId} = call.request;
@@ -204,30 +211,32 @@ export class FitsServices {
         callback(error, null);
         return;
       }
-    
+      //Getting depth og file
       let {depth} = dimension_values;
       if (!depth){
         depth = 1;
       }
-      //This will only work for circles and rectangles
       const points = region_info.controlPoints;
       
+      //Handling co-ordinates
       if (region_info.regionType == RegionType.CIRCLE){
-            const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
-            const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight,region_info);
-            const spectral_profile_response = SpectralProfileResponse.create();
-            spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
-            callback(null, spectral_profile_response);
-            return;
+        const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
+        //Spectral profile request
+        const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight,region_info);
+        const spectral_profile_response = SpectralProfileResponse.create();
+        spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+        callback(null, spectral_profile_response);
+        return;
       }
       else if(region_info.regionType == RegionType.RECTANGLE){
         
         const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-          const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight,region_info);
-          const spectral_profile_response = SpectralProfileResponse.create();
-          spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
-          callback(null, spectral_profile_response);
-          return;
+        //Spectral profile request  
+        const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX+1,startingY+1,1,depth,adjustedWidth,adjustedHeight,region_info);
+        const spectral_profile_response = SpectralProfileResponse.create();
+        spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+        callback(null, spectral_profile_response);
+        return;
       }
         
 
@@ -239,20 +248,17 @@ export class FitsServices {
       callback({},null);
     },
 
-    getHistogram: async (call:ServerUnaryCall<SetHistogramReq, HistogramResponse>,callback:sendUnaryData<HistogramResponse>):Promise<void> => {
-      console.log("Histogram called");
-      const {uuid,x,y,z,width,height,depth} = call.request;
-      // callback(null, await this.workerPool.getHistogram(uuid,x,y,z,width,height,depth));
-      callback(null,null)
-    }, 
+    //Creating a regiong service
     createRegion: async(call:ServerUnaryCall<SetRegion,SetRegionAck>,callback:sendUnaryData<SetRegionAck>):Promise<void>=>{
       console.log("Creating Region");
       if (call.request.regionInfo){
+        //Creating a region
         if (call.request.regionId == 0){
           this.regionId++;
           this.regions.set(this.regionId,call.request.regionInfo)
         } 
         else{
+          //updating a region
           this.regions.set(call.request.regionId,call.request.regionInfo)
         }
         callback(null,{success:true,message:"",regionId:this.regionId})

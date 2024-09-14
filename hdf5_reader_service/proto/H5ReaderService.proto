@@ -4,7 +4,7 @@ package proto;
 import "FileInfo.proto";
 import "OpenFile.proto";
 import "defs.proto";
-import "Histogram.proto";
+// import "Histogram.proto";
 import "ImageData.proto";
 import "SpectralProfile.proto";
 
@@ -17,6 +17,6 @@ service H5Readers{
   rpc GetFileInfo (FileInfoRequest) returns (FileInfoResponse) {}
   rpc GetImageDataStream (ImageDataRequest) returns (stream ImageDataResponse) {}
   rpc GetSpectralProfile (SpectralProfileReaderRequest) returns (SpectralProfileReaderResponse) {}
-  rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
+  // rpc GetHistogram (HistogramRequest) returns (HistogramResponse) {}
 }
 

@@ -32,12 +32,14 @@ interface DimensionValues {
   dims:number;
 }
 
+//Class for connection to the ingress node and interactions with the workerpool
 export class H5Services {
   readonly workerPool:Hdf5WorkerPool;
   readonly fileDims: Map<string,DimensionValues > = new Map();
   readonly regions:Map<number,RegionInfo> = new Map();
   regionId:number;
 
+  //Creating server
   constructor(address:string,port: number = 8080,numWorkers=1) {
     const SERVICE_URL = `${address}:${port}`;
     this.workerPool = new Hdf5WorkerPool(numWorkers,"0.0.0.0" ,8080);
@@ -59,15 +61,16 @@ export class H5Services {
     
   }
 
-
+  //Server services
   public serviceImp:FileServiceServer={
 
+    //Opening file service
     openFile: async (call:ServerUnaryCall<OpenFileRequest, OpenFileACK>,callback:sendUnaryData<OpenFileACK>):Promise<void> => {
-      // Implement your logic here
       console.log("Open file called");
       const {directory,file,hdu} = call.request
   
       const openFileAck = OpenFileACK.create();
+      //Request for opening files
       const fileOpenResponse = await this.workerPool.openFile(directory,file,hdu)
       if (!fileOpenResponse?.uuid) {
         console.error("no uuid");
@@ -76,7 +79,7 @@ export class H5Services {
         callback(null,openFileAck);
       }else{
 
-        //Get to not require dir/file;
+        //If successful, make file information request
         const fileInfoResponse = await this.workerPool.getFileInfo(fileOpenResponse.uuid,"","",hdu)
 
         if (!fileInfoResponse.fileInfoExtended) {
@@ -86,12 +89,13 @@ export class H5Services {
           callback(null, openFileAck);
 
         }else{
-
+          //Attached file info to response
           openFileAck.success=true;
           openFileAck.uuid=fileOpenResponse.uuid;
           openFileAck.fileInfo=fileInfoResponse.fileInfo;
           openFileAck.fileInfoExtended=fileInfoResponse.fileInfoExtended; 
 
+          
           const dimensionValues: DimensionValues = {
             width: fileInfoResponse.fileInfoExtended.width,
             height: fileInfoResponse.fileInfoExtended.height,
@@ -99,7 +103,7 @@ export class H5Services {
             stokes: fileInfoResponse.fileInfoExtended.stokes,
             dims: fileInfoResponse.fileInfoExtended.dimensions
           };
-
+          //Appended file dimensions to list
           this.fileDims.set(fileOpenResponse.uuid,dimensionValues);
           callback(null, openFileAck);
         }
@@ -112,19 +116,21 @@ export class H5Services {
       callback(null,res);
 
     },
+    //Close file service
     closeFile: async (call:ServerUnaryCall<FileCloseRequest, StatusResponse>,callback:sendUnaryData<StatusResponse>):Promise<void> => {
       console.log("Close file called");
       const response = StatusResponse.create();
       response.status = await this.workerPool.closeFile(call.request.uuid)
       callback(null,response);
     },
-
+    //Get fileinfo service
     getFileInfo: async (call:ServerUnaryCall<FileInfoRequest, FileInfoResponse>,callback:sendUnaryData<FileInfoResponse>):Promise<void> => {
       // Implement your logic here
       console.log("File Info called");
       callback(null,await this.workerPool.getFileInfo(call.request.uuid,call.request.directory,call.request.file,call.request.hdu));
     },
 
+  //Get image data stream service
     getImageDataStream: async (call:ServerWritableStream<ImageDataRequest, ImageDataResponse>):Promise<void> => {
       let {uuid,start,count,regionType,permData} = call.request;
       if (!regionType){
@@ -135,30 +141,32 @@ export class H5Services {
       if (!dims){
         throw ("File Not Found");
       }
+      //Ensure corret number of dimensions
       for (let i = start.length; i < dims; i++) {
         start.push(0);
         count.push(1);
       }
 
+      //Image data request
       const responses =  await this.workerPool.getImageDataStream(uuid,permData,regionType,start,count)
- 
+      
+      //Forward response to ingress
       for (const response of  responses) {
           for (const chunk of  await response) {
             call.write( chunk)
           }
       }
-      // for await (const response of await responses) {
-      //   for await (const chunk of response) {
-      //       call.write(chunk);
-      //   }
-      // }
+
       call.end();
     },
 
+    //Creates Spatial profile response
     getSpatialProfile: async(call:ServerUnaryCall<SetSpatialReq, SpatialProfileData>,callback:sendUnaryData<SpatialProfileData>):Promise<void> => {
-      // Implement your logic here
+
       console.log("Spatial Profile called");
       const {uuid,x,y} = call.request;
+
+      //Gets file dimensions
       const dimensions = this.fileDims.get(uuid);
       if (!dimensions){
         console.log("File Not Found")
@@ -171,8 +179,10 @@ export class H5Services {
         return;
       }else{
 
+        //Get profiles
         const spatial_profiles = await this.workerPool.getSpatial(uuid,x,y,dimensions?.width,dimensions?.height);
         
+        //Create spatial response
         const spatial_profile_data = SpatialProfileData.create();
         spatial_profile_data.uuid = uuid;
         spatial_profiles.profiles.forEach(profile => {
@@ -183,6 +193,7 @@ export class H5Services {
       }
     },
 
+    //Spectral profile service
     getSpectralProfile: async (call:ServerUnaryCall<SpectralProfileRequest, SpectralProfileResponse>,callback:sendUnaryData<SpectralProfileResponse>):Promise<void> => {
       console.log("Spectral Profile called");
       const {uuid,regionId} = call.request;
@@ -209,30 +220,32 @@ export class H5Services {
         return;
       }
     
+      //Gets file depth
       let {depth} = dimension_values;
       if (!depth){
         depth = 1;
       }
       
-      //This will only work for circles and rectangles
       const points = region_info.controlPoints;
-      
+      //Handling of co-ordinates
       if (region_info.regionType == RegionType.CIRCLE){
-            const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
-            const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
-            const spectral_profile_response = SpectralProfileResponse.create();
-            spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
-            callback(null, spectral_profile_response);
-            return;
-      }
+        const {startingX,startingY,adjustedHeight,adjustedWidth} = getCircleCoords(points[0].x,points[0].y,points[1].x,points[1].y);       
+        //Request
+        const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
+        const spectral_profile_response = SpectralProfileResponse.create();
+        spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+        callback(null, spectral_profile_response);
+        return;
+      } 
       else if(region_info.regionType == RegionType.RECTANGLE){
         
         const {startingX,startingY,adjustedHeight,adjustedWidth} = getCoords(points[0].x,points[0].y,points[1].x,points[1].y);
-          const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
-          const spectral_profile_response = SpectralProfileResponse.create();
-          spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
-          callback(null, spectral_profile_response);
-          return;
+        //Request  
+        const spectral_profile = await this.workerPool.getSpectralProfile(uuid,startingX,startingY,0,depth,adjustedWidth,adjustedHeight,region_info);
+        const spectral_profile_response = SpectralProfileResponse.create();
+        spectral_profile_response.rawValuesFp32 = Buffer.from(spectral_profile.spectralData.buffer);
+        callback(null, spectral_profile_response);
+        return;
       }
         
       const error = {
@@ -241,20 +254,18 @@ export class H5Services {
       };
       callback({},null);
     },
-
-    getHistogram: async (call:ServerUnaryCall<SetHistogramReq, HistogramResponse>,callback:sendUnaryData<HistogramResponse>):Promise<void> => {
-      console.log("Histogram called");
-      const {uuid,x,y,z,width,height,depth} = call.request;
-      callback(null, await this.workerPool.getHistogram(uuid,x,y,z,width,height,depth));
-    }, 
+    //Add region to a list
     createRegion: async(call:ServerUnaryCall<SetRegion,SetRegionAck>,callback:sendUnaryData<SetRegionAck>):Promise<void>=>{
+
       console.log("Creating Region");
       if (call.request.regionInfo){
         if (call.request.regionId == 0){
+          //Creating a new region
           this.regionId++;
           this.regions.set(this.regionId,call.request.regionInfo)
         } 
         else{
+          //Updating a region
           this.regions.set(call.request.regionId,call.request.regionInfo)
         }
         callback(null,{success:true,message:"",regionId:this.regionId})

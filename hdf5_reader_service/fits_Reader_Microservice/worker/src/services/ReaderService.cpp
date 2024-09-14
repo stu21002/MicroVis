@@ -1,3 +1,5 @@
+//Implementation from https://github.com/CARTAvis/fits_reader_microservice/tree/main by Angus, extended to match functionailty of hdf5 by Stuart Heath
+
 #include "ReaderService.h"
 
 #include <fitsio.h>
@@ -11,14 +13,14 @@ using namespace proto;
 
 grpc::Status ReaderService::CheckStatus(grpc::ServerContext* context, const ::Empty* request,
                                         ::StatusResponse* response) {
-  //ServicePrint("Status");
+  ServicePrint("Status");
   response->set_status(true);
   response->set_statusmessage("OK");
   return grpc::Status::OK;
 }
 grpc::Status ReaderService::OpenFile(grpc::ServerContext* context, const ::OpenFileRequest* request,
                                      ::StatusResponse* response) {
-  //ServicePrint("Opening File");
+  ServicePrint("Opening File");
   fitsfile* fits_ptr = nullptr;
   int fits_status_code = 0;
   int fits_close_code = 0;
@@ -45,7 +47,7 @@ grpc::Status ReaderService::OpenFile(grpc::ServerContext* context, const ::OpenF
 
 grpc::Status ReaderService::CloseFile(grpc::ServerContext* context, const ::FileCloseRequest* request,
                                       ::StatusResponse* response) {
-  //ServicePrint("Closing File");
+  ServicePrint("Closing File");
   if (request->uuid().empty()) {
     return {grpc::StatusCode::INVALID_ARGUMENT, "UUID must be specified"};
   }
@@ -67,7 +69,7 @@ grpc::Status ReaderService::CloseFile(grpc::ServerContext* context, const ::File
 
 grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const ::FileInfoRequest* request,
                                         ::FileInfoResponse* response) {
-  //ServicePrint("File info");
+  ServicePrint("File info");
 
   if (request->uuid().empty()) {
     return {grpc::StatusCode::INVALID_ARGUMENT, "UUID must be specified"};
@@ -113,10 +115,6 @@ grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const ::Fi
     FileInfoExtended* file_info_extended = response->mutable_file_info_extended();
     file_info_extended->set_dimensions(num_dims);
 
-    // for (size_t i = 0; i < num_dims; i++)
-    // {
-    //   std::cout<<dims[i]<<std::endl;
-    // }
   
 
     if (num_dims > 0){
@@ -140,7 +138,7 @@ grpc::Status ReaderService::GetFileInfo(grpc::ServerContext* context, const ::Fi
 }
 
 grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request,::grpc::ServerWriter< ::ImageDataResponse>* writer) {
-  //ServicePrint("Image Data");
+  ServicePrint("Image Data");
   auto begin = std::chrono::high_resolution_clock::now();
   long total_bytes = 1;
 
@@ -160,14 +158,6 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
   int fits_status_code = 0;
   int fits_close_code = 0;
   
-  // std::vector<long> start_pix(request->start().begin(), request->start().end());
-  // std::vector<long> last_pix(start_pix.size());
-  // long num_pixels = 1;
-  // for (size_t i = 0; i < start_pix.size(); i++)
-  // {
-  //   num_pixels *= request->count()[i];
-  //   last_pix[i] = start_pix[i]+request->count()[i];
-  // }
 
   int startZ = request->start(2);
   int endZ = request->count(2)+startZ;
@@ -187,10 +177,8 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
   int num_bytes = num_pixels * sizeof(float);
   total_bytes *= num_bytes *request->count(2);
   std::vector<float> buffer(num_pixels);
-  // fits_read_pix(fits_ptr, TFLOAT, start_pix.data(),num_pixels, nullptr, response->mutable_data()->data(), nullptr, &fits_status_code);
-  
-  
 
+  //Reading file data
   for (size_t i = startZ; i < endZ; i++)
   {
 
@@ -221,9 +209,9 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
     size_t offset = 0;
     size_t chunk_size = MAX_CHUNK_SIZE / sizeof(float);
 
+    //handling message max size
     while (offset < buffer.size()) {
         size_t current_chunk_size = std::min(chunk_size, buffer.size() - offset);
-        // auto begin = std::chrono::high_resolution_clock::now();
 
         ImageDataResponse response;
         response.mutable_raw_values_fp32()->resize(current_chunk_size*sizeof(float));
@@ -234,10 +222,6 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
         std::copy(buffer.data() + offset, buffer.data() + offset + current_chunk_size, response_data);
         
         writer->Write(response);
-        // auto end = std::chrono::high_resolution_clock::now();
-        // auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-        
-        // // std::cout<<duration1.count()<<std::endl;
 
         offset += current_chunk_size;
     }
@@ -245,13 +229,16 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
   }
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-  ServicePrint(std::to_string(duration.count())+","+std::to_string(total_bytes)+","+std::to_string(total_bytes/duration.count()));
+  ServicePrint("Execution Time : " + std::to_string(duration.count()/1000)+" (s)");
+  ServicePrint("Bytes Read : " + std::to_string(total_bytes));
+  ServicePrint("Throughput : " + std::to_string((total_bytes/duration.count())/1000) + " MB/S");
+  ServicePrint("Image Data Request Completed");
   return grpc::Status::OK;
 }
 
 ::grpc::Status ReaderService::GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileResponse* response) {
   
-  //ServicePrint("Spectral");
+  ServicePrint("Spectral Service");
   auto begin = std::chrono::high_resolution_clock::now();
 
   if (request->uuid().empty()) {
@@ -309,9 +296,8 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
       std::vector<long> last_pix = {request->x() + width - 1, request->y() + height - 1, channel, 1};
       std::vector<long> increment = {1, 1, 1, 1};
 
-      // fits_read_pix(fits_ptr, TFLOAT, start_pix.data(), required_buffer_size, nullptr, required_buffer.data(), nullptr, &fits_status_code);
   
-
+    //reading 
      fits_read_subset(fits_ptr, TFLOAT, start_pix.data(), last_pix.data(), increment.data(), nullptr, required_buffer.data(), nullptr,
                       &fits_status_code);
 
@@ -322,6 +308,8 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
       int count = 0;
       float sum = 0;
 
+
+      //Calculation
       long offset = 0;
       for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
@@ -347,9 +335,12 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
 
-  ServicePrint(std::to_string(duration.count()));
+  ServicePrint("Execution Time : " + std::to_string(duration.count()));
+  ServicePrint("Spectral Service Complete");
   return grpc::Status::OK;
 }
+
+//Creating mask for a region
   std::vector<bool> ReaderService::getMask(RegionInfo region_info,int startX,int startY,int numX, int numY){
         std::vector<bool> mask(numX*numY,true);
 
@@ -361,8 +352,7 @@ grpc::Status ReaderService::GetImageDataStream(::grpc::ServerContext* context, c
             int centerY = region_info.controlpoints().Get(0).y();
             int index = 0;
             double pow_radius = pow(radi,2);
-            // float center = (diameter-1)/2.0;
-            // float centerY = (diameter-1)/2.0;
+
 
             for (int x = startX-1; x < startX+numX-1; x++) {
                 //part of circle calculation

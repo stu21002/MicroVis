@@ -4,7 +4,7 @@ package proto;
 import "FileInfo.proto";
 import "OpenFile.proto";
 import "defs.proto";
-import "Histogram.proto";
+// import "Histogram.proto";
 import "ImageData.proto";
 import "SpectralProfile.proto";
 import "SpatialProfile.proto";
@@ -23,5 +23,5 @@ service FileService{
     rpc GetImageDataStream (ImageDataRequest) returns (stream ImageDataResponse) {}
     rpc GetSpatialProfile (SetSpatialReq) returns (SpatialProfileData) {}
     rpc GetSpectralProfile (SpectralProfileRequest) returns (SpectralProfileResponse) {} 
-    rpc GetHistogram (SetHistogramReq) returns (HistogramResponse) {}
+    // rpc GetHistogram (SetHistogramReq) returns (HistogramResponse) {}
   }

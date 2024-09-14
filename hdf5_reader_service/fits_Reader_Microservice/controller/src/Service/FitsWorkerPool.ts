@@ -8,7 +8,6 @@ import { RegionInfo, RegionType } from "../proto/defs";
 import { ImageDataResponse } from "../proto/ImageData";
 import { SpatialProfile } from "../proto/SpatialProfile";
 import { SpectralProfileReaderResponse, SpectralProfileResponse } from "../proto/SpectralProfile";
-// import { bytesToFloat32 } from "../utils/arrays";
 
 export class FitsWorkerPool {
   readonly readers: FitsReader[];
@@ -73,22 +72,20 @@ export class FitsWorkerPool {
   }
   
 
+  //Handling image data streaming
   async getImageDataStream(uuid: string,regionType:RegionType, start: number[], count: number[], readerIndex?: number) {
 
     
     const promises = new Array<Promise<ImageDataResponse[]>>
-    // const promises = [];
     if (this.readers.length==1){
-      
-      console.log("single")
+      //Single reader
       promises.push(this.primaryreader.getImageDataStream({uuid, start, count, regionType: RegionType.RECTANGLE, permData: false
       }));
 
     }
     else{
-      //Handling distributed reading
-      console.log("multi")
-
+      //Multi reader
+      //Split across the Z dimension if Z greater than 1
       if (count[2]>1){
       const numWorkers = this.readers.length;
       const pixelsPerWorker = Math.floor(count[2] / numWorkers);
@@ -105,6 +102,7 @@ export class FitsWorkerPool {
           }));
         }
       }else{
+        //Splt across the Y dimension
         const numWorkers = this.readers.length;
         const pixelsPerWorker = Math.floor(count[1] / numWorkers);
         for (let i = 0; i < this.readers.length; i++) {
@@ -125,13 +123,14 @@ export class FitsWorkerPool {
 
   }
 
-  
+  //Spatial profile service
   async getSpatial(uuid:string,x:number,y:number,width:number,height:number){
 
       const promises = new Array<Promise<ImageDataResponse[]>>
 
 
       if (this.readers.length==1){
+        //Single reader
         //y
         promises.push(( this.readers[0].getImageDataStream({
           uuid, regionType: RegionType.LINE, start: [x+1, 1, 1, 1], count: [1, height, 1, 1],
@@ -144,6 +143,7 @@ export class FitsWorkerPool {
         })))
       }
       else{
+        //Multi reader
         //y
         promises.push(( this.readers[0].getImageDataStream({
           uuid, regionType: RegionType.LINE, start: [x+1, 1, 1, 1], count: [1, height, 1, 1],
@@ -156,7 +156,7 @@ export class FitsWorkerPool {
         })))
       }
      
-
+      //Creating profiles response 
       return Promise.all(promises).then(
         ([yImageData, xImageData]) => {
           const profiles:SpatialProfile[]=[];
@@ -180,17 +180,12 @@ export class FitsWorkerPool {
       )
   }
 
-  // async getHistogram(uuid:string,x:number,y:number,z:number,width:number,height:number,depth:number){
-  //   const reader = this.randomConnectedreader;
-  //   return reader.getHistogram({uuid,start:[x,y,0,0],count:[width,height,1,1]});
-  // }
-
-  //Cube Hist?? Mostly fits
-  
+  //Spectral Profile service
   async getSpectralProfile(uuid: string, x: number, y: number, z: number, numPixels: number, width = 1, height = 1,region_info:RegionInfo,numWorkers?: number) {
     if (!numWorkers) {
       numWorkers = this.readers.length;
     }
+    //Workload distribution
     const pixelsPerWorker = Math.floor(numPixels / numWorkers);
     const promises = new Array<Promise<SpectralProfileResponse>>();
     for (let i = 0; i < numWorkers; i++) {
@@ -201,6 +196,7 @@ export class FitsWorkerPool {
       promises.push(worker.getSpectralProfile({ uuid,regionInfo:region_info, x, y, z: zStart, width, height, numPixels: numPixelsInChunk }));
     }
 
+    //Array concant
     return Promise.all(promises).then(res => {
       const spectralData = new Float32Array(numPixels);
       let offset = 0;

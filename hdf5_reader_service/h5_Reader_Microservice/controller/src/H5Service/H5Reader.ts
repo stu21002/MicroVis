@@ -21,10 +21,8 @@ import { promisify } from "util";
     readonly closeFile: (request: FileCloseRequest) => Promise<StatusResponse>;
     readonly getFileInfo: (request: FileInfoRequest) => Promise<FileInfoResponse>;
     readonly getImageDataStream: (request: ImageDataRequest) => Promise<ImageDataResponse[]>;
-    
     readonly getSpectralProfile: (request: SpectralProfileReaderRequest) => Promise<SpectralProfileReaderResponse>;
-    readonly getHistogram: (request: HistogramRequest) =>Promise<HistogramResponse>;
-    readonly getHistogramDist: (request: HistogramDistRequest) =>Promise<HistogramResponse>;
+
     
 
     private _connected = false;
@@ -51,24 +49,20 @@ import { promisify } from "util";
       const WORKER_URL = `${address}:${port}`;
       const client = new H5ReadersClient(WORKER_URL, credentials.createInsecure());
   
-      //Linking 
+      //Linking services to methods
       this.checkStatus = promisify<Empty, StatusResponse>(client.checkStatus).bind(client);
       this.getFileInfo = promisify<FileInfoRequest, FileInfoResponse>(client.getFileInfo).bind(client);
       this.getSpectralProfile = promisify<SpectralProfileReaderRequest, SpectralProfileReaderResponse>(client.getSpectralProfile).bind(client);
       this.openFile = promisify<OpenFileRequest, StatusResponse>(client.openFile).bind(client);
       this.closeFile = promisify<FileCloseRequest, StatusResponse>(client.closeFile).bind(client);
 
-      this.getHistogram = promisify<HistogramRequest, HistogramResponse>(client.getHistogram).bind(client);
-      this.getHistogramDist = promisify<HistogramDistRequest, HistogramResponse>(client.getHistogramDist).bind(client);
-
+      //Image data Stream handling
       this.getImageDataStream = (request: ImageDataRequest) => {
         return new Promise<ImageDataResponse[]>((resolve, reject) => {
           const call = client.getImageDataStream(request);
           const imageDataResponses:ImageDataResponse[] = [];
           call.on('data', (response: ImageDataResponse) => {
-            //Possible Conditions
-              imageDataResponses.push(response)
-            
+              imageDataResponses.push(response)  
           });
       
           call.on('end', () => {
@@ -91,7 +85,6 @@ import { promisify } from "util";
             reject(err);
           }
         } else {
-          // console.log(port + " : true")
 
           this._connected = true;
           for (const resolve of this._readyResolves) {

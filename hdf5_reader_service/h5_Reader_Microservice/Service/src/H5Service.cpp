@@ -15,6 +15,7 @@
 
 using namespace std::chrono;
 
+    //Constructor
     H5Service::H5Service(int port) : port(port) {}
 
     grpc::Status H5Service::CheckStatus(::grpc::ServerContext *context, const ::Empty *request, ::StatusResponse *response)
@@ -24,7 +25,7 @@ using namespace std::chrono;
         return grpc::Status::OK;
     }
 
-    
+    //Opening file service
     grpc::Status H5Service::OpenFile(::grpc::ServerContext *context, const ::OpenFileRequest *request, ::StatusResponse *response)
     {
 
@@ -73,7 +74,7 @@ using namespace std::chrono;
         ServicePrint("File Opened");
         return grpc::Status::OK;
     }
-    //Closes a file
+    //Closing file service
     grpc::Status H5Service::CloseFile(::grpc::ServerContext *context, const ::FileCloseRequest *request, ::StatusResponse *response)
     {
         if (request->uuid().empty()) {
@@ -105,7 +106,7 @@ using namespace std::chrono;
         return grpc::Status::OK;
     };
 
-    //Retrieves file information
+    //file information service
     grpc::Status H5Service::GetFileInfo(::grpc::ServerContext *context, const ::FileInfoRequest *request, ::FileInfoResponse *response)
     {
         try
@@ -165,6 +166,8 @@ using namespace std::chrono;
 
         return grpc::Status::OK;
     };
+
+    //Image data service
     grpc::Status H5Service::GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request, ::grpc::ServerWriter< ::ImageDataResponse>* writer){
         auto begin = std::chrono::high_resolution_clock::now();
         long total_bytes = 1;
@@ -350,8 +353,10 @@ using namespace std::chrono;
         }
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
-
-        ServicePrint("ImageData Request Complete : " + duration.count());
+        ServicePrint("Execution Time : " + std::to_string(duration.count()/1000)+" (s)");
+        ServicePrint("Bytes Read : " + std::to_string(total_bytes));
+        ServicePrint("Throughput : " + std::to_string((total_bytes/duration.count())/1000) + " MB/S");
+        ServicePrint("Image Data Request Completed");
         return grpc::Status::OK;
     };
 
@@ -438,12 +443,13 @@ grpc::Status H5Service::GetSpectralProfile(::grpc::ServerContext* context, const
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
 
-        // ServicePrint(std::to_string(duration.count()));
-        ServicePrint("Spectral Profile Stream Complete : " + duration.count());
+
+        ServicePrint("Execution Time : " + std::to_string(duration.count()));
+        ServicePrint("Spectral Service Complete");
         return grpc::Status::OK;
     }
 
-    //No Expirments Run on Histogram Service
+    //No Expirments Run on Histogram Service (Future Work)
     // grpc::Status H5Service::GetHistogram(::grpc::ServerContext* context, const ::HistogramRequest* request, ::HistogramResponse* response){
         
     //     //ServicePrint("Histogram Request");
