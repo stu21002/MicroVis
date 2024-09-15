@@ -8,8 +8,6 @@ import { SmoothingServicesClient } from "./proto/smoothing";
     const h5wasm = await import('h5wasm/node');
     await h5wasm.ready;
 
-    //const startTime = new Date().getTime();
-
     const file = new h5wasm.File("/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5", "r");
 
     const datasetName = '0/DATA';
@@ -25,20 +23,11 @@ import { SmoothingServicesClient } from "./proto/smoothing";
             const width = maxshape[2];
             const height = maxshape[3];
 
-            const doubleWidth = width * 2
-            const doubleHeight = height * 2
-
-            const quadrupleWidth = width * 4
-            const quadrupleHeight = height * 4
-
             const halfWidth = Math.floor(width / 2);
             const halfHeight = Math.floor(height / 2);
 
             const quarterWidth = Math.floor(width / 4);
             const quarterHeight = Math.floor(height / 4);
-
-            const eighthWidth = Math.floor(width / 8);
-            const eighthHeight = Math.floor(width / 8);
 
             const slices: [number, number | null, number | null][][] = [];
 
@@ -97,8 +86,7 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                 new SmoothingServicesClient("localhost:9968", grpc.credentials.createInsecure(), options)
             ];
 
-            let smoothingMode = 2;
-            let count = 0;
+            const smoothingMode = parseInt(process.argv[2]) || 0;
 
             slices.forEach((slice, index) => {
                 try {
@@ -138,8 +126,8 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
                         let contouringData = {
                             data: flatArray,
-                            width: halfWidth,
-                            height: halfHeight,
+                            width: width,
+                            height: height,
                             offset: 0,
                             scale: 1,
                             index: index,
@@ -159,7 +147,7 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
                             // Calculate and display the time taken for send and receive separately
                             console.log(`Time grpc data was sent ${index}: ${grpcContourSendTime % 1000000} ms`);
-                            console.log(`Total gRPC Time ${index}: ${grpcContourReceiveTime - grpcContourSendTime} ms`);
+                            console.log(`Total gRPC Time ${index}: ${grpcContourReceiveTime - grpcContourSendTime} ms \n`);
                         });
                     }
                     else if(smoothingMode == 1){
@@ -170,12 +158,12 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                             if (error) {
                                 console.error(`Error for client ${index}:`, error);
                             } else {
-                                console.log(`Gaussian Smoothing Output for client ${index}: ${response?.smoothingFactor}`);
+                                console.log(`Gaussian Smoothing Output for client ${index}: Gaussian Smoothing Complete`);
                                 //console.log(`Size of response: `, response.data.length / 4);
     
                                 const grpcSmoothEndTime = new Date().getTime();
                                 console.log(`Time grpc data was sent ${index}: ${grpcSmoothStartTime % 1000000} ms`);
-                                console.log(`Total gRPC Time ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms`);
+                                console.log(`Total gRPC Time ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms \n`);
     
                                 contouringArray = response.data;
                                 offsetContour = response.smoothingFactor - 1;
@@ -206,16 +194,10 @@ import { SmoothingServicesClient } from "./proto/smoothing";
 
                                     // Calculate and display the time taken for send and receive separately
                                     console.log(`Time grpc data was sent ${index}: ${grpcContourSendTime % 1000000} ms`);
-                                    console.log(`Total gRPC Time ${index}: ${grpcContourReceiveTime - grpcContourSendTime} ms`);
+                                    console.log(`Total gRPC Time ${index}: ${grpcContourReceiveTime - grpcContourSendTime} ms \n`);
                                 });
-
-                                
-    
-                            }
-                            
-                            
+                            }    
                         });
-                        //count = count + 1;
                     }
                     else{
 
@@ -226,12 +208,12 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                                 console.error(`Error for client ${index}:`, error);
                             }
                             else{
-                                console.log(`Block Smoothing Output for client ${index}: ${response?.smoothingFactor}`);
+                                console.log(`Block Smoothing Output for client ${index}: Block Smoothing Complete`);
                                 //console.log(`Size of response: `, response.data.length / 4);
     
                                 const grpcSmoothEndTime = new Date().getTime();
                                 console.log(`Time grpc data was sent ${index}: ${grpcSmoothStartTime % 1000000} ms`);
-                                console.log(`Total gRPC Time ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms`);
+                                console.log(`Total gRPC Time ${index}: ${grpcSmoothEndTime - grpcSmoothStartTime} ms \n`);
     
                                 contouringArray = response.data;
                                 offsetContour = 0;
@@ -261,7 +243,7 @@ import { SmoothingServicesClient } from "./proto/smoothing";
                                         
                                     }
                                     console.log(`Time grpc data was sent ${index}: ${grpcContourStartTime % 1000000} ms`);
-                                    console.log(`Total gRPC Time ${index}: ${grpcContourEndTime - grpcContourStartTime} ms`);
+                                    console.log(`Total gRPC Time ${index}: ${grpcContourEndTime - grpcContourStartTime} ms \n`);
                                 });
                             }
                         });
@@ -279,9 +261,6 @@ import { SmoothingServicesClient } from "./proto/smoothing";
     } else {
         console.error('Dataset not found or is not a Dataset');
     }
-
-    // const endTime = new Date().getTime();
-    // console.log(`Total time taken: ${endTime - startTime} ms`);
 
     file.close();
 })();

@@ -26,74 +26,62 @@ void ContourCallback(double level, double progress, const std::vector<float> &pa
 
 class ProcessingImpl : public ContourServices::Service {
 ::grpc::Status computeContour(::grpc::ServerContext* context, const ::ContouringEmpty *request, ::ContouringOutput *response){
-    //std::cout << "Called Contouring Service" << std::endl;
 
-        //const google::protobuf::RepeatedField<float>& data = request->data();
-        auto wholeTimeStart = std::chrono::high_resolution_clock::now();
+    auto wholeTimeStart = std::chrono::high_resolution_clock::now();
 
+    auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
 
-        auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
+    int width = request->width();
+    int height = request->height();
+    int index = request->index();
 
-        int width = request->width();
-        int height = request->height();
-        int index = request->index();
+    const std::string& raw_values = request->data();
 
-        
+    auto now = std::chrono::system_clock::now();
 
-        const std::string& raw_values = request->data();
+    // Convert it to time since epoch, in milliseconds
+    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
-        auto now = std::chrono::system_clock::now();
-    
-        // Convert it to time since epoch, in milliseconds
-        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    auto last_six_digits = millis % 1000000;
 
-        auto last_six_digits = millis % 1000000;
+    // Print the milliseconds
+    std::cout << "Time gRPC data was recieved for index: " << index << ": " << last_six_digits << " ms" << std::endl;
 
-        // Print the milliseconds
-        std::cout << "Time gRPC data was recieved for index: " << index << ": " << last_six_digits << " ms" << std::endl;
+    auto nowEnd = std::chrono::system_clock::now();
 
-        auto nowEnd = std::chrono::system_clock::now();
+    size_t num_floats = raw_values.size() / sizeof(float);
 
-        size_t num_floats = raw_values.size() / sizeof(float);
+    std::vector<float> float_values(num_floats);
+    std:memcpy(float_values.data(), raw_values.data(), raw_values.size());
 
-        std::vector<float> float_values(num_floats);
-        std:memcpy(float_values.data(), raw_values.data(), raw_values.size());
+    auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
+    //std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
 
-        // Convert to std::vector<float>
-        //std::vector<float> vectorData(data.begin(), data.end());
+    std::vector<double> levels = {-0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03};
 
-        auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
-        std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
+    std::vector<std::vector<float>> vertex_data;
+    std::vector<std::vector<int32_t>> index_data;
 
-        std::vector<double> levels = {-0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03};
+    int chunk_size = 100000;
+    float scale = request->scale();
+    float offset = request->offset();
 
-        std::vector<std::vector<float>> vertex_data;
-        std::vector<std::vector<int32_t>> index_data;
+    carta::ContourCallback callback = ContourCallback;
 
-        int chunk_size = 100000;
-        float scale = request->scale();
-        float offset = request->offset();
+    auto start = std::chrono::high_resolution_clock::now();
 
-        //std::cout << width << " " << height << " " << index << " " << scale << " " << offset << std::endl;
+    carta::TraceContours(float_values.data(), width, height, scale, offset, levels, vertex_data, index_data, chunk_size, callback);
 
-        carta::ContourCallback callback = ContourCallback;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "TraceContours took for index: " << index << ": " << duration.count() << " seconds." << std::endl;
 
-        //std::cout << float_values.size() << std::endl;
+    response->set_value("Contour processing complete");
 
-        auto start = std::chrono::high_resolution_clock::now();
-
-        carta::TraceContours(float_values.data(), width, height, scale, offset, levels, vertex_data, index_data, chunk_size, callback);
-
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> duration = end - start;
-        std::cout << "TraceContours took for index: " << index << ": " << duration.count() << " seconds." << std::endl;
-
-        response->set_value("Contour processing complete");
-
-        auto wholeTimeEnd = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> wholeTimeDuration = wholeTimeEnd - wholeTimeStart - (nowEnd - now);
-        std::cout << "Whole time took " << wholeTimeDuration.count() << " seconds for index: " << index << std::endl;
+    auto wholeTimeEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> wholeTimeDuration = wholeTimeEnd - wholeTimeStart - (nowEnd - now);
+    std::cout << "Whole time took " << wholeTimeDuration.count() << " seconds for index: " << index << std::endl;
 
     return grpc::Status::OK;
 }

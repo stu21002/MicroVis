@@ -10,53 +10,7 @@
 
 class ProcessingImpl : public SmoothingServices::Service {
 ::grpc::Status computeGuassianBlur(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
-    //std::cout << "Called GuassianBlur" << std::endl;
 
-//     std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
-//         std::string datasetName = "DATA";                                                                  
-
-//         H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
-//         H5::Group group = file.openGroup("0");
-
-//         // Open the dataset
-//         H5::DataSet dataset = group.openDataSet(datasetName);
-
-//         // Get the dataspace of the dataset
-//         H5::DataSpace dataspace = dataset.getSpace();
-
-//         // Get the dimensions of the dataset
-//         hsize_t dims[4];
-//         dataspace.getSimpleExtentDims(dims, NULL);
-//         int64_t dim1 = dims[0];
-//         int64_t dim2 = dims[1];
-//         int64_t width = dims[2];
-//         int64_t height = dims[3];
-
-//         int target_slice = 1;
-
-//         hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-//         H5::DataSpace memspace(2, slice_dims);
-
-//         // Create a buffer to hold the data for the entire slice
-//         std::vector<float> slice_buffer(width * height);
-
-//         // Define hyperslab in the dataset
-//         hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
-//         hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-//         dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
-
-//         try {
-//             dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
-//         } catch (H5::Exception& e) {
-//             std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
-//             return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
-//         }
-
-    //const google::protobuf::RepeatedField<float>& data = request->data();
-
-    // auto after_receieved_contoruing = std::chrono::high_resolution_clock::now();
-
-    // std::cout << "After data recieved Smoothing: " << after_receieved_contoruing.max << std::endl;
     auto wholeTimeStart = std::chrono::high_resolution_clock::now();
 
     auto conversionToVectorStart = std::chrono::high_resolution_clock::now();
@@ -83,12 +37,9 @@ class ProcessingImpl : public SmoothingServices::Service {
     std::vector<float> float_values(num_floats);
     std:memcpy(float_values.data(), raw_values.data(), raw_values.size());
 
-        // Convert to std::vector<float>
-    // std::vector<float> vectorData(data.begin(), data.end());
-
     auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
-    std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
+    //std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
 
     int smoothing_factor = 4;
     
@@ -105,40 +56,11 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    //std::cout << float_values.size() << std::endl;
-    //std::cout << dest_array << std::endl;
-
     carta::GaussianSmooth(float_values.data(), response_array, source_width, source_height, dest_width, dest_height, smoothing_factor);
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
     std::cout << "GaussianSmooth took " << duration.count() << " seconds for index: " << index << std::endl;
-
-    // std::cout << dest_width * dest_height << std::endl;
-
-    // float final = 0;
-    // for(int i = 0; i < dest_width * dest_height; i++){
-    //     if(std::isnan(response_array[i])){
-    //         continue;
-    //     }
-    //     else{
-    //         final = final + response_array[i];
-    //     }
-    // }
-
-    // std::cout << final << std::endl;
-
-    // auto startConversionDest = std::chrono::high_resolution_clock::now();
-    
-    // for (int64_t i = 0; i < dest_width * dest_height; ++i) {
-    //     response->add_data(dest_array[i]);
-    // }
-
-    //std::memcpy(response_array, dest_array.get(), dest_width * dest_height * sizeof(float));
-
-    // auto endConversionDest = std::chrono::high_resolution_clock::now();
-    // std::chrono::duration<double> durationConversionDest = endConversionDest - startConversionDest;
-    // std::cout << "Coversion to send data took " << durationConversionDest.count() << " seconds." << std::endl;
 
     response->set_smoothingfactor(smoothing_factor);
     response->set_dest_width(dest_width);
@@ -152,49 +74,6 @@ class ProcessingImpl : public SmoothingServices::Service {
 }
 
 ::grpc::Status computeBlockSmoothing(::grpc::ServerContext* context, const ::SmoothingEmpty *request, ::SmoothingOutput *response){
-    std::cout << "Called Block Smoothing" << std::endl;
-
-//     std::string fileName = "/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5";
-//         std::string datasetName = "DATA";                                                                  
-
-//         H5::H5File file = H5::H5File(fileName, H5F_ACC_RDONLY);
-//         H5::Group group = file.openGroup("0");
-
-//         // Open the dataset
-//         H5::DataSet dataset = group.openDataSet(datasetName);
-
-//         // Get the dataspace of the dataset
-//         H5::DataSpace dataspace = dataset.getSpace();
-
-//         // Get the dimensions of the dataset
-//         hsize_t dims[4];
-//         dataspace.getSimpleExtentDims(dims, NULL);
-//         int64_t dim1 = dims[0];
-//         int64_t dim2 = dims[1];
-//         int64_t width = dims[2];
-//         int64_t height = dims[3];
-
-//         int target_slice = 1;
-
-//         hsize_t slice_dims[2] = {static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-//         H5::DataSpace memspace(2, slice_dims);
-
-//         // Create a buffer to hold the data for the entire slice
-//         std::vector<float> slice_buffer(width * height);
-
-//         // Define hyperslab in the dataset
-//         hsize_t offset[4] = {0, static_cast<hsize_t>(target_slice), 0, 0};
-//         hsize_t count[4] = {1, 1, static_cast<hsize_t>(width), static_cast<hsize_t>(height)};
-//         dataspace.selectHyperslab(H5S_SELECT_SET, count, offset);
-
-//         try {
-//             dataset.read(slice_buffer.data(), H5::PredType::NATIVE_FLOAT, memspace, dataspace);
-//         } catch (H5::Exception& e) {
-//             std::cerr << "HDF5 error: " << e.getCDetailMsg() << std::endl;
-//             return grpc::Status(grpc::StatusCode::INTERNAL, "HDF5 read error");
-//         }
-
-    //const google::protobuf::RepeatedField<float>& data = request->data();
 
     auto wholeTimeStart = std::chrono::high_resolution_clock::now();
 
@@ -222,12 +101,9 @@ class ProcessingImpl : public SmoothingServices::Service {
     std::vector<float> float_values(num_floats);
     std:memcpy(float_values.data(), raw_values.data(), raw_values.size());
 
-        // Convert to std::vector<float>
-    // std::vector<float> vectorData(data.begin(), data.end());
-
     auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
-    std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
+    //std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
     
     int smoothing_factor = 4;
 
@@ -242,6 +118,8 @@ class ProcessingImpl : public SmoothingServices::Service {
     size_t num_rows_region = std::ceil((float)req_height / smoothing_factor);
     size_t row_length_region = std::ceil((float)req_width / smoothing_factor);
     //std::unique_ptr<float[]> dest_array(new float[num_rows_region * row_length_region]);
+    std::vector<float> dest_array;
+    dest_array.resize(num_rows_region * row_length_region);
 
     response->mutable_data()->resize(row_length_region * num_rows_region * sizeof(float));
     float* response_array = reinterpret_cast<float*>(response->mutable_data()->data());
@@ -266,57 +144,6 @@ class ProcessingImpl : public SmoothingServices::Service {
 
     size_t dest_width = ceil(double(width) / smoothing_factor);
     size_t dest_height = ceil(double(height) / smoothing_factor);
-
-    // std::ostringstream oss;
-    //     oss << "Completed Block Smoothing: 5 values from array from index: " << index << " " << row_length_region * num_rows_region << " ";
-    //     for (int i = 0; i < 5 && i < num_rows_region * row_length_region; ++i) {
-    //         oss << response_array[i];
-    //         if (i < 4) {
-    //             oss << ", ";
-    //         }
-    //     }
-    // std::cout << oss.str() << std::endl;
-    // float final = 0;
-    // for(int i = 0; i < row_length_region * num_rows_region; i++){
-    //     if(std::isnan(response_array[i])){
-    //         continue;
-    //     }
-    //     else{
-    //         final = final + response_array[i];
-    //     }
-    // }
-
-    // std::cout << final << std::endl;
-
-    // std::ostringstream oss3;
-    //     oss3 << "5 values from middle of Block smoothing array: ";
-    //     for (int i = 57595; i < 57600 && i < num_rows_region * row_length_region; ++i) {
-    //         oss3 << response_array[i];
-    //         if (i < 57599) {
-    //             oss3 << ", ";
-    //         }
-    //     }
-    //     std::cout << oss3.str() << std::endl;
-
-    //     std::ostringstream oss4;
-    //     oss4 << "5 values from middle of Block smoothing array: ";
-    //     for (int i = 115195; i < 115200 && i < num_rows_region * row_length_region; ++i) {
-    //         oss4 << response_array[i];
-    //         if (i < 115199) {
-    //             oss4 << ", ";
-    //         }
-    //     }
-    //     std::cout << oss4.str() << std::endl;
-
-        // std::ostringstream oss5;
-        // oss5 << "5 values from end of Block smoothing array: "<< index << " ";
-        // for (int i = 57595; i < 57600 && i < num_rows_region * row_length_region; ++i) {
-        //     oss5 << response_array[i];
-        //     if (i < 57599) {
-        //         oss5 << ", ";
-        //     }
-        // }
-        // std::cout << oss5.str() << std::endl;
 
     response->set_smoothingfactor(smoothing_factor);
     response->set_dest_width(dest_width);

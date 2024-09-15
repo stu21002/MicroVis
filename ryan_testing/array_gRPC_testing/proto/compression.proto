@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+message CompressionOutput {
+    string success = 1;
+}
+
+message CompressionEmpty{
+    repeated float data = 1;
+    float width = 2;
+    float height = 3;
+    float precision = 4;
+    float offset = 5;
+    float index = 6;
+}
+
+message NanEncodingMessage{
+    repeated float data = 1;
+    float offset = 2;
+    float width = 3;
+    float height = 4;
+    float index = 5;
+}
+
+message NanEncodingResponse{
+    string success = 1;
+}
+
+service CompressionServices{
+    rpc computeCompression(CompressionEmpty) returns (CompressionOutput) {}
+    rpc computeDecompression(CompressionEmpty) returns (CompressionOutput) {}
+    rpc computeNanEncodingsBlock(NanEncodingMessage) returns (NanEncodingResponse) {}
+}

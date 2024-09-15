@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+message ContouringOutput {
+    string value = 1;
+}
+
+message ContouringEmpty{
+    repeated float data = 1;
+    float width = 2;
+    float height = 3;
+    float offset = 4;
+    float scale = 5;
+    float index = 6;
+}
+
+service ContourServices{
+    rpc computeContour(ContouringEmpty) returns (ContouringOutput) {}
+}

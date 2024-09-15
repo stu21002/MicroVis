@@ -1,6 +1,6 @@
 build/
 Release/
-controller/node_modules
-controller/dist
+Ingress_Node/node_modules
+Ingress_Node/dist
 files/Big.fits
 files/Big.hdf5*
