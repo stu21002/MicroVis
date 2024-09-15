@@ -36,7 +36,7 @@ class H5Service final : public H5Readers::Service
         virtual ::grpc::Status GetFileInfo(::grpc::ServerContext *context, const ::FileInfoRequest *request, ::FileInfoResponse *response);
         virtual ::grpc::Status GetImageDataStream(::grpc::ServerContext* context, const ::ImageDataRequest* request, ::grpc::ServerWriter< ::ImageDataResponse>* writer);
         virtual ::grpc::Status GetSpectralProfile(::grpc::ServerContext* context, const ::SpectralProfileReaderRequest* request, ::SpectralProfileReaderResponse* response);
-        virtual ::grpc::Status GetHistogram(::grpc::ServerContext* context, const ::HistogramRequest* request, ::HistogramResponse* response);
+        // virtual ::grpc::Status GetHistogram(::grpc::ServerContext* context, const ::HistogramRequest* request, ::HistogramResponse* response);
 
         //Method for file info
         void appendAttribute(FileInfoExtended *extendedFileInfo,H5::Attribute attr);

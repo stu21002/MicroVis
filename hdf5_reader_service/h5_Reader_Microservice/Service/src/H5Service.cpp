@@ -269,7 +269,7 @@ using namespace std::chrono;
             dataset.close();
             permGroup.close();
         }else{
-
+            
             dataset= h5file._group.openDataSet("DATA");  
 
             //initialising dimensions
@@ -353,9 +353,25 @@ using namespace std::chrono;
         }
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin);
+        
+        //Timings for expirments and demo
+        if (duration.count()/1000 > 0){
         ServicePrint("Execution Time : " + std::to_string(duration.count()/1000)+" (s)");
-        ServicePrint("Bytes Read : " + std::to_string(total_bytes));
-        ServicePrint("Throughput : " + std::to_string((total_bytes/duration.count())/1000) + " MB/S");
+        ServicePrint("Bytes Read : " + std::to_string(total_bytes/1000) + " MB");
+            ServicePrint("Throughput : " + std::to_string((total_bytes/duration.count())/1000) + " MB/S");
+        }else{
+            if (duration.count() > 0){
+                ServicePrint("Execution Time : " + std::to_string(duration.count())+" (ms)");
+                ServicePrint("Bytes Read : " + std::to_string(total_bytes) + " B");
+                ServicePrint("Throughput : " + std::to_string((total_bytes/duration.count())) + " B/ms");
+            }else{
+                ServicePrint("Execution Time : " + std::to_string(duration.count())+" (ms)");
+                ServicePrint("Bytes Read : " + std::to_string(total_bytes) + " B");
+
+            }
+
+
+        }
         ServicePrint("Image Data Request Completed");
         return grpc::Status::OK;
     };

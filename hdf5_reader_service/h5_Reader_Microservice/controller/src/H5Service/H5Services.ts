@@ -18,7 +18,7 @@ import { bytesToFloat32, float32ToBytes } from "../utils/arrays";
 import { ImageDataRequest, ImageDataResponse } from "../proto/ImageData";
 import { SetSpatialReq, SpatialProfileData } from "../proto/SpatialProfile";
 import { SpectralProfileRequest, SpectralProfileResponse } from "../proto/SpectralProfile";
-import { HistogramResponse, SetHistogramReq } from "../proto/Histogram";
+// import { HistogramResponse, SetHistogramReq } from "../proto/Histogram";
 import { SetRegion, SetRegionAck } from "../proto/Region";
 import { getCircleCoords, getCoords } from "../utils/coord";
 import { FileServiceServer, FileServiceService } from "../proto/FileService";

@@ -24,6 +24,7 @@ export class Ingres {
     private _rejectResolves: ((err: Error) => void)[] = [];
 
     private readerConnections:FileServiceConn;
+
     get connected() {
       return this._connected;
     }
@@ -47,7 +48,6 @@ export class Ingres {
         const reader_url = `${address}:${port}`;
         this.readerConnections=new FileServiceConn(address,port);
    
-     
     }
 
 
@@ -82,10 +82,10 @@ export class Ingres {
       return this.readerConnections.getSpatialProfile(request);
   }
 
-  public getHistogram(request:SetHistogramReq):Promise<HistogramResponse>{
+//   public getHistogram(request:SetHistogramReq):Promise<HistogramResponse>{
    
-      return this.readerConnections.getHistogram(request);
-  }
+//       return this.readerConnections.getHistogram(request);
+//   }
 
   public regionCreate(request:SetRegion):Promise<SetRegionAck>{
    

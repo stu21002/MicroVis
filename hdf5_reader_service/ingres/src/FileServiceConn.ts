@@ -161,17 +161,17 @@ export class FileServiceConn{
      * @param {SetHistogramReq} request - request.
      * @returns {Promise<HistogramResponse>} - histogram response.
      */
-    public getHistogram(request:SetHistogramReq):Promise<HistogramResponse>{
-        return new Promise((resolve,reject)=>{
-            this.client.getHistogram(request,(error: ServiceError| null, response: HistogramResponse) => {
-                if (error) {
-                  reject(error);
-                } else {
-                  resolve(response);
-                }
-              });
-        })
-    }
+    // public getHistogram(request:SetHistogramReq):Promise<HistogramResponse>{
+    //     return new Promise((resolve,reject)=>{
+    //         this.client.getHistogram(request,(error: ServiceError| null, response: HistogramResponse) => {
+    //             if (error) {
+    //               reject(error);
+    //             } else {
+    //               resolve(response);
+    //             }
+    //           });
+    //     })
+    // }
 
     /**
      * Creates a region.

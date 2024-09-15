@@ -4,8 +4,7 @@ import { SpectralProfileRequest, SpectralServiceRequest } from "./proto/Spectral
 import { Ingres } from "./ingres";
 import { bytesToFloat32 } from "./utils/arrays";
 import { ImageDataRequest } from "./proto/ImageData";
-import { count } from "console";
-import { randomInt } from "crypto";
+
 
 
 let SessionUUID = ""; 
@@ -41,7 +40,8 @@ async function spectral(file:string, start:number,count:number) {
     const spec_res = await ingres.getSpectralProfile(spectral_request);
     console.timeEnd("Spectral Profile");
 
-    // console.log("Ingres First five values : " + bytesToFloat32(spec_res.rawValuesFp32).subarray(0, 5));
+    console.log("Values Received")
+    console.log(bytesToFloat32(spec_res.rawValuesFp32).subarray(0, 5));
 
     ingres.closeFile({uuid: open_file_res.uuid});
 }
@@ -99,10 +99,15 @@ async function ImageData(file:string, x:number,y:number,z:number, cX:number,cY:n
         const image_res = await ingres.getImageDataStream(image_request);
         const endTime = Date.now();
 
+        console.log("Values Received")
+        console.log(bytesToFloat32(image_res[0].rawValuesFp32).slice(0,5))
+
         let num_bytes = 0;
         for (let index = 0; index < image_res.length; index++) {
             num_bytes += image_res[index].rawValuesFp32.length;
         }
+
+
         console.log("Total Milliseconds ",(endTime - startTime));
         console.log("Total Bytes Read ",num_bytes);
         console.log("Rate ",num_bytes/(endTime - startTime));
@@ -146,7 +151,7 @@ async function spectralService(file:string,start:number,count:number,perm:boolea
     console.time("SpecServ");
     const service_response = await ingres.spectralService(spectral_service_request);
     console.timeEnd("SpecServ");
-
+    console.log("Values Received")
     console.log(bytesToFloat32(service_response.rawValuesFp32).slice(0,5));
     // console.log(bytesToFloat32(service_response.rawValuesFp32).length)
     ingres.closeFile({uuid: open_file_res.uuid});
@@ -163,7 +168,12 @@ async function spatial(file:string,x:number,y:number) {
     const response = await ingres.getSpatialProfile({uuid:SessionUUID,x,y})
     const endTime = Date.now();
 
-    console.log(endTime-startTime)
+    console.log("Values Received - " + response.profiles[0].coordinate)
+    console.log(bytesToFloat32(response.profiles[0].rawValuesFp32).slice(0,5));
+    console.log("Values Received - " + response.profiles[1].coordinate)
+    console.log(bytesToFloat32(response.profiles[1].rawValuesFp32).slice(0,5));
+
+    console.log("Time :" + (endTime-startTime) + "ms")
 
     ingres.closeFile({uuid:SessionUUID})
 }
@@ -243,15 +253,75 @@ async function executeOperation(operation: string, ...args: any[]) {
 // executeOperation("imageData","Small.fits",0,800,false);
 
 
-async function Demo(){
-     
-    // await executeOperation("spectralService","Small.hdf5",400,40,false);
+const SpecSmallRes = [2.9182921622e-4,6.8948196832e-4,3.4715547745e-4,-7.8965837209e-5, -9.9831280844e-5]
+const SpecLargeRes = [3.0165030023e-5,1.0986143935e-5,7.8576179550e-5,7.0550468806e-5,3.6279325390e-5]
+const ImageDataRes = [-3.5735946149e-3,-4.2040003464e-3,-4.9576885067e-3,-5.2063320763e-3,-4.5703365467e-3]
+const SpatialResX = [-6.3734725118e-3,-6.8757496774e-3,-6.8514756858e-3,-5.9618582018e-3,-3.9855376817e-3]
+const SpatialResY = [-3.7708680611e-3,-3.5555218346e-3,-3.9333687164e-3,-4.7843726352e-3,-5.7517704554e-3]
 
-    // await executeOperation("spectralService","Small.hdf5",400,40,true);
-    // console.log("FITS")
-    // await executeOperation("imageData","Small.hdf5",0,800,false);
-    // console.log("HDF5")
-    // await executeOperation("imageData","Small.hdf5",0,800,true);
+
+async function DemoHDF5(){
+    
+    console.log("SPECTRAL PROFILE SMALL HDF5")
+    console.log("Expecteed Values:")
+    console.log(SpecSmallRes)
+    const res_1 = await executeOperation("spectral","Small.hdf5",400,40,true);
+    console.log("|||||||||||||||||||")
+
+    console.log("SPECTRAL PROFILE LARGE HDF5")
+    console.log("Expecteed Values:")
+    console.log(SpecLargeRes)
+    const res_2 = await executeOperation("spectral","Small.hdf5",400,400,true);
+    console.log("|||||||||||||||||||")
+
+    console.log("IMAGE DATA REQUEST HDF5")
+    console.log("Expecteed Values:")
+    console.log()
+    const res_3 = await executeOperation("imageData","Small.hdf5",400,400,0,400,400,800,false);
+    console.log("|||||||||||||||||||")
+
+    console.log("SPATIAL DATA REQUEST HDF5")
+    console.log("Expecteed X Values:")
+    console.log(SpatialResX)
+    console.log("Expecteed Y Values:")
+    console.log(SpatialResY)
+    const res_4 = await executeOperation("spatial","Small.hdf5",400,400);
+    console.log("|||||||||||||||||||")
+
+
 
 }
-// Demo();
+
+async function DemoFITS(){
+    
+    console.log("SPECTRAL PROFILE SMALL FITS")
+    console.log("Expecteed Values:")
+    console.log(SpecSmallRes)
+    const res_1 = await executeOperation("spectral","Small.fits",400,40,true);
+    console.log("|||||||||||||||||||")
+
+    console.log("SPECTRAL PROFILE LARGE FITS")
+    console.log("Expecteed Values:")
+    console.log(SpecLargeRes)
+    const res_2 = await executeOperation("spectral","Small.fits",400,400,true);
+    console.log("|||||||||||||||||||")
+
+    console.log("IMAGE DATA REQUEST FITS")
+    console.log("Expecteed Values:")
+    console.log()
+    const res_3 = await executeOperation("imageData","Small.fits",400,400,0,400,400,800,false);
+    console.log("|||||||||||||||||||")
+
+    console.log("SPATIAL DATA REQUEST FITS")
+    console.log("Expecteed X Values:")
+    console.log(SpatialResX)
+    console.log("Expecteed Y Values:")
+    console.log(SpatialResY)
+    const res_4 = await executeOperation("spatial","Small.fits",400,400);
+    console.log("|||||||||||||||||||")
+
+
+
+}
+DemoHDF5();
+// DemoFITS();

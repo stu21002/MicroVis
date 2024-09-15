@@ -9,8 +9,11 @@ output_file="service_output.log"
 
 for (( i=0; i<num_times; i++ ))
 do
+    # port=$((8080 + i))
+    # ./build/Service/H5Service ${port} >> "$output_file" 2>&1 &
+    # pids+=($!)
     port=$((8080 + i))
-    ./build/Service/H5Service ${port} >> "$output_file" 2>&1 &
+    ./build/Service/H5Service ${port}  &
     pids+=($!)
 done
 
