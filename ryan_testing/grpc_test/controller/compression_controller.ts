@@ -82,7 +82,7 @@ import { NanEncodingResponse } from "./proto/compression";
 
                     let flatArray;
                     if (sliceData instanceof Float32Array) {
-                        flatArray = Buffer.from(sliceData.buffer);
+                        flatArray = Array.from(sliceData);
                     } else {
                         console.error('Unsupported sliceData format:', typeof sliceData);
                         return;
