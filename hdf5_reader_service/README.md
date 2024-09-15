@@ -4,7 +4,7 @@
 FITS implementation was done by Angus Comrie, and adapated to work with the HDF5 implementation.
 https://github.com/CARTAvis/fits_reader_microservice/tree/main 
 
-This contains a prototype microservice architecture using gRPC for reading FITS and HDF5 files asweel as some additional services such as performing spectral profiles
+This contains a prototype microservice architecture using gRPC for reading FITS and HDF5 files aswell as some additional services such as performing spectral profiles
 
 ## Packages 
 Ensure that the H5Cpp, CFITSO packages are installed as well as the gRPC C++ and Protocol Buffers packages
