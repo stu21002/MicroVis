@@ -124,6 +124,8 @@ export class FitsServices {
 
     //Image data stream handling
     getImageDataStream: async (call:ServerWritableStream<ImageDataRequest, ImageDataResponse>):Promise<void> => {
+      console.log("Image Data called");
+
       let {uuid,start,count,regionType} = call.request;
       if (!regionType){
         regionType=RegionType.RECTANGLE;

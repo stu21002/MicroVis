@@ -132,6 +132,8 @@ export class H5Services {
 
   //Get image data stream service
     getImageDataStream: async (call:ServerWritableStream<ImageDataRequest, ImageDataResponse>):Promise<void> => {
+      console.log("Image Data called");
+
       let {uuid,start,count,regionType,permData} = call.request;
       if (!regionType){
         regionType=RegionType.RECTANGLE;

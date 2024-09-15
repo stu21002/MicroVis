@@ -276,8 +276,8 @@ async function DemoHDF5(){
 
     console.log("IMAGE DATA REQUEST HDF5")
     console.log("Expecteed Values:")
-    console.log()
-    const res_3 = await executeOperation("imageData","Small.hdf5",400,400,0,400,400,800,false);
+    console.log(ImageDataRes)
+    const res_3 = await executeOperation("imageData","Small.hdf5",400,400,0,400,400,400,false);
     console.log("|||||||||||||||||||")
 
     console.log("SPATIAL DATA REQUEST HDF5")
@@ -308,8 +308,8 @@ async function DemoFITS(){
 
     console.log("IMAGE DATA REQUEST FITS")
     console.log("Expecteed Values:")
-    console.log()
-    const res_3 = await executeOperation("imageData","Small.fits",400,400,0,400,400,800,false);
+    console.log(ImageDataRes)
+    const res_3 = await executeOperation("imageData","Small.fits",400,400,0,400,400,400,false);
     console.log("|||||||||||||||||||")
 
     console.log("SPATIAL DATA REQUEST FITS")
@@ -323,5 +323,5 @@ async function DemoFITS(){
 
 
 }
-DemoHDF5();
-// DemoFITS();
+// DemoHDF5();
+DemoFITS();
