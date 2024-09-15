@@ -50,18 +50,6 @@ class ProcessingImpl : public ContourServices::Service {
 
         auto nowEnd = std::chrono::system_clock::now();
 
-        // size_t num_floats = raw_values.size() / sizeof(float);
-
-        // std::vector<float> float_values(num_floats);
-        // std:memcpy(float_values.data(), raw_values.data(), raw_values.size());
-
-        // Convert to std::vector<float>
-        //std::vector<float> vectorData(data.begin(), data.end());
-
-        // auto conversionToVectorEnd = std::chrono::high_resolution_clock::now();
-        // std::chrono::duration<double> conversionDuration = conversionToVectorEnd - conversionToVectorStart;
-        // std::cout << "Conversion to vector took " << conversionDuration.count() << " seconds." << std::endl;
-
         std::vector<double> levels = {-0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03};
 
         std::vector<std::vector<float>> vertex_data;
@@ -71,11 +59,7 @@ class ProcessingImpl : public ContourServices::Service {
         float scale = request->scale();
         float offset = request->offset();
 
-        //std::cout << width << " " << height << " " << index << " " << scale << " " << offset << std::endl;
-
         carta::ContourCallback callback = ContourCallback;
-
-        //std::cout << float_values.size() << std::endl;
 
         auto start = std::chrono::high_resolution_clock::now();
 

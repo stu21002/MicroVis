@@ -10,8 +10,6 @@ import { NanEncodingResponse } from "./proto/compression";
     const h5wasm = await import('h5wasm/node');
     await h5wasm.ready;
 
-    const startTime = new Date().getTime();
-
     const file = new h5wasm.File("/home/ryanlekker/Honors_Project/Git_Repo/MicroVis/ryan_testing/grpc_test/files/Big.hdf5", "r");
 
     const datasetName = '0/DATA';
@@ -105,7 +103,7 @@ import { NanEncodingResponse } from "./proto/compression";
                         index: index
                     }
 
-                    let compressionMode = 0;
+                    const compressionMode = parseInt(process.argv[2]) || 0;
 
                     if(compressionMode == 0){
 
@@ -119,7 +117,7 @@ import { NanEncodingResponse } from "./proto/compression";
                                 console.log(`Compression Output ${index + 1}:`);
                             }
                             console.log(`Time grpc data was sent ${index}: ${grpcCompressionStartTime % 1000000} ms`);
-                            console.log(`Total gRPC Time ${index}: ${grpcCompressionEndTime - grpcCompressionStartTime} ms`);
+                            console.log(`Total gRPC Time ${index}: ${grpcCompressionEndTime - grpcCompressionStartTime} ms \n`);
                         });
                     }
                     else if(compressionMode == 2){
@@ -134,7 +132,7 @@ import { NanEncodingResponse } from "./proto/compression";
                                 console.log(`NanEncoding Output ${index + 1}: ${response?.success}`);
                             }
                             console.log(`Time grpc data was sent ${index}: ${grpcNanEncodingStartTime % 1000000} ms`);
-                            console.log(`Total gRPC Time ${index}: ${grpcNanEncodingEndTime - grpcNanEncodingStartTime} ms`);
+                            console.log(`Total gRPC Time ${index}: ${grpcNanEncodingEndTime - grpcNanEncodingStartTime} ms \n`);
                         });
                     }
                     else if(compressionMode == 1){
@@ -148,7 +146,7 @@ import { NanEncodingResponse } from "./proto/compression";
                                 console.log(`Decompression Output ${index + 1}:`);
                             }
                             console.log(`Time grpc data was sent ${index}: ${grpcDecompressionStartTime % 1000000} ms`);
-                            console.log(`Total gRPC Time ${index}: ${grpcCompressionEndTime - grpcDecompressionStartTime} ms`);
+                            console.log(`Total gRPC Time ${index}: ${grpcCompressionEndTime - grpcDecompressionStartTime} ms \n`);
                         });
                     }
 
@@ -164,21 +162,5 @@ import { NanEncodingResponse } from "./proto/compression";
         console.error('Dataset not found or is not a Dataset');
     }
 
-    const endTime = new Date().getTime();
-    console.log(`Total time taken: ${endTime - startTime} ms`);
-
     file.close();
 })();
-                    
-
-// function computeNanEncodingsBlock() {
-//     clients.forEach((client, index) => {
-//         client.computeNanEncodingsBlock(emptyRequest, (error, response: CompressionOutput) => {
-//             if (error) {
-//                 console.error(`Error: ${error}`);
-//             } else {
-//                 console.log(`GetNanEncodingsBlock Output ${index + 1}: ${response?.value}`);
-//             }
-//         });
-//     });
-// }
