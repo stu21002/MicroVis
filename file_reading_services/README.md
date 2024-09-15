@@ -34,6 +34,7 @@ To run the ingress node
 ```bash
 npm start
 ```
+Ensure the correct function is run for the file type being read
 
 ## File Reading Service Installation
 

@@ -323,5 +323,5 @@ async function DemoFITS(){
 
 
 }
-// DemoHDF5();
-DemoFITS();
+DemoHDF5();
+// DemoFITS();
